@@ -29,12 +29,14 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | MaturityReading | R7, R12 | `maturity_readings` (time-series) | `telemetry.MaturityReading` (`@TimeSeries`) | `MaturityReadingRepository` | `TelemetryService` | `/orchards/{id}/maturity` | orchard detail chart |
 | Notification | R7 (+TTL) | `notifications` | `notification.Notification` | `NotificationRepository` | `NotificationService` | `/notifications`, `/events` | `notifications/` |
 | ImportJob / ImportError | R1 / R2 | `import_jobs` | `dataimport.ImportJob` | `ImportJobRepository` | `ImportService` | `ImportController /imports` | `intranet/ImportJournal` |
+| (System status — no class, read model) | — | none (pings MongoDB and Redis) | `system.SystemStatusDto` | — | `SystemStatusService` | `SystemStatusController /system` | `routes/index.tsx` (temporary status page), `lib/api.ts` |
 | (KPIs — no class, read model) | R13 | aggregation over `mill_receptions`, `collection_rounds` | DTOs `dashboard.dto.*` | `KpiRepositoryCustom` | `KpiService` | `DashboardController /dashboard` | `dashboard/` |
 
 ## 2. Requirement ⇄ use case ⇄ endpoint ⇄ test
 
 | Requirement | Use case / SD | Endpoints | Tests |
 |---|---|---|---|
+| (M0, no FR) | System status / walking skeleton | `GET /system/status` | T-SYS-1 |
 | FR-1.1 | Manage orchards | `/orchards` | T-SEC-1 |
 | FR-1.2 | Declare harvest request / SD-2 | `POST /harvest-requests` | T-HR-1..3 |
 | FR-1.3 | Modify / cancel / SD-4 | `PUT /harvest-requests/{id}`, `/cancel` | T-HR-4..6 |
@@ -55,9 +57,12 @@ The subject states that **consistency between the class model, the NoSQL schema,
 
 ## 3. Deployment consistency checklist
 
-- [ ] Env variable names in `application-prod.yml` match `.env.example` and `docker-compose.yml`.
-- [ ] Nginx `location` blocks cover every API path prefix of section 1 (`/api/` catch-all, plus specific rules for `/api/events`, `/api/map/public` and `/api/auth/login`).
+- [x] (M0) Service names and ports agree: `web` publishes only port 80 (`HTTP_PORT`) and forwards `/api/` to `api:8080` (`frontend/nginx.conf`), `api` listens on 8080 (`server.port`), `mongo` and `redis` publish nothing, and the Actuator shares port 8080 (healthcheck `http://localhost:8080/actuator/health` in `deploy/docker-compose.yml`).
+- [x] (M0) `MONGO_URI` and `REDIS_HOST` in `deploy/docker-compose.yml` are the variables read by `application.yml`.
+- [x] (M0) The commands in `.github/workflows/ci.yml` match [10](10-deployment.md) §2 (`./mvnw -B verify`, `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm build`, `docker compose -f deploy/docker-compose.yml build`).
+- [ ] (M13) Env variable names in `application-prod.yml` match `.env.example` and `docker-compose.yml`.
+- [ ] (M13) Nginx `location` blocks cover every API path prefix of section 1 (`/api/` catch-all, plus specific rules for `/api/events`, `/api/map/public` and `/api/auth/login`).
 - [ ] The indexes created by the production migration are exactly the ones listed in [05](05-nosql-schema.md) §4 (an automated test compares `getIndexInfo()` with the expected list).
 - [ ] Roles in `SecurityConfig` and `@PreAuthorize` match the [role matrix](06-api-security.md#43-role--resource-matrix).
 - [ ] The frontend route guards (`RequireRole`) use the same `Role` enum (generated from OpenAPI).
-- [ ] The Actuator metrics used by the Grafana dashboards exist (dashboard provisioning is tested on staging).
+- [ ] (M13) The Actuator metrics used by the Grafana dashboards exist (dashboard provisioning is tested on staging).

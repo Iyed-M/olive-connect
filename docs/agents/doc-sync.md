@@ -23,7 +23,7 @@ The design docs in `docs/01–11` are graded deliverables. The subject checks th
 
 ## 2. Diagram conventions (keep them machine-checkable)
 
-The automated consistency tests (see §3) parse the docs. Keep these formats:
+The `check-docs` skill (see §3) parses the docs. Keep these formats:
 
 - **Class diagram (`docs/04` §1)**: one `class Name { ... }` block per class, using the **Java class name**. Each attribute is on one line as `+Type name`, with the Java field name. Methods end with `()`. Enumerations carry `<<enumeration>>` and list the Java enum constants.
 - **State machines (`docs/04` §3)**: state names are exactly the Java enum constants. Each `A --> B` arrow is one allowed transition in code.
@@ -37,15 +37,15 @@ The automated consistency tests (see §3) parse the docs. Keep these formats:
 | Check | Where | What it catches |
 |---|---|---|
 | `scripts/check-diagrams.sh` | CI job `docs` (every PR) | Any Mermaid block that fails to render |
-| `DocsConsistencyTest` (backend, built in M0, extended by each milestone) | CI `./mvnw verify` | **Classes**: every `@Document` / embedded class and its fields ⇄ class diagram. **Enums**: enum constants and transition table ⇄ class diagram + state machines. **Endpoints**: Spring `RequestMappingHandlerMapping` ⇄ `docs/06` catalogue. **Indexes**: `indexOps().getIndexInfo()` on Testcontainers ⇄ `docs/05` tables. **Collections**: `@Document(collection)` ⇄ `docs/05` + `docs/11`. **Sequence participants**: every `Controller`/`Service`/`Repository` named in a sequence diagram of a finished milestone exists as a class |
+| `check-docs` skill (`.claude/skills/check-docs/SKILL.md`) | Run by the agent at the end of each milestone, before merging | Compares the branch diff with the docs (classes and fields ⇄ class diagram, enums and transitions ⇄ state machines, endpoints ⇄ `docs/06` catalogue, indexes ⇄ `docs/05` tables, collections ⇄ `docs/05` + `docs/11`, sequence participants ⇄ real classes). Fixes the docs on the same branch and prints the "Docs updated" lines for the PR |
 
-`DocsConsistencyTest` modes:
-- **default (during the project)**: everything that exists **in code** must match the docs. Things that are in the docs but not yet implemented are allowed, because they belong to future milestones.
-- **strict** (`-Ddocs.strict=true`, switched on in M14): docs and code must match **both ways**, so anything documented but never built must be removed from the docs.
+`check-docs` modes:
+- **default (per milestone)**: the branch diff must match the docs. Things that are in the docs but not yet implemented are allowed, because they belong to future milestones.
+- **`check-docs all`** (strict, used in M14): the whole repo is checked, and docs and code must match **both ways**, so anything documented but never built must be removed from the docs.
 
 ## 4. Before opening a PR (agent checklist)
 
 1. List the changes in the diff using the categories in §1.
 2. Update every doc and diagram listed for those categories.
-3. Run `scripts/check-diagrams.sh` and `./mvnw verify` (which runs `DocsConsistencyTest`).
+3. Run the `check-docs` skill, `scripts/check-diagrams.sh` and `./mvnw verify`.
 4. In the PR description, fill in the "Docs updated" section: one line per doc file changed and why.

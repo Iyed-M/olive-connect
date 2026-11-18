@@ -7,7 +7,7 @@ The subject asks to "test the interaction with the frontend and the database par
 ```mermaid
 flowchart TB
     E2E["E2E — Playwright (≈10)<br/>full user journeys in a browser against docker-compose"]
-    API["API integration — @SpringBootTest + Testcontainers + REST Assured (≈40)<br/>Controller → Service → Repository → real MongoDB/Redis"]
+    API["API integration — @SpringBootTest + Testcontainers + MockMvc (≈40)<br/>Controller → Service → Repository → real MongoDB/Redis"]
     SLICE["Slice tests — @WebMvcTest (controllers + security), @DataMongoTest (repositories, indexes, geo, aggregations) (≈40)"]
     UNIT["Unit — JUnit 5 + Mockito + AssertJ (≈80)<br/>services, state machines, validators, priority score, importers<br/>+ Vitest/Testing Library for React components"]
     E2E --> API --> SLICE --> UNIT
@@ -22,7 +22,7 @@ flowchart TB
 | Unit | JUnit 5, Mockito, AssertJ | Business rules in isolation (no Spring context) | every build |
 | Repository | `@DataMongoTest` + Testcontainers `mongo:7` | Derived queries, `@Query`, geo queries, aggregation pipelines, **indexes used** (`explain()` asserts `IXSCAN`) | every build |
 | Web/security | `@WebMvcTest` + `spring-security-test` (`@WithMockUser`) | Status codes, validation errors, role access (403), JSON shape | every build |
-| Integration | `@SpringBootTest(webEnvironment=RANDOM_PORT)` + Testcontainers (Mongo replica set + Redis) + REST Assured | Full layers incl. transactions, cache, SSE | every build (CI) |
+| Integration | `@SpringBootTest` + `MockMvc` + Testcontainers (Mongo replica set + Redis) | Full layers incl. transactions, cache, SSE | every build (CI) |
 | Frontend | Vitest + React Testing Library + MSW (mocked API) | Forms, role-based rendering, error display | every build |
 | E2E | Playwright (mobile viewport 390×844 + desktop) | Real browser → Nginx → API → DB | before release |
 | Load | **k6** | NFR-4: 100 concurrent users, map/search < 10 s | before release, on the VPS |
@@ -34,6 +34,7 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 
 | ID | Use case | Scenario | Type | Level | Expected |
 |---|---|---|---|---|---|
+| T-SYS-1 | System status | `GET /api/system/status` with MongoDB and Redis running | Nominal | API | 200, `api`, `mongo`, `redis` = `UP`, `version` (`SystemStatusControllerTest`) |
 | T-AUTH-1 | Login | valid credentials | Nominal | API | 200, access token, refresh cookie |
 | T-AUTH-2 | Login | wrong password ×6 | Alternative | API | 401 ×5 then 429 |
 | T-AUTH-3 | Login | disabled account | Alternative | API | 401 |
@@ -95,23 +96,28 @@ void farmerCannotCancelWhenRoundStarted() {
 
 **Integration test with Testcontainers (transaction rollback)**
 ```java
-@SpringBootTest(webEnvironment = RANDOM_PORT)
+@SpringBootTest
+@AutoConfigureMockMvc
 @Testcontainers
 class PlanRoundIT {
+    @Autowired MockMvc mockMvc;
+
     @Container @ServiceConnection
     static MongoDBContainer mongo = new MongoDBContainer("mongo:7.0"); // starts as replica set → transactions OK
     @Container @ServiceConnection(name = "redis")
     static GenericContainer<?> redis = new GenericContainer<>("redis:7-alpine").withExposedPorts(6379);
 
     @Test
-    void conflictingBinBookingRollsBackEverything() {
+    void conflictingBinBookingRollsBackEverything() throws Exception {
         var bin = fixtures.bin("B-07");
         fixtures.roundBooking(bin, "2026-11-25T07:00Z", "2026-11-25T15:00Z");
         var dto = planDto().bins(bin.getId()).date("2026-11-25").slot("10:00", "14:00").build();
 
-        given().auth().oauth2(tokenFor(COLLECTION_MANAGER)).body(dto)
-            .post("/api/rounds")
-        .then().statusCode(409).body("code", equalTo("BOOKING_CONFLICT"));
+        mockMvc.perform(post("/api/rounds")
+                .header("Authorization", "Bearer " + tokenFor(COLLECTION_MANAGER))
+                .contentType(APPLICATION_JSON).content(json(dto)))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("BOOKING_CONFLICT"));
 
         assertThat(roundRepository.count()).isEqualTo(1);           // only the pre-existing one
         assertThat(harvestRequests.findAllById(dto.requestIds()))
@@ -149,4 +155,4 @@ The k6 run is done against the deployed VPS with the `--history` dataset loaded 
 
 ## 4. CI
 
-A GitHub Actions (or GitLab CI) pipeline runs on each push: `./mvnw verify` (unit, slice and Testcontainers tests, plus the JaCoCo report), then `npm ci && npm run lint && npm test && npm run build`, then the Docker image build. On the `main` branch it also runs the Playwright tests against `docker compose up`.
+A GitHub Actions (or GitLab CI) pipeline runs on each push: `./mvnw verify` (unit, slice and Testcontainers tests, plus the JaCoCo report), then `pnpm install --frozen-lockfile && pnpm lint && pnpm build` (`pnpm test` is added with the first frontend tests), then the Docker image build (`docker compose -f deploy/docker-compose.yml build`). This is `.github/workflows/ci.yml`; the Mermaid render check is the separate `.github/workflows/docs.yml`. On the `main` branch it also runs the Playwright tests against `docker compose up`.

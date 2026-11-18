@@ -45,7 +45,7 @@ flowchart TB
 **Main choices**
 
 - **Single deployable backend** (a modular monolith). With 3 students and a 30 h budget per module, microservices would add work without any benefit. The packages are still split by feature, so the code stays modular.
-- **SPA + REST API**: Nginx serves the React build as static files and proxies `/api`. The browser only ever talks to Nginx, so there is no CORS to configure in production.
+- **SPA + REST API**: Nginx serves the React build as static files and proxies `/api`. The Actuator runs on the same port 8080 as the API and is not proxied. The browser only ever talks to Nginx, so there is no CORS to configure in production.
 - **Real-time** uses **Server-Sent Events** (`/api/events`), which is simpler than WebSocket and enough for one-way server→client notifications. Redis pub/sub broadcasts each event to every API instance, so the backend can scale horizontally.
 - MongoDB runs as a **single-node replica set**. That is required for multi-document transactions (`@Transactional` on round creation plus bookings) and for change streams.
 
@@ -61,7 +61,7 @@ flowchart TB
         C3[FieldAlertController]
         C4[...]
     end
-    subgraph DTO["DTO + Mapper (MapStruct)"]
+    subgraph DTO["DTO (record + static from())"]
         D1[HarvestRequestCreateDto / HarvestRequestDto]
     end
     subgraph Business["Service layer (@Service, @Transactional)"]
@@ -141,7 +141,8 @@ tn.oliveconnect
 ├── dashboard/         KpiService, KpiRepositoryCustom(+Impl with Aggregation), DashboardController, dto/
 ├── dataimport/        ImportJob, ImportJobRepository, ImportScheduler, ImportService,
 │                      parsers/ (CsvParser, JsonParser), validators/, ImportController (admin)
-└── settings/          SystemSettings, SettingsService, SettingsController
+├── settings/          SystemSettings, SettingsService, SettingsController
+└── system/            SystemStatusController, SystemStatusService, SystemStatusDto  (M0: GET /api/system/status)
 ```
 
 ## 4. Technology stack
@@ -151,16 +152,16 @@ tn.oliveconnect
 | Language / runtime | Java | 21 LTS |
 | Framework | Spring Boot (Web, Validation, Security, Data MongoDB, Data Redis, Cache, Actuator) | 3.4+ |
 | Build | Maven via `mvnw` | 3.9 |
-| Mapping | MapStruct | 1.6 |
+| Mapping | Hand-written static `from(entity)` methods on DTO records | — |
 | API doc | springdoc-openapi (Swagger UI) | 2.x |
 | Auth | JWT (jjwt or Spring Security OAuth2 Resource Server with HMAC key) | — |
 | Logging | Log4j2 (`spring-boot-starter-log4j2`, JSON layout for Loki) — the subject cites Log4j | 2.x |
 | CSV | OpenCSV or Jackson CSV | — |
 | Metrics | Micrometer + Prometheus registry | — |
-| Tests | JUnit 5, Mockito, AssertJ, Spring Boot Test, Testcontainers (MongoDB, Redis), REST Assured | — |
+| Tests | JUnit 5, Mockito, AssertJ, Spring Boot Test, MockMvc, Testcontainers (MongoDB, Redis) | — |
 | DB | MongoDB | 7.0 / 8.0 |
 | Cache | Redis | 7.x |
-| Frontend | React 18, Vite, TypeScript, React Router, TanStack Query, Mantine, react-leaflet + Leaflet.markercluster, react-chartjs-2, React Hook Form + Zod, React Joyride, Vitest + Testing Library, Playwright | — |
+| Frontend | React 19, Vite, TypeScript, pnpm, Tailwind CSS v4, shadcn/ui (custom olive theme), TanStack Router (file-based), TanStack Query, react-leaflet + Leaflet.markercluster, Recharts (shadcn chart), React Hook Form + Zod, React Joyride, Vitest + Testing Library, Playwright | — |
 | Server | Nginx | 1.27 |
 | Monitoring | Prometheus, Grafana, Loki/Promtail, node-exporter, cAdvisor, Uptime Kuma | — |
 | Load test | k6 (or JMeter) | — |

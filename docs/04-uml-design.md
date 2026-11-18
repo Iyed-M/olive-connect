@@ -729,7 +729,7 @@ sequenceDiagram
         K->>RC: SET TTL 300 s
     end
     K-->>C: KpiSeriesDto
-    C-->>CM: 200 JSON → Chart.js
+    C-->>CM: 200 JSON → Recharts
 ```
 
 ## 3. State machines

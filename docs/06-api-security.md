@@ -18,6 +18,11 @@ Base URL: `/api`. Format: JSON, dates in ISO-8601 UTC, GeoJSON for positions. AP
 
 Roles: **PUB** public, **F** farmer, **CM** collection manager, **TL** team leader, **LM** logistics manager, **MM** mill manager, **AD** admin. "own" means the service also checks ownership.
 
+### System (M0)
+| Method | Path | Roles | Description | FR |
+|---|---|---|---|---|
+| GET | `/system/status` | PUB | `{api, mongo, redis, version}`, each of the first three is `UP` or `DOWN` (Mongo and Redis are pinged) | — |
+
 ### Auth & accounts
 | Method | Path | Roles | Description | FR |
 |---|---|---|---|---|
@@ -27,62 +32,84 @@ Roles: **PUB** public, **F** farmer, **CM** collection manager, **TL** team lead
 | GET | `/me` | any | profile + roles + `onboardingDone` | — |
 | PATCH | `/me` | any | update phone, password, onboardingDone | NFR-3 |
 | POST | `/registrations` | PUB | visitor registration request | FR-6.1 |
-| GET | `/registrations?status=PENDING` | AD | list | FR-6.1 |
-| POST | `/registrations/{id}/approve` · `/reject` | AD | approve → creates FARMER | FR-6.1 |
-| GET/POST/PUT | `/users`, `/users/{id}` | AD | manage accounts | FR-6.2 |
-| PUT | `/users/{id}/roles` · POST `/users/{id}/enable` · `/disable` | AD | rights | FR-6.2 |
+| GET | `/registrations` | AD | list, query `status` (for example `PENDING`) | FR-6.1 |
+| POST | `/registrations/{id}/approve` | AD | approve → creates FARMER | FR-6.1 |
+| POST | `/registrations/{id}/reject` | AD | reject | FR-6.1 |
+| GET | `/users` | AD | list accounts | FR-6.2 |
+| POST | `/users` | AD | create account | FR-6.2 |
+| GET | `/users/{id}` | AD | detail | FR-6.2 |
+| PUT | `/users/{id}` | AD | edit account | FR-6.2 |
+| PUT | `/users/{id}/roles` | AD | change roles | FR-6.2 |
+| POST | `/users/{id}/enable` | AD | enable account | FR-6.2 |
+| POST | `/users/{id}/disable` | AD | disable account + revoke sessions | FR-6.2 |
 
 ### Orchards, varieties, map (F1, F4)
 | Method | Path | Roles | Description | FR |
 |---|---|---|---|---|
 | GET | `/orchards` | F (own), CM, AD | list (farmer: only own) | FR-1.1 |
 | POST | `/orchards` | F, AD | create with plots | FR-1.1 |
-| GET/PUT/DELETE | `/orchards/{id}` | F own, CM (read), AD | detail / edit | FR-1.1 |
-| GET | `/orchards/{id}/maturity?days=30` | F own, CM | maturity time series | FR-4.3 |
-| GET | `/orchards/nearest?lng=&lat=` | F | own orchard nearest to GPS position (alert form) | FR-2.1 |
+| GET | `/orchards/{id}` | F own, CM, AD | detail | FR-1.1 |
+| PUT | `/orchards/{id}` | F own, AD | edit | FR-1.1 |
+| DELETE | `/orchards/{id}` | F own, AD | delete | FR-1.1 |
+| GET | `/orchards/{id}/maturity` | F own, CM | maturity time series, query `days` (default 30) | FR-4.3 |
+| GET | `/orchards/nearest` | F | own orchard nearest to GPS position, query `lng`, `lat` (alert form) | FR-2.1 |
 | GET | `/varieties` | PUB | reference list | — |
-| GET | `/map/public?bbox=w,s,e,n&variety=&status=&maturityMin=&maturityMax=` | PUB | GeoJSON FeatureCollection **without personal data** | FR-4.1, 4.2, 4.4 |
-| GET | `/map/private?bbox=…&layers=orchards,alerts,rounds` | F (own), CM, AD | enriched layers | FR-4.3 |
+| GET | `/map/public` | PUB | GeoJSON FeatureCollection **without personal data**, query `bbox=w,s,e,n`, `variety`, `status`, `maturityMin`, `maturityMax` | FR-4.1, 4.2, 4.4 |
+| GET | `/map/private` | F (own), CM, AD | enriched layers, query `bbox`, `layers=orchards,alerts,rounds` | FR-4.3 |
 
 ### Harvest requests (F1)
 | Method | Path | Roles | Description | FR |
 |---|---|---|---|---|
 | POST | `/harvest-requests` | F | declare | FR-1.2 |
-| GET | `/harvest-requests?status=&type=&mine=true` | F (own), CM | list / queue sorted by priority | FR-1.4 |
+| GET | `/harvest-requests` | F (own), CM | list / queue sorted by priority, query `status`, `type`, `mine` | FR-1.4 |
 | GET | `/harvest-requests/{id}` | F own, CM, TL (if in their round) | detail + history | FR-1.8 |
 | PUT | `/harvest-requests/{id}` | F own | modify (rules SD-4) | FR-1.3 |
 | POST | `/harvest-requests/{id}/cancel` | F own | cancel | FR-1.3 |
-| POST | `/harvest-requests/{id}/validate` · `/reject` | CM | review | FR-1.4 |
+| POST | `/harvest-requests/{id}/validate` | CM | validate | FR-1.4 |
+| POST | `/harvest-requests/{id}/reject` | CM | reject | FR-1.4 |
 
 ### Rounds & planning (F1, F3)
 | Method | Path | Roles | Description | FR |
 |---|---|---|---|---|
-| GET | `/planning/suggestions?date=` | CM | priority-sorted groups, free resources, mill | FR-1.5 |
+| GET | `/planning/suggestions` | CM | priority-sorted groups, free resources, mill, query `date` | FR-1.5 |
 | POST | `/rounds` | CM | plan round (transaction + bookings) | FR-1.5 |
-| GET | `/rounds?from=&to=&status=&teamLeaderId=` | CM, LM, TL (own) | calendar/list | FR-3.3 |
+| GET | `/rounds` | CM, LM, TL (own) | calendar/list, query `from`, `to`, `status`, `teamLeaderId` | FR-3.3 |
 | GET | `/rounds/{id}` | CM, LM, TL own, MM (if delivering to their mill) | detail | — |
 | PUT | `/rounds/{id}` | CM (PLANNED only) | modify stops/resources | FR-1.5 |
 | POST | `/rounds/{id}/cancel` | CM | cancel + release bookings | — |
-| POST | `/rounds/{id}/start` · `/complete` | TL own | lifecycle | FR-1.7 |
+| POST | `/rounds/{id}/start` | TL own | start round | FR-1.7 |
+| POST | `/rounds/{id}/complete` | TL own | complete round | FR-1.7 |
 | PATCH | `/rounds/{id}/stops/{order}` | TL own | update stop (status, kg, crates) | FR-1.7 |
 
 ### Resources (F3)
 | Method | Path | Roles | Description | FR |
 |---|---|---|---|---|
-| GET/POST/PUT/DELETE | `/workers`, `/workers/{id}` | LM (CM read) | seasonal workers | FR-3.1 |
-| GET/POST/PUT/DELETE | `/equipment`, `/equipment/{id}` (`?type=BIN`) | LM (CM read) | tractors, bins, nets, shakers | FR-3.2 |
-| POST | `/workers/{id}/unavailabilities`, `/equipment/{id}/unavailabilities` | LM | leave / maintenance | FR-3.2 |
-| GET | `/resources/availability?start=&end=&type=` | CM, LM | free resources on a slot | FR-1.5 |
-| GET | `/resources/calendar?resourceId=&from=&to=` | CM, LM | bookings + unavailabilities | FR-3.3 |
-| GET/POST | `/supply-orders` | LM | list / create | FR-3.5 |
+| GET | `/workers` | LM, CM | list seasonal workers | FR-3.1 |
+| POST | `/workers` | LM | create worker | FR-3.1 |
+| GET | `/workers/{id}` | LM, CM | detail | FR-3.1 |
+| PUT | `/workers/{id}` | LM | edit worker | FR-3.1 |
+| DELETE | `/workers/{id}` | LM | delete worker | FR-3.1 |
+| GET | `/equipment` | LM, CM | list tractors, bins, nets, shakers, query `type` (for example `BIN`) | FR-3.2 |
+| POST | `/equipment` | LM | create equipment | FR-3.2 |
+| GET | `/equipment/{id}` | LM, CM | detail | FR-3.2 |
+| PUT | `/equipment/{id}` | LM | edit equipment | FR-3.2 |
+| DELETE | `/equipment/{id}` | LM | delete equipment | FR-3.2 |
+| POST | `/workers/{id}/unavailabilities` | LM | worker leave | FR-3.2 |
+| POST | `/equipment/{id}/unavailabilities` | LM | equipment maintenance | FR-3.2 |
+| GET | `/resources/availability` | CM, LM | free resources on a slot, query `start`, `end`, `type` | FR-1.5 |
+| GET | `/resources/calendar` | CM, LM | bookings + unavailabilities, query `resourceId`, `from`, `to` | FR-3.3 |
+| GET | `/supply-orders` | LM | list | FR-3.5 |
+| POST | `/supply-orders` | LM | create | FR-3.5 |
 | POST | `/supply-orders/{id}/receive` | LM | mark received (stock `$inc`) | FR-3.5 |
 
 ### Alerts (F2)
 | Method | Path | Roles | Description | FR |
 |---|---|---|---|---|
-| POST | `/alerts` (multipart: JSON + photo) | F | report | FR-2.1, 2.2 |
-| GET | `/alerts?status=&type=&mine=true` | F (own), CM | list | FR-2.3 |
-| POST | `/alerts/{id}/acknowledge` · `/resolve` · `/dismiss` | CM | handle | FR-2.4 |
+| POST | `/alerts` | F | report (multipart: JSON + photo) | FR-2.1, 2.2 |
+| GET | `/alerts` | F (own), CM | list, query `status`, `type`, `mine` | FR-2.3 |
+| POST | `/alerts/{id}/acknowledge` | CM | acknowledge | FR-2.4 |
+| POST | `/alerts/{id}/resolve` | CM | resolve | FR-2.4 |
+| POST | `/alerts/{id}/dismiss` | CM | dismiss | FR-2.4 |
 | POST | `/alerts/{id}/create-urgent-request` | CM | one-click urgent request | FR-2.5 |
 | GET | `/files/alerts/{fileId}` | F own, CM | photo (GridFS) | — |
 
@@ -93,30 +120,34 @@ Roles: **PUB** public, **F** farmer, **CM** collection manager, **TL** team lead
 | PUT | `/mills/{id}/capacity` | MM (own mill), AD | publish available capacity | — |
 | GET | `/mills/{id}/incoming` | MM own | rounds delivering today | — |
 | POST | `/mills/{id}/receptions` | MM own | record weighing | SD-7 |
-| GET | `/receptions?mine=true` | F (own), MM, CM | list receptions | FR-1.6 |
+| GET | `/receptions` | F (own), MM, CM | list receptions, query `mine` | FR-1.6 |
 
 ### Dashboard (F5)
-| Method | Path | Roles | FR |
-|---|---|---|---|
-| GET | `/dashboard/summary?season=` | CM, MM, AD | KPI tiles |
-| GET | `/dashboard/yield?season=&groupBy=orchard\|variety\|delegation` | CM, AD | FR-5.1 |
-| GET | `/dashboard/lead-time?season=&groupBy=delegation\|week` | CM, AD | FR-5.2 |
-| GET | `/dashboard/fill-rate?season=&groupBy=week\|bin\|round` | CM, MM, AD | FR-5.3 |
-| GET | `/dashboard/mill-volumes?millId=&from=&to=` | MM (own), CM, AD | FR-5.4 |
-| GET | `/dashboard/{kpi}/export.csv` | same as KPI | FR-5.6 |
+| Method | Path | Roles | Description | FR |
+|---|---|---|---|---|
+| GET | `/dashboard/summary` | CM, MM, AD | KPI tiles, query `season` | — |
+| GET | `/dashboard/yield` | CM, AD | yield, query `season`, `groupBy=orchard\|variety\|delegation` | FR-5.1 |
+| GET | `/dashboard/lead-time` | CM, AD | lead time, query `season`, `groupBy=delegation\|week` | FR-5.2 |
+| GET | `/dashboard/fill-rate` | CM, MM, AD | fill rate, query `season`, `groupBy=week\|bin\|round` | FR-5.3 |
+| GET | `/dashboard/mill-volumes` | MM (own), CM, AD | mill volumes, query `millId`, `from`, `to` | FR-5.4 |
+| GET | `/dashboard/{kpi}/export.csv` | same as KPI | CSV export of a KPI | FR-5.6 |
 
 ### Notifications, imports, settings
 | Method | Path | Roles | Description |
 |---|---|---|---|
-| GET | `/events` (SSE, `text/event-stream`) | any authenticated | real-time stream (token via cookie or `?ticket=` short-lived) |
-| GET | `/notifications?unread=true` | any (own) | inbox |
-| POST | `/notifications/{id}/read` · `/notifications/read-all` | own | — |
-| GET | `/imports?dataset=&status=` | AD | import journal |
+| GET | `/events` | any authenticated | real-time SSE stream (`text/event-stream`), authenticated with the short-lived `ticket` query parameter |
+| GET | `/notifications` | any (own) | inbox, query `unread` |
+| POST | `/notifications/{id}/read` | own | mark one as read |
+| POST | `/notifications/read-all` | own | mark all as read |
+| GET | `/imports` | AD | import journal, query `dataset`, `status` |
 | GET | `/imports/{id}` | AD | details + rejected rows |
-| POST | `/imports/run?type=REFERENCE\|DYNAMIC` | AD | manual trigger |
+| POST | `/imports/run` | AD | manual trigger, query `type=REFERENCE\|DYNAMIC` |
 | POST | `/imports/upload` | AD | upload a CSV/JSON into the inbox |
-| GET/PUT | `/settings` | AD | thresholds, parameters |
-| GET | `/actuator/health`, `/actuator/prometheus` | internal network only (Nginx denies from outside) | monitoring |
+| GET | `/settings` | AD | thresholds, parameters |
+| PUT | `/settings` | AD | update thresholds, parameters |
+| POST | `/events/ticket` | any authenticated | one-time SSE ticket (see §4.1) |
+
+**Actuator** (not under `/api`, same port 8080 as the API): `/actuator/health` and `/actuator/info` are exposed today. `/actuator/prometheus` is added in M10. Nginx only proxies `/api/`, so the Actuator is not reachable from outside, only from the `back` Docker network.
 
 ## 3. DTO examples (the API contract)
 
@@ -163,7 +194,7 @@ flowchart LR
 
 ### 4.2 Authorisation: three levels
 
-1. **URL level** (`SecurityFilterChain`): `/api/map/public/**`, `/api/varieties`, `/api/auth/**` and `POST /api/registrations` are `permitAll`. Everything else is `authenticated`. `/actuator/**` is denied except `health` (and Nginx only allows it from the internal network).
+1. **URL level** (`SecurityFilterChain`): `/api/map/public/**`, `/api/varieties`, `/api/auth/**` and `POST /api/registrations` are `permitAll`. Everything else is `authenticated`. `/api/system/status` is also `permitAll` (M0). The Actuator exposes only `health` and `info` on port 8080, and Nginx never proxies it.
 2. **Method level** (`@PreAuthorize("hasRole('COLLECTION_MANAGER')")`) on controllers.
 3. **Data level (ownership)** in services. For example, `OrchardService.getForUser(id, user)` loads with `findByIdAndOwnerId(id, user.id())` when the user is only a FARMER. Missing → `NotFoundException` (404, not 403, so the existence of other farmers' data is never revealed). Mill managers are restricted to `assignedMillId`, team leaders to their own rounds.
 

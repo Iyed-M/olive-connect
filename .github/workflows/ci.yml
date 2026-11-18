@@ -1,0 +1,58 @@
+# Runs on every pull request and on every push to main.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Read-only access to the repository is enough for building and testing.
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (Maven verify)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven            # reuse downloaded Maven dependencies between runs
+          cache-dependency-path: backend/pom.xml
+      # verify = compile + tests. Testcontainers starts MongoDB and Redis via Docker.
+      - run: ./mvnw -B verify
+
+  frontend:
+    name: Frontend (lint and build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      # Must come before setup-node: it installs pnpm, and the version is read from package.json.
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm            # cache the pnpm store between runs
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile   # fails if the lockfile is out of date
+      - run: pnpm lint
+      - run: pnpm build
+
+  docker:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Builds the backend and frontend images exactly as the deployment does.
+      - run: docker compose -f deploy/docker-compose.yml build

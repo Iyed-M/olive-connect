@@ -1,5 +1,8 @@
 # Local agent skill installs (not shared)
-.claude/
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/check-docs/
 .agents/
 skills-lock.json
 

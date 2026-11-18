@@ -8,7 +8,7 @@
 
 ## Demo script
 
-<!-- copy the milestone demo, tick when verified on the deployed URL -->
+<!-- copy the milestone demo, tick when verified on the production compose run locally -->
 - [ ] ...
 
 ## Docs updated (see docs/agents/doc-sync.md)
@@ -18,10 +18,10 @@
 
 ## Definition of Done
 
-- [ ] Demo script passes on the deployed URL
+- [ ] Demo script passes on the production compose run locally
 - [ ] Nominal + alternative API tests green in CI
 - [ ] Role and ownership rules enforced (another user's data returns 404)
 - [ ] Indexes created for new queries
 - [ ] Works on a 360 px wide screen
-- [ ] Diagrams and docs updated **in this PR**; `docs` CI job and `DocsConsistencyTest` green
+- [ ] Diagrams and docs updated **in this PR**; `docs` CI job green and `check-docs` skill run
 - [ ] Traceability row (`docs/11`) updated
