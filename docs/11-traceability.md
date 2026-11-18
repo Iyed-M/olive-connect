@@ -1,0 +1,63 @@
+# 11 — Traceability Matrix (consistency proof)
+
+The subject states that **consistency between the class model, the NoSQL schema, the Spring Boot API and the deployment** is checked closely. This matrix is kept up to date throughout the project and copied into the report as an appendix. Any rename has to be applied across a whole row.
+
+## 1. Class ⇄ collection ⇄ layers ⇄ API ⇄ UI
+
+| UML class | Transformation rule(s) | Collection / location | Entity (`@Document`) | Repository (DAO) | Service | Controller · base path | React feature |
+|---|---|---|---|---|---|---|---|
+| User | R1, R9 | `users` | `user.User` | `UserRepository` | `UserService`, `AuthService` | `AuthController /auth`, `UserController /users`, `/me` | `auth/`, `admin/Users` |
+| FarmerProfile | R2 | `users.farmerProfile` | `user.FarmerProfile` (embedded) | — | `UserService` | `/me`, `/users` | `admin/Users` |
+| RegistrationRequest | R1 | `registration_requests` | `user.RegistrationRequest` | `RegistrationRequestRepository` | `RegistrationService` | `RegistrationController /registrations` | `public/RegistrationPage`, `admin/Registrations` |
+| Orchard | R1, R4, R10, R11 | `orchards` | `orchard.Orchard` | `OrchardRepository` (+ custom geo) | `OrchardService`, `MapService` | `OrchardController /orchards`, `MapController /map` | `farmer/Orchards`, `public/PublicMapPage` |
+| Plot | R2 | `orchards.plots[]` | `orchard.Plot` (embedded) | — | `OrchardService` | `/orchards` | `farmer/OrchardForm` |
+| OliveVariety | R1 (natural key) | `olive_varieties` | `orchard.OliveVariety` | `OliveVarietyRepository` | `OrchardService` (cached) | `/varieties` | selects, `intranet/Reference` |
+| HarvestRequest | R1, R3, R4, R11, R14 | `harvest_requests` | `harvest.HarvestRequest` | `HarvestRequestRepository` | `HarvestRequestService`, `PriorityCalculator` | `HarvestRequestController /harvest-requests` | `farmer/HarvestRequestForm`, `collection/RequestQueue` |
+| StatusChange | R2 | `*.statusHistory[]` | `common.StatusChange` (embedded) | — | each owning service | in detail DTOs | `components/Timeline` |
+| CollectionRound | R1, R5, R14 | `collection_rounds` | `round.CollectionRound` | `CollectionRoundRepository` | `CollectionRoundService`, `PlanningService` | `CollectionRoundController /rounds`, `/planning` | `collection/PlanningBoard`, `teamleader/RoundRunner` |
+| RoundStop | R2 | `collection_rounds.stops[]` | `round.RoundStop` (embedded) | — | `CollectionRoundService` | `/rounds/{id}/stops/{order}` | `teamleader/RoundRunner` |
+| Worker | R1, R2 | `workers` | `resource.Worker` | `WorkerRepository` | `ResourceService` | `/workers` | `logistics/Workers` |
+| Equipment / Tractor / Bin / Tool | R1, R8 | `equipment` (`type`, `_class`) | `resource.Equipment` + subclasses | `EquipmentRepository` | `ResourceService` | `/equipment` | `logistics/Equipment` |
+| Unavailability | R2 | `workers/equipment.unavailabilities[]` | `resource.Unavailability` | — | `ResourceService` | `/…/{id}/unavailabilities` | `logistics/ResourceCalendar` |
+| ResourceBooking | R6 | `resource_bookings` | `resource.ResourceBooking` | `ResourceBookingRepository` | `BookingService` | `/resources/calendar`, `/resources/availability` | `logistics/ResourceCalendar` |
+| SupplyOrder | R1, R3 | `supply_orders` | `resource.SupplyOrder` | `SupplyOrderRepository` | `SupplyService` | `/supply-orders` | `logistics/SupplyOrders` |
+| Mill | R1, R10 | `mills` | `mill.Mill` | `MillRepository` | `MillService` | `MillController /mills` | `mill/CapacityPage` |
+| MillReception | R1, R3, R11, R13 | `mill_receptions` | `mill.MillReception` | `MillReceptionRepository` | `MillReceptionService` | `/mills/{id}/receptions`, `/receptions` | `mill/ReceptionForm`, `farmer/MyReceptions` |
+| QualityAssessment | R2 | `mill_receptions.quality` | `mill.QualityAssessment` (embedded) | — | `MillReceptionService` | idem | idem |
+| FieldAlert | R1, R2, R10 | `field_alerts` (+ GridFS `alerts`) | `alert.FieldAlert` | `FieldAlertRepository` | `FieldAlertService`, `AutoAlertService` | `FieldAlertController /alerts` | `farmer/AlertForm`, `collection/AlertsBoard` |
+| WeatherReading | R7, R12 | `weather_readings` (time-series) | `telemetry.WeatherReading` (`@TimeSeries`) | `WeatherReadingRepository` | `TelemetryService` | (import only), `/dashboard` | dashboard charts |
+| MaturityReading | R7, R12 | `maturity_readings` (time-series) | `telemetry.MaturityReading` (`@TimeSeries`) | `MaturityReadingRepository` | `TelemetryService` | `/orchards/{id}/maturity` | orchard detail chart |
+| Notification | R7 (+TTL) | `notifications` | `notification.Notification` | `NotificationRepository` | `NotificationService` | `/notifications`, `/events` | `notifications/` |
+| ImportJob / ImportError | R1 / R2 | `import_jobs` | `dataimport.ImportJob` | `ImportJobRepository` | `ImportService` | `ImportController /imports` | `intranet/ImportJournal` |
+| (KPIs — no class, read model) | R13 | aggregation over `mill_receptions`, `collection_rounds` | DTOs `dashboard.dto.*` | `KpiRepositoryCustom` | `KpiService` | `DashboardController /dashboard` | `dashboard/` |
+
+## 2. Requirement ⇄ use case ⇄ endpoint ⇄ test
+
+| Requirement | Use case / SD | Endpoints | Tests |
+|---|---|---|---|
+| FR-1.1 | Manage orchards | `/orchards` | T-SEC-1 |
+| FR-1.2 | Declare harvest request / SD-2 | `POST /harvest-requests` | T-HR-1..3 |
+| FR-1.3 | Modify / cancel / SD-4 | `PUT /harvest-requests/{id}`, `/cancel` | T-HR-4..6 |
+| FR-1.4 | Validate / reject | `/validate`, `/reject` | T-HR-7 |
+| FR-1.5 | Plan round / SD-3 | `POST /rounds`, `/planning/suggestions` | T-RD-1..5 |
+| FR-1.6 | Notifications | `/notifications`, `/events` | T-HR-1, T-RD-1, T-ML-1 |
+| FR-1.7 | Update round / SD-6 | `/rounds/{id}/start`, `/stops/{order}`, `/complete` | T-RD-6..8 |
+| FR-2.x | Report & handle alert / SD-5 | `/alerts/**` | T-AL-1..4 |
+| FR-3.x | Resources | `/workers`, `/equipment`, `/resources/*`, `/supply-orders` | T-RS-1..2, T-RD-2 |
+| FR-4.x | Map | `/map/public`, `/map/private` | T-SEC-3, T-MAP-1, T-PERF-1 |
+| FR-5.x | Dashboard / SD-9 | `/dashboard/*` | T-KPI-1..2 |
+| FR-6.1–6.2 | Accounts | `/registrations`, `/users` | T-AUTH-* |
+| FR-6.3–6.4 | Import / SD-8 | `/imports/*` | T-IM-1..5 |
+| FR-6.5 | Intranet | `/orchards`, `/equipment`, `/rounds`, `/imports` (ADMIN/LM) | E2E |
+| NFR-4 | Performance | all reads | T-PERF-1, index tests |
+| NFR-5 | Security | all | T-SEC-*, T-AUTH-* |
+| NFR-6 | Availability / backups | — | restore drill, Kuma report |
+
+## 3. Deployment consistency checklist
+
+- [ ] Env variable names in `application-prod.yml` match `.env.example` and `docker-compose.yml`.
+- [ ] Nginx `location` blocks cover every API path prefix of section 1 (`/api/` catch-all, plus specific rules for `/api/events`, `/api/map/public` and `/api/auth/login`).
+- [ ] The indexes created by the production migration are exactly the ones listed in [05](05-nosql-schema.md) §4 (an automated test compares `getIndexInfo()` with the expected list).
+- [ ] Roles in `SecurityConfig` and `@PreAuthorize` match the [role matrix](06-api-security.md#43-role--resource-matrix).
+- [ ] The frontend route guards (`RequireRole`) use the same `Role` enum (generated from OpenAPI).
+- [ ] The Actuator metrics used by the Grafana dashboards exist (dashboard provisioning is tested on staging).

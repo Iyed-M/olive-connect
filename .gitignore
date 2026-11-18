@@ -1,0 +1,22 @@
+# Local agent skill installs (not shared)
+.claude/
+.agents/
+skills-lock.json
+
+# Secrets
+.env
+*.env.local
+deploy/mongo/keyfile
+
+# Backend (Maven)
+backend/target/
+
+# Frontend (Node / Vite)
+node_modules/
+frontend/dist/
+
+# Editors / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
