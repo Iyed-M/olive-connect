@@ -1,0 +1,23 @@
+name: docs
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  diagrams:
+    name: Mermaid diagrams render
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Render every Mermaid block
+        run: scripts/check-diagrams.sh --export diagrams-svg
+      - name: Upload rendered diagrams
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagrams-svg
+          path: diagrams-svg
