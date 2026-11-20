@@ -1,4 +1,4 @@
-import { ClipboardList, Factory, Route, Sprout, Truck, Users, type LucideIcon } from 'lucide-react'
+import { ClipboardList, Factory, HardHat, Route, Sprout, Truck, Users, type LucideIcon } from 'lucide-react'
 import type { LinkProps } from '@tanstack/react-router'
 import type { Role } from './types'
 
@@ -14,7 +14,15 @@ export const NAV: Record<Role, NavItem[]> = {
   FARMER: [{ to: '/farmer', label: 'Home', icon: Sprout }],
   COLLECTION_MANAGER: [{ to: '/collection/requests', label: 'Requests', icon: ClipboardList }],
   TEAM_LEADER: [{ to: '/rounds/mine', label: 'My rounds', icon: Route }],
-  LOGISTICS_MANAGER: [{ to: '/logistics/workers', label: 'Workers', icon: Truck }],
+  LOGISTICS_MANAGER: [
+    { to: '/logistics/workers', label: 'Workers', icon: HardHat },
+    { to: '/logistics/equipment', label: 'Equipment', icon: Truck },
+  ],
   MILL_MANAGER: [{ to: '/mill/incoming', label: 'Incoming', icon: Factory }],
-  ADMIN: [{ to: '/admin/users', label: 'Users', icon: Users }],
+  // The Admin has full access to Workers and Equipment too (same pages as the Logistics manager).
+  ADMIN: [
+    { to: '/admin/users', label: 'Users', icon: Users },
+    { to: '/logistics/workers', label: 'Workers', icon: HardHat },
+    { to: '/logistics/equipment', label: 'Equipment', icon: Truck },
+  ],
 }

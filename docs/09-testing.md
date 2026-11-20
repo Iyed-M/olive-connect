@@ -81,6 +81,17 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-AL-3 | Report alert | photo too large / wrong type | Alternative | Web | 400 |
 | T-AL-4 | Handle alert | create urgent request from MATURITY alert | Nominal | API | request URGENT created, alert RESOLVED |
 | T-RS-1 | Resources | calendar of a bin for a week | Nominal | Repo | bookings + unavailabilities returned |
+| T-RS-3 | Workers | logistics manager creates, reads, updates, filters and deletes a worker | Nominal | API | 201 with `Location`, 200, 204 then 404 (`ResourceControllerTest`) |
+| T-RS-4 | Workers | worker with an existing `cin` | Alternative | API | 409 `CIN_TAKEN` (`ResourceControllerTest`) |
+| T-RS-5 | Equipment | `GET /equipment` with a tractor, a bin and a tool | Nominal | API | each item has its own fields, `type` filter works (`ResourceControllerTest`) |
+| T-RS-6 | Equipment | update, `status` filter, delete | Nominal | API | 200, 200, 204 then 404 (`ResourceControllerTest`) |
+| T-RS-7 | Equipment | equipment with an existing `code` | Alternative | API | 409 `CODE_TAKEN` (`ResourceControllerTest`) |
+| T-RS-8 | Equipment | `PUT` with another `type` | Alternative | API | 422 `EQUIPMENT_TYPE_IMMUTABLE` (`ResourceControllerTest`) |
+| T-RS-9 | Equipment | `capacityKg` 0, `powerHp` < 0, `stockQuantity` < 0, field missing for the type, `dailyRate` < 0 | Alternative | API | 400 `VALIDATION_FAILED` (`ResourceControllerTest`) |
+| T-RS-10 | Unavailability | add a period to a bin and to a worker | Nominal | API | 201 with the updated resource, `status` unchanged (`ResourceControllerTest`) |
+| T-RS-11 | Unavailability | `to` not after `from` | Alternative | API | 400 `VALIDATION_FAILED` on field `to`, nothing stored (`ResourceControllerTest`; the rule itself in `ResourceServiceTest`) |
+| T-RS-12 | Workers / equipment | collection manager | Alternative | API | GET 200, POST/PUT/DELETE 403 (`ResourceControllerTest`) |
+| T-RS-13 | Workers / equipment | farmer and admin | Alternative | API | farmer 403 on every route, admin full access, no token 401 (`ResourceControllerTest`) |
 | T-RS-2 | Supply order | receive → stock incremented | Nominal | API | `stockQuantity` += qty |
 | T-ML-1 | Reception | valid weighing | Nominal | API | net & fillRate computed, capacity decremented, farmer notified |
 | T-ML-2 | Reception | bin not part of round | Alternative | API | 422 |
