@@ -16,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -252,23 +253,35 @@ public class CollectionRoundService {
                 .orElseThrow(() -> new NotFoundException("Round stop not found"));
         validateStopUpdate(stop, dto);
 
-        stop.setStatus(dto.status());
+        Query stopQuery = Query.query(Criteria.where("_id").is(id)
+                .and("stops.order").is(order));
+        if (round.getVersion() != null) {
+            stopQuery.addCriteria(Criteria.where("version").is(round.getVersion()));
+        }
+        Update stopUpdate = new Update()
+                .set("stops.$.status", dto.status())
+                .inc("version", 1);
         if (dto.comment() != null) {
-            stop.setComment(dto.comment().trim());
+            stopUpdate.set("stops.$.comment", dto.comment().trim());
         }
         if (dto.status() == StopStatus.DONE) {
-            stop.setHarvestedKg(dto.harvestedKg());
-            stop.setCrateCount(dto.crateCount());
+            stopUpdate.set("stops.$.harvestedKg", dto.harvestedKg())
+                    .set("stops.$.crateCount", dto.crateCount());
+        } else if (dto.status() == StopStatus.SKIPPED) {
+            stopUpdate.unset("stops.$.harvestedKg")
+                    .unset("stops.$.crateCount");
+        }
+        if (mongoTemplate.updateFirst(stopQuery, stopUpdate, CollectionRound.class).getMatchedCount() == 0) {
+            throw new ConflictException("STALE_VERSION", "This round was changed by someone else, reload it");
+        }
+        if (dto.status() == StopStatus.DONE) {
             setOrchardStatus(stop.getOrchardId(), HarvestStatus.HARVESTED);
         } else if (dto.status() == StopStatus.SKIPPED) {
-            stop.setHarvestedKg(null);
-            stop.setCrateCount(null);
             setOrchardStatus(stop.getOrchardId(), HarvestStatus.NOT_HARVESTED);
         } else if (dto.status() == StopStatus.IN_PROGRESS) {
             setOrchardStatus(stop.getOrchardId(), HarvestStatus.IN_PROGRESS);
         }
-        roundRepository.save(round);
-        return CollectionRoundDto.from(round, List.of());
+        return CollectionRoundDto.from(findRound(id), List.of());
     }
 
     public CollectionRoundDto complete(String id, Authentication authentication) {

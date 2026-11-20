@@ -35,4 +35,8 @@ describe('notificationPath', () => {
   it('opens an assigned round in the team leader runner', () => {
     expect(notificationPath({ type: 'ROUND_ASSIGNED', link: '/rounds/round-1' })).toBe('/rounds/round-1/run')
   })
+
+  it('accepts the completion notification type from the API', () => {
+    expect(notificationPath({ type: 'ROUND_COMPLETED', link: '/rounds/round-1' })).toBe('/rounds/round-1')
+  })
 })

@@ -9,6 +9,7 @@ export type NotificationType =
   | 'ROUND_UPDATED'
   | 'ROUND_CANCELLED'
   | 'ROUND_STARTED'
+  | 'ROUND_COMPLETED'
 export const NOTIFICATION_POLL_INTERVAL_MS = 30_000
 
 export interface Notification {
@@ -68,4 +69,5 @@ export const NOTIFICATION_TYPE_LABEL: Record<NotificationType, string> = {
   ROUND_UPDATED: 'Tournée mise à jour',
   ROUND_CANCELLED: 'Tournée annulée',
   ROUND_STARTED: 'Tournée démarrée',
+  ROUND_COMPLETED: 'Tournée terminée',
 }
