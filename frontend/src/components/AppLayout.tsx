@@ -6,6 +6,7 @@ import { NAV } from '@/auth/nav'
 import { ROLE_HOME, ROLE_LABEL } from '@/auth/roles'
 import type { Role } from '@/auth/types'
 import { Button } from '@/components/ui/button'
+import { NotificationBell } from '@/features/notifications/NotificationBell'
 
 // The layout of every role: header, side nav (from md), bottom nav (below md).
 export function AppLayout() {
@@ -41,6 +42,7 @@ export function AppLayout() {
           <Leaf className="size-5" aria-hidden /> OliveConnect
         </span>
         <div className="flex items-center gap-2">
+          <NotificationBell />
           {user.roles.length >= 2 && (
             <select
               aria-label="Active role"

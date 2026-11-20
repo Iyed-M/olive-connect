@@ -13,6 +13,7 @@ export interface NavItem {
 export const NAV: Record<Role, NavItem[]> = {
   FARMER: [
     { to: '/farmer', label: 'Home', icon: Sprout },
+    { to: '/farmer/requests', label: 'Requests', icon: ClipboardList },
     { to: '/farmer/orchards', label: 'Orchards', icon: Map },
   ],
   COLLECTION_MANAGER: [{ to: '/collection/requests', label: 'Requests', icon: ClipboardList }],
