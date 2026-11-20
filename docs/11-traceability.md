@@ -13,6 +13,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | (User admin DTOs — no class, write and read models) | — | `users` | `user.UserDto`, `UserCreateDto`, `UserUpdateDto`, `FarmerProfileDto` | — | `UserService` | `UserController /users` | `admin/users.ts` |
 | RegistrationRequest | R1 | `registration_requests` | `user.RegistrationRequest` | `RegistrationRequestRepository` | `RegistrationService` | `RegistrationController /registrations` | `public/RegistrationPage`, `admin/Registrations` |
 | Orchard | R1, R4, R10, R11 | `orchards` | `orchard.Orchard` | `OrchardRepository` | `OrchardService` | `OrchardController /orchards` | `features/farmer/OrchardsPage`, `features/farmer/OrchardForm`, `features/farmer/OrchardMap` |
+| (Public map DTOs — no class, anonymous read model) | R4 | `orchards` (projection) | `map.PublicOrchardFeature`, `map.PublicFeatureCollection` | `MongoTemplate` (projection) | `MapService` | `MapController /map/public` | `public/MapPage` (M9) |
 | Plot | R2 | `orchards.plots[]` | `orchard.Plot` (embedded) | — | `OrchardService` | `/orchards` | `features/farmer/OrchardForm` |
 | GeoPoint | R10 | `orchards.location` | `orchard.GeoPoint` (embedded GeoJSON) | — | `OrchardService` | `/orchards` | `features/farmer/OrchardMap` |
 | OliveVariety | R1 (natural key) | `olive_varieties` | `orchard.OliveVariety` | `OliveVarietyRepository` | `OrchardService` (Redis cached), `OliveVarietySeeder` | `OliveVarietyController /varieties` | `features/farmer/OrchardForm`, `intranet/Reference` |

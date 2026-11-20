@@ -445,7 +445,7 @@ flowchart LR
 
 | Query | MongoDB | Index used | Target |
 |---|---|---|---|
-| Public map, visible area | `orchards.find({location: {$geoWithin: {$box: [[w,s],[e,n]]}}, harvestStatus: {$in: [...]}}, {projection: name, location, mainVarietyCode, harvestStatus, currentMaturityIndex})` | `location_2dsphere` | < 300 ms (then cached in Redis per tile/zoom + filter) |
+| Public map, visible area | `orchards.find({location: {$geoWithin: {$box: [[w,s],[e,n]]}}, harvestStatus: {$in: [...]}}, {projection: name, location, mainVarietyCode, harvestStatus, currentMaturityIndex})` | `location_2dsphere` | < 300 ms (then cached in Redis per bbox/zoom + filter). The polygon is a GeoJSON `$geometry` (not the legacy `$box`) so MongoDB uses the 2dsphere index. Cells with several orchards are grouped by `MapService` at zoom < 13 |
 | Manager queue | `harvest_requests.find({status: "VALIDATED"}).sort({priorityScore: -1}).limit(50)` | `status_1_priorityScore_-1` | < 50 ms |
 | Nearby requests (grouping) | `$geoNear` on `orchard.location`, `maxDistance 10 000`, `query {status: VALIDATED}` | `orchard.location_2dsphere_status_1` | < 100 ms |
 | Booking conflicts | `resource_bookings.find({resourceId: {$in: ids}, start: {$lt: e}, end: {$gt: s}, status: "ACTIVE"})` | `resourceId_1_start_1_end_1` | < 20 ms |
@@ -506,7 +506,7 @@ db.weather_readings.aggregate([
 | Key pattern | Type | TTL | Usage |
 |---|---|---|---|
 | `cache:varieties::all` | string (JSON) | none (evict on update) | reference data |
-| `cache:mapLayer::{filterHash}:{z}:{x}:{y}` | string (GeoJSON) | 60 s | public map tiles (bbox snapped to a tile grid so the cache gets hits) |
+| `cache:mapPublic::{bbox}:{zoom}:{variety}:{status}:{maturityMin}:{maturityMax}` | string (GeoJSON) | 60 s | public map response, one key per distinct request (M9) |
 | `cache:kpi::{name}:{filterHash}` | string (JSON) | 300 s | dashboard |
 | `refresh:{tokenId}` | hash `{userId, exp}` | 7 days | refresh tokens (deletion = logout / revocation) |
 | `user:{userId}:refresh` | set of tokenIds | 7 days | revoke all sessions of a user (on disable, password reset, email change) |
