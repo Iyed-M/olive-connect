@@ -119,7 +119,7 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 | GET | `/rounds/{id}` | CM, TL own | detail | FR-1.5 |
 | PUT | `/rounds/{id}` | CM (PLANNED only) | modify stops/resources | FR-1.5 |
 | POST | `/rounds/{id}/cancel` | CM | cancel + release bookings | — |
-| POST | `/rounds/{id}/start` | TL own | start on the round date; cascades requests/orchards to `IN_PROGRESS`, 403/409 `ROUND_NOT_TODAY` | FR-1.7 |
+| POST | `/rounds/{id}/start` | TL own | start on the round date; cascades requests/orchards to `IN_PROGRESS`, generic 403 for another leader, 409 `ROUND_NOT_TODAY` for the wrong date | FR-1.7 |
 | POST | `/rounds/{id}/complete` | TL own | complete when every stop is `DONE` or `SKIPPED`; 422 `STOPS_PENDING` otherwise | FR-1.7 |
 | PATCH | `/rounds/{id}/stops/{order}` | TL own | positional update of stop status, kg, crates and skip reason; optimistic `version` is optional | FR-1.7 |
 

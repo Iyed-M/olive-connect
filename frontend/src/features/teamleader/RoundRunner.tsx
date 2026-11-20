@@ -24,6 +24,7 @@ import {
   draftForServerRound,
   isRetryableMutationError,
   mergeRoundWithDraft,
+  roundFromDraft,
   retryQueuedMutations,
   sendRoundMutation,
   type RoundDraft,
@@ -64,29 +65,36 @@ function RoundRunner({ id }: { id: string }) {
   }, [])
 
   useEffect(() => {
-    if (!query.data) return
     let active = true
     void Promise.all([store.getDraft(id), store.listMutations(id)])
       .then(([savedDraft, queued]) => {
         if (!active) return
-        const nextDraft = savedDraft ?? createRoundDraft(query.data)
+        const nextDraft = savedDraft ?? (query.data ? createRoundDraft(query.data) : null)
+        const savedRound = savedDraft ? roundFromDraft(savedDraft) : null
+        const nextRound = query.data
+          ? (savedDraft ? mergeRoundWithDraft(query.data, savedDraft) : query.data)
+          : savedRound
         setDraft(nextDraft)
-        setRound(savedDraft ? mergeRoundWithDraft(query.data, savedDraft) : query.data)
+        setRound(nextRound)
         setPendingSync(queued.length)
         setDraftLoading(false)
+        if (!savedDraft && nextDraft) void store.saveDraft(nextDraft).catch(() => undefined)
+        if (!query.data && query.isError && savedRound) {
+          setInfo('Serveur indisponible : le brouillon enregistré est affiché hors connexion.')
+        }
       })
       .catch(() => {
         if (!active) return
-        const nextDraft = createRoundDraft(query.data)
+        const nextDraft = query.data ? createRoundDraft(query.data) : null
         setDraft(nextDraft)
-        setRound(query.data)
+        setRound(query.data ?? null)
         setDraftLoading(false)
         setInfo('Le brouillon hors connexion n’est pas disponible sur cet appareil.')
       })
     return () => {
       active = false
     }
-  }, [id, query.data, store])
+  }, [id, query.data, query.isError, store])
 
   const refetchRound = query.refetch
   const syncQueue = useCallback(async () => {
@@ -175,8 +183,8 @@ function RoundRunner({ id }: { id: string }) {
     }
   }, [draft, id, round, store])
 
-  if (query.isPending || draftLoading) return <p className="text-muted-foreground">Chargement de la tournée…</p>
-  if (query.isError) return <p role="alert" className="text-sm text-destructive">{roundRunnerError(query.error)}</p>
+  if (draftLoading || (!round && query.isPending)) return <p className="text-muted-foreground">Chargement de la tournée…</p>
+  if (!round && query.isError) return <p role="alert" className="text-sm text-destructive">{roundRunnerError(query.error)}</p>
   if (!round || !draft) return <p role="alert" className="text-sm text-destructive">Impossible d’ouvrir cette tournée.</p>
 
   const currentStop = round.stops[currentIndex]

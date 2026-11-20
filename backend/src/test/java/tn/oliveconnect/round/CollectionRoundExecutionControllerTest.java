@@ -71,7 +71,8 @@ class CollectionRoundExecutionControllerTest extends AbstractIntegrationTest {
                 .isEqualTo(HarvestStatus.IN_PROGRESS);
         assertThat(notificationRepository.findAll()).anyMatch(notification ->
                 notification.getRecipientId().equals(fixture.farmer().getId())
-                        && notification.getType() == NotificationType.ROUND_STARTED);
+                        && notification.getType() == NotificationType.ROUND_STARTED
+                        && notification.getLink().equals("/farmer/requests"));
     }
 
     @Test
@@ -162,7 +163,8 @@ class CollectionRoundExecutionControllerTest extends AbstractIntegrationTest {
                 .isEqualTo(HarvestStatus.NOT_HARVESTED);
         assertThat(notificationRepository.findAll()).anyMatch(notification ->
                 notification.getRecipientId().equals(fixture.farmer().getId())
-                        && notification.getType() == NotificationType.ROUND_COMPLETED);
+                        && notification.getType() == NotificationType.ROUND_COMPLETED
+                        && notification.getLink().equals("/farmer/requests"));
     }
 
     @Test

@@ -25,6 +25,7 @@ export interface StopDraft {
 
 export interface RoundDraft {
   roundId: string
+  round: CollectionRound
   status: RoundStatus
   stops: Record<string, StopDraft>
   updatedAt: number
@@ -91,7 +92,7 @@ export function createRoundDraft(round: CollectionRound): RoundDraft {
   for (const stop of round.stops) {
     stops[String(stop.order)] = stopDraft(stop.status, stop.harvestedKg, stop.crateCount, stop.comment)
   }
-  return { roundId: round.id, status: round.status, stops, updatedAt: Date.now() }
+  return { roundId: round.id, round: clone(round), status: round.status, stops, updatedAt: Date.now() }
 }
 
 export function mergeRoundWithDraft(round: CollectionRound, draft: RoundDraft): CollectionRound {
@@ -110,6 +111,11 @@ export function mergeRoundWithDraft(round: CollectionRound, draft: RoundDraft): 
       }
     }),
   }
+}
+
+export function roundFromDraft(draft: RoundDraft): CollectionRound | null {
+  if (!draft.round) return null
+  return mergeRoundWithDraft(draft.round, draft)
 }
 
 export function draftForServerRound(
@@ -151,8 +157,10 @@ export async function retryQueuedMutations(
       await store.removeMutation(mutation.id)
       responses.push({ mutation, round })
     } catch (caught) {
-      error = caught
-      break
+      const retryable = isRetryableMutationError(caught)
+      if (error === null || !retryable) error = caught
+      if (retryable) break
+      await store.removeMutation(mutation.id)
     }
   }
 

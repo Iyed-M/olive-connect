@@ -36,7 +36,8 @@ describe('notificationPath', () => {
     expect(notificationPath({ type: 'ROUND_ASSIGNED', link: '/rounds/round-1' })).toBe('/rounds/round-1/run')
   })
 
-  it('accepts the completion notification type from the API', () => {
-    expect(notificationPath({ type: 'ROUND_COMPLETED', link: '/rounds/round-1' })).toBe('/rounds/round-1')
+  it('keeps farmer round notifications on an authorized farmer page', () => {
+    expect(notificationPath({ type: 'ROUND_STARTED', link: '/farmer/requests' })).toBe('/farmer/requests')
+    expect(notificationPath({ type: 'ROUND_COMPLETED', link: '/farmer/requests' })).toBe('/farmer/requests')
   })
 })

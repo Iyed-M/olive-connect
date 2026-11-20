@@ -6,6 +6,7 @@ import {
   createMemoryRoundRunnerStore,
   createRoundDraft,
   isRetryableMutationError,
+  roundFromDraft,
   retryQueuedMutations,
   type RoundMutation,
 } from './roundRunner'
@@ -87,6 +88,20 @@ describe('round runner persistence', () => {
     await expect(store.getDraft(round.id)).resolves.toMatchObject({ stops: { '1': { harvestedKg: '3200' } } })
     await expect(store.listMutations(round.id)).resolves.toEqual([mutation])
   })
+
+  it('keeps a complete round snapshot that can reopen while the API is offline', () => {
+    const draft = createRoundDraft(round)
+    draft.status = 'IN_PROGRESS'
+    draft.stops['1'].status = 'DONE'
+    draft.stops['1'].harvestedKg = '3200'
+
+    expect(roundFromDraft(draft)).toMatchObject({
+      id: round.id,
+      code: round.code,
+      status: 'IN_PROGRESS',
+      stops: [{ order: 1, status: 'DONE', harvestedKg: 3200 }],
+    })
+  })
 })
 
 describe('round runner retry queue', () => {
@@ -122,5 +137,26 @@ describe('round runner retry queue', () => {
     expect(isRetryableMutationError(new TypeError('Failed to fetch'))).toBe(true)
     expect(isRetryableMutationError(new ApiError(503, 'INTERNAL_ERROR', 'Unavailable'))).toBe(true)
     expect(isRetryableMutationError(new ApiError(422, 'VALIDATION_FAILED', 'Invalid stop'))).toBe(false)
+  })
+
+  it('removes a permanent failure and continues with later queued mutations', async () => {
+    const store = createMemoryRoundRunnerStore()
+    const invalid: RoundMutation = { id: 'invalid', roundId: round.id, action: 'START', createdAt: 1 }
+    const later: RoundMutation = { id: 'later', roundId: round.id, action: 'COMPLETE', createdAt: 2 }
+    await store.enqueueMutation(invalid)
+    await store.enqueueMutation(later)
+
+    const sent: string[] = []
+    const result = await retryQueuedMutations(store, async (mutation) => {
+      sent.push(mutation.id)
+      if (mutation.id === invalid.id) throw new ApiError(422, 'ROUND_NOT_PLANNED', 'Already started')
+      return round
+    }, round.id)
+
+    expect(result.synced).toBe(1)
+    expect(result.pending).toBe(0)
+    expect(result.error).toBeInstanceOf(ApiError)
+    expect(sent).toEqual(['invalid', 'later'])
+    await expect(store.listMutations(round.id)).resolves.toEqual([])
   })
 })

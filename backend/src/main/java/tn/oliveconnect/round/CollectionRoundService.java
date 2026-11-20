@@ -259,17 +259,18 @@ public class CollectionRoundService {
             stopQuery.addCriteria(Criteria.where("version").is(round.getVersion()));
         }
         Update stopUpdate = new Update()
-                .set("stops.$.status", dto.status())
+                .filterArray(Criteria.where("s.order").is(order))
+                .set("stops.$[s].status", dto.status())
                 .inc("version", 1);
         if (dto.comment() != null) {
-            stopUpdate.set("stops.$.comment", dto.comment().trim());
+            stopUpdate.set("stops.$[s].comment", dto.comment().trim());
         }
         if (dto.status() == StopStatus.DONE) {
-            stopUpdate.set("stops.$.harvestedKg", dto.harvestedKg())
-                    .set("stops.$.crateCount", dto.crateCount());
+            stopUpdate.set("stops.$[s].harvestedKg", dto.harvestedKg())
+                    .set("stops.$[s].crateCount", dto.crateCount());
         } else if (dto.status() == StopStatus.SKIPPED) {
-            stopUpdate.unset("stops.$.harvestedKg")
-                    .unset("stops.$.crateCount");
+            stopUpdate.unset("stops.$[s].harvestedKg")
+                    .unset("stops.$[s].crateCount");
         }
         if (mongoTemplate.updateFirst(stopQuery, stopUpdate, CollectionRound.class).getMatchedCount() == 0) {
             throw new ConflictException("STALE_VERSION", "This round was changed by someone else, reload it");
@@ -375,7 +376,7 @@ public class CollectionRoundService {
     private void notifyFarmers(CollectionRound round, NotificationType type, String title, String message) {
         round.getStops().stream().map(RoundStop::getFarmerId).filter(Objects::nonNull).distinct()
                 .forEach(farmerId -> notificationService.notifyUser(farmerId, type, title, message,
-                        "/rounds/" + round.getId()));
+                        "/farmer/requests"));
     }
 
     private CollectionRound buildRound(LocalDate date, LocalTime startTime, LocalTime endTime, String plannedById,

@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -42,7 +43,7 @@ class CollectionRoundExecutionServiceTest {
 
     @Test
     void startRejectsADifferentTeamLeader() {
-        CollectionRound round = round(RoundStatus.PLANNED, LocalDate.now());
+        CollectionRound round = round(RoundStatus.PLANNED, LocalDate.now(ZoneOffset.UTC));
         round.setTeamLeaderId("assigned-leader");
         when(roundRepository.findById("round-id")).thenReturn(Optional.of(round));
 
@@ -53,7 +54,7 @@ class CollectionRoundExecutionServiceTest {
 
     @Test
     void startRejectsARoundThatIsNotScheduledForToday() {
-        CollectionRound round = round(RoundStatus.PLANNED, LocalDate.now().plusDays(1));
+        CollectionRound round = round(RoundStatus.PLANNED, LocalDate.now(ZoneOffset.UTC).plusDays(1));
         round.setTeamLeaderId("assigned-leader");
         when(roundRepository.findById("round-id")).thenReturn(Optional.of(round));
 
@@ -65,7 +66,7 @@ class CollectionRoundExecutionServiceTest {
 
     @Test
     void doneRequiresHarvestQuantityAndCrates() {
-        CollectionRound round = round(RoundStatus.IN_PROGRESS, LocalDate.now());
+        CollectionRound round = round(RoundStatus.IN_PROGRESS, LocalDate.now(ZoneOffset.UTC));
         round.setTeamLeaderId("assigned-leader");
         RoundStop stop = new RoundStop();
         stop.setOrder(1);
@@ -84,7 +85,7 @@ class CollectionRoundExecutionServiceTest {
 
     @Test
     void skippedRequiresAReason() {
-        CollectionRound round = round(RoundStatus.IN_PROGRESS, LocalDate.now());
+        CollectionRound round = round(RoundStatus.IN_PROGRESS, LocalDate.now(ZoneOffset.UTC));
         round.setTeamLeaderId("assigned-leader");
         RoundStop stop = new RoundStop();
         stop.setOrder(1);
@@ -103,7 +104,7 @@ class CollectionRoundExecutionServiceTest {
 
     @Test
     void completeRejectsPendingOrInProgressStopsWithoutSaving() {
-        CollectionRound round = round(RoundStatus.IN_PROGRESS, LocalDate.now());
+        CollectionRound round = round(RoundStatus.IN_PROGRESS, LocalDate.now(ZoneOffset.UTC));
         round.setTeamLeaderId("assigned-leader");
         RoundStop pending = new RoundStop();
         pending.setOrder(1);

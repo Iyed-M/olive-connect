@@ -882,12 +882,18 @@ sequenceDiagram
         S->>NS: notify farmers (ROUND_STARTED)
     end
     loop each stop
-        TL->>FE: enter harvested kg, crates, status DONE/SKIPPED
-        FE->>C: PATCH /api/rounds/{id}/stops/{order}
+        TL->>FE: Tap arrival at the orchard
+        FE->>C: PATCH /api/rounds/{id}/stops/{order} {status: IN_PROGRESS}
         C->>S: updateStop(...)
-        S->>RR: updateFirst(stops.$ positional update, version check)
-        S->>OR: harvestStatus = IN_PROGRESS / HARVESTED
-        alt stop SKIPPED
+        S->>RR: updateFirst(stops.$[s], filterArray(s.order), version check)
+        S->>OR: harvestStatus = IN_PROGRESS
+        TL->>FE: enter harvested kg, crates, status DONE/SKIPPED
+        FE->>C: PATCH /api/rounds/{id}/stops/{order} {status: DONE or SKIPPED}
+        C->>S: updateStop(...)
+        S->>RR: updateFirst(stops.$[s], filterArray(s.order), version check)
+        alt stop DONE
+            S->>OR: harvestStatus = HARVESTED
+        else stop SKIPPED
             S->>OR: harvestStatus = NOT_HARVESTED
         end
         alt network lost
