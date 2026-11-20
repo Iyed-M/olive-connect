@@ -5,6 +5,7 @@ import type { EquipmentType } from '@/logistics/resources'
 
 export type RoundStatus = 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
 export type StopStatus = 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'SKIPPED'
+export type RoundStopUpdateStatus = Extract<StopStatus, 'IN_PROGRESS' | 'DONE' | 'SKIPPED'>
 export type ResourceKind = 'WORKER' | 'EQUIPMENT'
 
 export const ROUND_STATUS_LABEL: Record<RoundStatus, string> = {
@@ -90,6 +91,14 @@ export interface RoundStop {
   harvestedKg: number | null
   crateCount: number | null
   comment?: string | null
+}
+
+export interface RoundStopUpdateBody {
+  status: RoundStopUpdateStatus
+  harvestedKg?: number | null
+  crateCount?: number | null
+  comment?: string | null
+  version?: number
 }
 
 export interface CollectionRound {
@@ -410,6 +419,18 @@ export function listRounds(filters: RoundFilters = {}) {
 }
 
 export const getRound = (id: string) => api<CollectionRound>(`/rounds/${id}`)
+
+export const startRound = (id: string) =>
+  api<CollectionRound>(`/rounds/${id}/start`, { method: 'POST' })
+
+export const updateRoundStop = (id: string, order: number, body: RoundStopUpdateBody) =>
+  api<CollectionRound>(`/rounds/${id}/stops/${order}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  })
+
+export const completeRound = (id: string) =>
+  api<CollectionRound>(`/rounds/${id}/complete`, { method: 'POST' })
 
 export const createRound = (body: RoundWriteBody) =>
   api<RoundMutationResponse>('/rounds', {
