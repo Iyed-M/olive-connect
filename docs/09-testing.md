@@ -20,7 +20,7 @@ flowchart TB
 | Level | Tools | What it proves | Runs |
 |---|---|---|---|
 | Unit | JUnit 5, Mockito, AssertJ | Business rules in isolation (no Spring context) | every build |
-| Repository | `@DataMongoTest` + Testcontainers `mongo:7` | Derived queries, `@Query`, geo queries, aggregation pipelines, **indexes used** (`explain()` asserts `IXSCAN`) | every build |
+| Repository | `@DataMongoTest` + Testcontainers `mongo:8` | Derived queries, `@Query`, geo queries, aggregation pipelines, **indexes used** (`explain()` asserts `IXSCAN`) | every build |
 | Web/security | `@WebMvcTest` + `spring-security-test` (`@WithMockUser`) | Status codes, validation errors, role access (403), JSON shape | every build |
 | Integration | `@SpringBootTest` + `MockMvc` + Testcontainers (Mongo replica set + Redis) | Full layers incl. transactions, cache, SSE | every build (CI) |
 | Frontend | Vitest + React Testing Library + MSW (mocked API) | Forms, role-based rendering, error display. Built so far (M1a): Vitest unit tests of the pure auth functions (`priorityRole`, `activeRole` fallback, `safeRedirect`). M1b: Vitest tests of the user form's error mapping (`fieldMessages`, `errorBanner` in `admin/users.ts`) | every build |
@@ -140,7 +140,7 @@ class PlanRoundIT {
     @Autowired MockMvc mockMvc;
 
     @Container @ServiceConnection
-    static MongoDBContainer mongo = new MongoDBContainer("mongo:7.0"); // starts as replica set → transactions OK
+    static MongoDBContainer mongo = new MongoDBContainer("mongo:8"); // starts as replica set → transactions OK
     @Container @ServiceConnection(name = "redis")
     static GenericContainer<?> redis = new GenericContainer<>("redis:7-alpine").withExposedPorts(6379);
 

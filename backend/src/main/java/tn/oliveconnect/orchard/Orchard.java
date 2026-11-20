@@ -25,7 +25,7 @@ public class Orchard {
     @Indexed
     private String ownerId;
     private Map<String, String> owner = new LinkedHashMap<>();
-    @GeoSpatialIndexed(type = GeoSpatialIndexType.GEO_2DSPHERE)
+    @GeoSpatialIndexed(name = "location_2dsphere", type = GeoSpatialIndexType.GEO_2DSPHERE)
     private GeoPoint location;
     private String delegation;
     private List<Plot> plots = new ArrayList<>();
