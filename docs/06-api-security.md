@@ -54,7 +54,7 @@ Roles: **PUB** public, **F** farmer, **CM** collection manager, **TL** team lead
 | PATCH | `/me/password` | any | body `{currentPassword, newPassword}` (8 to 72 characters) → `204`, clears `mustChangePassword`; 400 `VALIDATION_FAILED`, 422 `WRONG_PASSWORD` | FR-6.1 |
 | POST | `/registrations` | PUB | body `{firstName, lastName, email, phone?, cin, message?}` → `201` + `Location` and `RegistrationDto {id, firstName, lastName, email, phone, cin, message, status, createdAt, processedById}`; 400 `VALIDATION_FAILED`, 409 `EMAIL_TAKEN` (a User or a pending request already has this email) | FR-6.1 |
 | GET | `/registrations` | AD | list `RegistrationDto[]`, newest first, optional query `status` (`PENDING`, `APPROVED`, `REJECTED`) | FR-6.1 |
-| POST | `/registrations/{id}/approve` | AD | body `{memberNumber, delegation}` → `200 {registration, userId, temporaryPassword}`: creates a FARMER (12-character generated password, `mustChangePassword=true`); the password is returned only here. 404, 409 `REGISTRATION_ALREADY_PROCESSED` / `EMAIL_TAKEN` / `MEMBER_NUMBER_TAKEN` | FR-6.1 |
+| POST | `/registrations/{id}/approve` | AD | body `{memberNumber, delegation}` → `200 {registration, userId, temporaryPassword}`: creates a FARMER (12-character generated password, `mustChangePassword=true`); the password is returned only here, with `Cache-Control: no-store`. 404, 409 `REGISTRATION_ALREADY_PROCESSED` / `EMAIL_TAKEN` / `MEMBER_NUMBER_TAKEN` | FR-6.1 |
 | POST | `/registrations/{id}/reject` | AD | → `200 RegistrationDto` (`REJECTED`); 404, 409 `REGISTRATION_ALREADY_PROCESSED` | FR-6.1 |
 | GET | `/users` | AD | list Users, query `role`, `enabled`, `page`, `size`; sorted by `lastName` → `PageResponse<UserDto>` | FR-6.2 |
 | POST | `/users` | AD | create User (details, roles, Farmer profile, password) → 201 + `Location`, 400 `VALIDATION_FAILED`, 409 `EMAIL_TAKEN` / `MEMBER_NUMBER_TAKEN` | FR-6.2 |
@@ -76,7 +76,7 @@ Users are never deleted: disabling replaces deletion, so there is no `DELETE /us
 | GET | `/orchards/{id}/maturity` | F own, CM | maturity time series, query `days` (default 30) | FR-4.3 |
 | GET | `/orchards/nearest` | F | own orchard nearest to GPS position, query `lng`, `lat` (alert form) | FR-2.1 |
 | GET | `/varieties` | PUB | reference list | — |
-| GET | `/map/public` | PUB | GeoJSON FeatureCollection **without personal data**, query `bbox=w,s,e,n` (required), `zoom` (0-22, default 15, below 13 orchards are grouped into grid clusters `{cluster: true, count}`), `variety`, `status`, `maturityMin`, `maturityMax`; features carry only `id`, `varietyCode`, `harvestStatus`, `maturityIndex`; 400 `VALIDATION_FAILED` on a bad `bbox`, `zoom` or `status`; cached 60 s in Redis | FR-4.1, 4.2, 4.4 |
+| GET | `/map/public` | PUB | GeoJSON FeatureCollection **without personal data**, query `bbox=w,s,e,n` (required), `zoom` (0-22, default 15, below 13 orchards are grouped into grid clusters `{cluster: true, count}`), `variety`, `status`, `delegation` (a Delegation code, FR-4.2 zone), `maturityMin`, `maturityMax`; features carry only `id`, `varietyCode`, `harvestStatus`, `maturityIndex`; 400 `VALIDATION_FAILED` on a bad `bbox` (including one wider or taller than 4 degrees), `zoom`, `status` or `delegation`; cached 60 s in Redis | FR-4.1, 4.2, 4.4 |
 | GET | `/map/private` | F (own), CM, AD | enriched layers, query `bbox`, `layers=orchards,alerts,rounds` | FR-4.3 |
 
 `POST` and `PUT /orchards` accept `{name, delegation, location: {type: "Point", coordinates: [lng, lat]}, plots}`.

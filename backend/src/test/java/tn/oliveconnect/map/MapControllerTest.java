@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.convert.QueryMapper;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.web.servlet.MockMvc;
@@ -111,6 +112,30 @@ class MapControllerTest extends AbstractIntegrationTest {
                 .andExpect(status().isBadRequest());
         mockMvc.perform(get("/api/map/public").param("bbox", "11,35,10,34"))
                 .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/map/public").param("bbox", SFAX).param("delegation", "NOWHERE"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        mockMvc.perform(get("/api/map/public").param("bbox", "5,30,12,36"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        mockMvc.perform(get("/api/map/public").param("bbox", SFAX).param("maturityMin", "NaN"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void filtersByDelegationAndSharesTheCacheEntryForEqualVarietyWritings() throws Exception {
+        Orchard other = orchard("b", 10.71, 34.71, "CHEMLALI", HarvestStatus.NOT_HARVESTED, 2.0);
+        other.setDelegation("THYNA");
+        mongoTemplate.save(orchard("a", 10.7, 34.7, "CHEMLALI", HarvestStatus.NOT_HARVESTED, 2.0));
+        mongoTemplate.save(other);
+
+        mockMvc.perform(get("/api/map/public").param("bbox", SFAX).param("delegation", "thyna"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.features.length()").value(1));
+
+        mockMvc.perform(get("/api/map/public").param("bbox", SFAX).param("variety", "chemlali"));
+        mockMvc.perform(get("/api/map/public").param("bbox", SFAX).param("variety", " CHEMLALI "));
+        assertThat(redis.keys("cache:mapPublic::*")).hasSize(2);
     }
 
     @Test
@@ -137,9 +162,11 @@ class MapControllerTest extends AbstractIntegrationTest {
     @Test
     void boxQueryUsesTheTwoDSphereIndex() {
         mongoTemplate.save(orchard("a", 10.7, 34.7, "CHEMLALI", HarvestStatus.NOT_HARVESTED, 2.0));
-        Document filter = Document.parse("""
-                { location: { $geoWithin: { $geometry: { type: "Polygon", coordinates:
-                  [[[10.5,34.5],[11.1,34.5],[11.1,35.1],[10.5,35.1],[10.5,34.5]]] } } } }""");
+        // The area filter is the one MapService builds, mapped to a Mongo document like MongoTemplate does.
+        Query areaQuery = new Query(MapService.areaCriteria(new double[] {10.5, 34.5, 11.1, 35.1}));
+        Document filter = new QueryMapper(mongoTemplate.getConverter())
+                .getMappedObject(areaQuery.getQueryObject(), mongoTemplate.getConverter().getMappingContext()
+                        .getPersistentEntity(Orchard.class));
         Document plan = mongoTemplate.getDb().runCommand(new Document("explain",
                 new Document("find", "orchards").append("filter", filter)).append("verbosity", "queryPlanner"));
 

@@ -19,6 +19,7 @@ import tn.oliveconnect.common.FieldValidationException;
 import tn.oliveconnect.orchard.GeoPoint;
 import tn.oliveconnect.orchard.HarvestStatus;
 import tn.oliveconnect.orchard.Orchard;
+import tn.oliveconnect.user.Delegation;
 
 @Service
 public class MapService {
@@ -30,6 +31,8 @@ public class MapService {
     static final int MAX_ZOOM = 22;
     /** Safety limit for a very large area with no clustering. */
     static final int MAX_ORCHARDS = 5000;
+    /** Largest bbox accepted, in degrees (about 220 km). The Sfax region needs far less. */
+    static final double MAX_BBOX_DEGREES = 4;
 
     private final MongoTemplate mongoTemplate;
     private final StringRedisTemplate redis;
@@ -43,22 +46,28 @@ public class MapService {
 
     /** Returns the GeoJSON FeatureCollection as JSON text, from Redis when the same request was made in the last minute. */
     public String publicMap(String bbox, Integer zoom, String variety, String status,
-            Double maturityMin, Double maturityMax) {
+            String delegation, Double maturityMin, Double maturityMax) {
         double[] box = parseBbox(bbox);
         int z = zoom == null ? DEFAULT_ZOOM : zoom;
         if (z < 0 || z > MAX_ZOOM) {
             throw new FieldValidationException("zoom", "must be between 0 and " + MAX_ZOOM);
         }
         HarvestStatus harvestStatus = parseStatus(status);
+        String delegationCode = parseDelegation(delegation);
+        String varietyCode = variety == null || variety.isBlank() ? null : variety.trim().toUpperCase(Locale.ROOT);
+        checkFinite("maturityMin", maturityMin);
+        checkFinite("maturityMax", maturityMax);
 
-        String key = String.format(Locale.ROOT, "cache:mapPublic::%s:%d:%s:%s:%s:%s",
-                bbox.replaceAll("\\s", ""), z, variety, harvestStatus, maturityMin, maturityMax);
+        // The key is built from parsed and normalised values, so equal requests share one entry.
+        String key = String.format(Locale.ROOT, "cache:mapPublic::%s,%s,%s,%s:%d:%s:%s:%s:%s:%s",
+                box[0], box[1], box[2], box[3], z, varietyCode, harvestStatus, delegationCode, maturityMin,
+                maturityMax);
         String cached = redis.opsForValue().get(key);
         if (cached != null) {
             return cached;
         }
 
-        List<Orchard> orchards = mongoTemplate.find(query(box, variety, harvestStatus, maturityMin, maturityMax),
+        List<Orchard> orchards = mongoTemplate.find(query(box, varietyCode, harvestStatus, delegationCode, maturityMin, maturityMax),
                 Orchard.class);
         List<PublicOrchardFeature> features = z < CLUSTER_BELOW_ZOOM ? cluster(orchards, z) : markers(orchards);
         String json = toJson(new PublicFeatureCollection(features));
@@ -67,18 +76,21 @@ public class MapService {
     }
 
     /** The area filter of the map query, shared with the index test so it explains the very same query. */
-    private static Criteria areaCriteria(double[] box) {
+    static Criteria areaCriteria(double[] box) {
         GeoJsonPolygon area = new GeoJsonPolygon(
                 new Point(box[0], box[1]), new Point(box[2], box[1]),
                 new Point(box[2], box[3]), new Point(box[0], box[3]), new Point(box[0], box[1]));
         return Criteria.where("location").within(area);
     }
 
-    private Query query(double[] box, String variety, HarvestStatus status, Double min, Double max) {
+    private Query query(double[] box, String variety, HarvestStatus status, String delegation, Double min, Double max) {
         List<Criteria> filters = new ArrayList<>();
         filters.add(areaCriteria(box));
-        if (variety != null && !variety.isBlank()) {
-            filters.add(Criteria.where("mainVarietyCode").is(variety.trim().toUpperCase(Locale.ROOT)));
+        if (variety != null) {
+            filters.add(Criteria.where("mainVarietyCode").is(variety));
+        }
+        if (delegation != null) {
+            filters.add(Criteria.where("delegation").is(delegation));
         }
         if (status != null) {
             filters.add(Criteria.where("harvestStatus").is(status));
@@ -143,6 +155,10 @@ public class MapService {
         if (!valid) {
             throw new FieldValidationException("bbox", "must be a valid area: west < east, south < north");
         }
+        if (box[2] - box[0] > MAX_BBOX_DEGREES || box[3] - box[1] > MAX_BBOX_DEGREES) {
+            throw new FieldValidationException("bbox", "must not be wider or taller than " + (int) MAX_BBOX_DEGREES
+                    + " degrees");
+        }
         return box;
     }
 
@@ -154,6 +170,23 @@ public class MapService {
             return HarvestStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             throw new FieldValidationException("status", "must be a harvest status");
+        }
+    }
+
+    private String parseDelegation(String delegation) {
+        if (delegation == null || delegation.isBlank()) {
+            return null;
+        }
+        try {
+            return Delegation.valueOf(delegation.trim().toUpperCase(Locale.ROOT)).name();
+        } catch (IllegalArgumentException ex) {
+            throw new FieldValidationException("delegation", "must be a delegation");
+        }
+    }
+
+    private void checkFinite(String field, Double value) {
+        if (value != null && !Double.isFinite(value)) {
+            throw new FieldValidationException(field, "must be a number");
         }
     }
 

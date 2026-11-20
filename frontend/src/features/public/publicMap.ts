@@ -40,11 +40,12 @@ export interface PublicFeatureCollection {
 export interface MapFilters {
   variety: string
   status: string
+  delegation: string
   maturityMin: string
   maturityMax: string
 }
 
-export const NO_FILTERS: MapFilters = { variety: '', status: '', maturityMin: '', maturityMax: '' }
+export const NO_FILTERS: MapFilters = { variety: '', status: '', delegation: '', maturityMin: '', maturityMax: '' }
 
 // bbox = [west, south, east, north]
 export type Bbox = [number, number, number, number]

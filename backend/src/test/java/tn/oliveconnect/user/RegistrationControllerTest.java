@@ -122,8 +122,10 @@ class RegistrationControllerTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/registrations")).andExpect(status().isUnauthorized());
         // a Farmer is not an Admin
         String id = submit("farmer@example.tn");
-        String password = JsonPath.read(approve(id, "M-100").getResponse().getContentAsString(),
-                "$.temporaryPassword");
+        MvcResult approved = approve(id, "M-100");
+        org.assertj.core.api.Assertions.assertThat(approved.getResponse().getHeader("Cache-Control"))
+                .contains("no-store");
+        String password = JsonPath.read(approved.getResponse().getContentAsString(), "$.temporaryPassword");
         String farmerToken = tokenOf("farmer@example.tn", password);
         mockMvc.perform(get("/api/registrations").header("Authorization", "Bearer " + farmerToken))
                 .andExpect(status().isForbidden());

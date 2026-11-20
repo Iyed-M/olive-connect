@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { CircleMarker, MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L, { type LatLngExpression, type Map as LeafletMap } from 'leaflet'
+import { DELEGATION_LABEL, type Delegation } from '@/admin/users'
 import { useAuth } from '@/auth/AuthContext'
 import { ROLE_HOME } from '@/auth/roles'
 import { buttonVariants } from '@/components/ui/button'
@@ -22,6 +23,8 @@ import {
 
 const SFAX: LatLngExpression = [34.7998, 10.7603]
 const DEBOUNCE_MS = 300
+// The API refuses a bbox over 4 degrees. At zoom 10 a screen up to ~3000 px wide stays under it.
+const MIN_ZOOM = 10
 
 function readBbox(map: LeafletMap): Bbox {
   const b = map.getBounds()
@@ -123,7 +126,7 @@ export function PublicMapPage() {
       </header>
 
       <form
-        className="grid grid-cols-2 gap-3 border-b px-4 py-3 sm:grid-cols-4"
+        className="grid grid-cols-2 gap-3 border-b px-4 py-3 sm:grid-cols-5"
         onSubmit={(e) => e.preventDefault()}
         aria-label="Map filters"
       >
@@ -150,6 +153,17 @@ export function PublicMapPage() {
           </select>
         </div>
         <div className="flex flex-col gap-1">
+          <Label htmlFor="f-delegation">Delegation</Label>
+          <select id="f-delegation" className={selectClass} value={filters.delegation} onChange={(e) => set('delegation')(e.target.value)}>
+            <option value="">All</option>
+            {(Object.keys(DELEGATION_LABEL) as Delegation[]).map((d) => (
+              <option key={d} value={d}>
+                {DELEGATION_LABEL[d]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
           <Label htmlFor="f-min">Maturity min</Label>
           <Input id="f-min" type="number" min={0} step="0.1" value={filters.maturityMin} onChange={(e) => set('maturityMin')(e.target.value)} />
         </div>
@@ -160,7 +174,7 @@ export function PublicMapPage() {
       </form>
 
       <div className="relative min-h-0 flex-1">
-        <MapContainer center={SFAX} zoom={10} scrollWheelZoom className="h-full w-full">
+        <MapContainer center={SFAX} zoom={11} minZoom={MIN_ZOOM} scrollWheelZoom className="h-full w-full">
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

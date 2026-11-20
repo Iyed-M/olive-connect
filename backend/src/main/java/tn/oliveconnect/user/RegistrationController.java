@@ -3,6 +3,7 @@ package tn.oliveconnect.user;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -40,9 +41,12 @@ public class RegistrationController {
     // Authentication.getName() is the JWT "sub", i.e. the id of the acting Admin
     @PostMapping("/{id}/approve")
     @PreAuthorize("hasRole('ADMIN')")
-    public RegistrationApprovalDto approve(@PathVariable String id, @Valid @RequestBody RegistrationApproveDto dto,
-                                           Authentication auth) {
-        return registrationService.approve(id, dto, auth.getName());
+    public ResponseEntity<RegistrationApprovalDto> approve(@PathVariable String id,
+                                                           @Valid @RequestBody RegistrationApproveDto dto,
+                                                           Authentication auth) {
+        // The response holds the temporary password: it must never be stored by a cache.
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(registrationService.approve(id, dto, auth.getName()));
     }
 
     @PostMapping("/{id}/reject")
