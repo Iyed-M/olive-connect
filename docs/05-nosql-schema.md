@@ -55,6 +55,7 @@ erDiagram
     }
     orchards {
         ObjectId _id
+        string externalRef UK "sparse, set by the import"
         ObjectId ownerId
         object owner "extended ref: name"
         GeoJSON location "2dsphere"
@@ -135,6 +136,22 @@ erDiagram
         date timestamp "timeField"
         object meta "metaField: orchardId, source"
         double maturityIndex
+        string varietyCode
+    }
+    import_jobs {
+        ObjectId _id
+        string source "REFERENCE or DYNAMIC"
+        string dataset
+        string checksum UK
+        string status
+        int errorCount
+        array errors "embedded, at most 500"
+        date startedAt
+    }
+    system_settings {
+        string _id "global"
+        double rainAlertMm24h
+        int defaultBinCapacityKg
     }
 ```
 
@@ -235,6 +252,7 @@ flowchart TD
 {
   "_id": ObjectId("..."),
   "name": "Henchir El Mezraa",
+  "externalRef": "ORC-0001",
   "ownerId": ObjectId("665f..."),
   "owner": { "displayName": "Ali Ben Ali" },
   "location": { "type": "Point", "coordinates": [10.7603, 34.7998] },
@@ -262,6 +280,7 @@ by the M2 form yet.
 | `{ ownerId: 1 }` | "my orchards" |
 | `{ harvestStatus: 1, mainVarietyCode: 1, delegation: 1 }` | map filters |
 | `{ name: "text", "owner.displayName": "text" }` | staff search |
+| `{ externalRef: 1 }` unique, sparse | upsert key of the import (M10): orchards created in the app have no `externalRef` |
 
 **Why embed plots:** an orchard has few plots (bounded, under 20), they are always shown with the orchard, and they are imported and edited together.
 **Why not embed harvest requests or readings:** they grow without bound (R7) and have their own lifecycle (R1).
@@ -363,12 +382,12 @@ Overlap check and insert happen **in the same transaction** as the round creatio
   "status": "AVAILABLE", "toolType": "SHAKER", "stockQuantity": 12, "unavailabilities": [] }
 
 // workers
-{ "_id": ObjectId("..."), "firstName": "Sami", "lastName": "Trabelsi", "cin": "12345678", "phone": "+21620123456",
+{ "_id": ObjectId("..."), "externalRef": "WRK-0001", "firstName": "Sami", "lastName": "Trabelsi", "cin": "12345678", "phone": "+21620123456",
   "skills": ["HARVEST", "TRACTOR"], "dailyRate": 45.0, "active": true,
   "unavailabilities": [ { "from": ISODate("..."), "to": ISODate("..."), "reason": "Leave" } ] }
 ```
 `type` always equals `toolType` for a `Tool` (`NET` or `SHAKER`). `unavailabilities` is append-only in M4 and does not change `status`. Deletion is a hard delete until the bookings of M5 exist.
-Indexes: `{ type: 1, status: 1 }`, `{ code: 1 }` unique. Workers: `{ active: 1, skills: 1 }`, `{ cin: 1 }` unique.
+Indexes: `{ type: 1, status: 1 }`, `{ code: 1 }` unique. Workers: `{ active: 1, skills: 1 }`, `{ cin: 1 }` unique, `{ externalRef: 1 }` unique sparse (import key, M10). The import upserts workers on `externalRef`, and equipment (tractors, bins) on `code` (equal to the `externalRef` of the file).
 
 ### 4.8 `mills`, `mill_receptions` (R1, R2 quality, R3, R11 computed, R13 denormalised)
 
@@ -395,7 +414,7 @@ Indexes: `{ type: 1, status: 1 }`, `{ code: 1 }` unique. Workers: `{ active: 1, 
 | `{ farmerId: 1, receivedAt: -1 }` | farmer "my receptions" |
 | `{ roundId: 1, binId: 1, orchardId: 1 }` unique | prevents weighing the same bin load twice |
 
-`mills`: `{ location: "2dsphere" }` for nearest-mill suggestions. `availableCapacityKg` is updated by `$inc` on each reception and overwritten by the dynamic import (mill system).
+`mills`: `{ code: 1 }` unique (import key), `{ location: "2dsphere" }` for nearest-mill suggestions. M10 creates the `Mill` document with only `code`, `name`, `location`, `dailyCapacityKg` and `availableCapacityKg`; `address` and `capacityUpdatedAt` come with M7. `availableCapacityKg` is updated by `$inc` on each reception and overwritten by the dynamic import (mill system).
 
 ### 4.9 `field_alerts` (R1, R2 history, R10)
 
@@ -407,6 +426,8 @@ Indexes: `{ type: 1, status: 1 }`, `{ code: 1 }` unique. Workers: `{ active: 1, 
   "handledById": null, "harvestRequestId": null, "statusHistory": [...],
   "createdAt": ISODate("...") }
 ```
+M10 creates a minimal `FieldAlert` (`type`, `severity`, `status`, `source`, `orchardId`, `orchardName`, `farmerId`, `location`, `description`, `statusHistory`, `createdAt`) for the automatic alerts (`source: "SENSOR"`, `type` `RAIN` or `MATURITY`). `reporterId`, `photoUrls`, `locationMismatch`, `handledById` and `harvestRequestId` come with M8. Enums: `AlertType` `MATURITY|RAIN|PEST|DISEASE|OTHER`, `AlertSeverity` `LOW|MEDIUM|HIGH`, `AlertSource` `FARMER|SENSOR`, `AlertStatus` `NEW|ACKNOWLEDGED|RESOLVED|DISMISSED`.
+
 Indexes: `{ status: 1, createdAt: -1 }` (queue), `{ location: "2dsphere", status: 1 }` (alerts map), `{ farmerId: 1, createdAt: -1 }`, `{ orchardId: 1, type: 1, status: 1 }` (duplicate detection: one open alert of the same type per orchard).
 
 Photos are stored on disk in a Docker volume, or in GridFS. **Choice: GridFS** (`bucket alerts`), so that the backup covers them too.
@@ -425,10 +446,10 @@ db.createCollection("maturity_readings", {
 ```json
 { "timestamp": ISODate("2026-11-21T06:15:00Z"), "meta": { "stationId": "SFX-03", "delegation": "SAKIET_EZZIT" },
   "temperatureC": 14.2, "humidityPct": 81, "rainfallMm": 2.4, "windKmh": 12 }
-{ "timestamp": ISODate("2026-11-21T06:00:00Z"), "meta": { "orchardId": ObjectId("..."), "source": "SENSOR" },
+{ "timestamp": ISODate("2026-11-21T06:00:00Z"), "meta": { "orchardId": "665f...", "source": "SENSOR" },
   "maturityIndex": 3.8, "varietyCode": "CHEMLALI" }
 ```
-Secondary indexes: `{ "meta.orchardId": 1, timestamp: -1 }` (latest value, history chart), `{ "meta.delegation": 1, timestamp: -1 }`.
+Secondary indexes: `{ "meta.orchardId": 1, timestamp: -1 }` on `maturity_readings` (latest value, history chart), `{ "meta.delegation": 1, timestamp: -1 }` on `weather_readings`. The collections are created at startup by `MongoIndexInitializer` (a time-series collection is not created by an insert). `meta.orchardId` is the orchard id as a hex string. `weather_readings` expires after 1095 days (3 seasons).
 
 The latest maturity value is also copied onto `orchards.currentMaturityIndex` (R11), so the map never has to query the time series.
 
@@ -437,9 +458,9 @@ The latest maturity value is also copied onto `orchards.currentMaturityIndex` (R
 - `notifications` documents contain `recipientId`, `type`, `title`, `message`, optional `link`, `read` and `createdAt`.
   M3 uses `NEW_REQUEST`, `REQUEST_VALIDATED` and `REQUEST_REJECTED`; real-time fan-out is deferred to M8.
   Indexes are `{ recipientId: 1, read: 1, createdAt: -1 }`, plus a **TTL** index `{ createdAt: 1 }, expireAfterSeconds: 7776000` (90 days).
-- `import_jobs`: `{ checksum: 1 }` unique (idempotency), `{ startedAt: -1 }`, `{ dataset: 1, status: 1 }`. `errors[]` holds at most 500 entries and `errorCount` keeps the total (R2 bounded).
+- `import_jobs`: `{ checksum: 1 }` unique (idempotency), `{ startedAt: -1 }`, `{ dataset: 1, status: 1 }`. `dataset` is `ORCHARDS`, `VARIETIES`, `MILLS`, `RESOURCES`, `WEATHER`, `MATURITY` or `MILL_CAPACITY`. A file that is already imported (status `SUCCESS` or `PARTIAL`) creates no job. A `FAILED` file that is dropped again is retried on the same job (the checksum is unique). `errors[]` holds at most 500 entries and `errorCount` keeps the total (R2 bounded).
 - `registration_requests`: `{ status: 1, createdAt: -1 }`, `{ email: 1 }`. Document: `{ firstName, lastName, email, phone, cin, message, status: PENDING|APPROVED|REJECTED, createdAt, processedById, createdUserId }`. `processedById` and `createdUserId` are set on approval; `processedById` alone on rejection. `users.mustChangePassword` is `true` for an account created by an approval until the Farmer changes the temporary password.
-- `system_settings`: a single document with `_id: "global"`.
+- `system_settings`: a single document with `_id: "global"` and the fields `rainAlertMm24h` (default 20, mm of rain in 24 h that raises a `RAIN` alert) and `defaultBinCapacityKg` (default 4000, default bin capacity, editable by the admin and not read by any code yet). The document is created on the first `PUT /api/settings`, and the defaults are returned until then.
 
 ## 5. Partitioning (sharding) strategy
 

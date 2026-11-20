@@ -44,7 +44,28 @@ externalRef;name;memberNumber;lng;lat;delegation;plotCode;varietyCode;areaHa;tre
 ORC-0001;Henchir El Mezraa;ADH-0421;10.7603;34.7998;Sakiet Ezzit;P1;CHEMLALI;4.5;450;1998;false
 ORC-0001;Henchir El Mezraa;ADH-0421;10.7603;34.7998;Sakiet Ezzit;P2;CHETOUI;1.2;180;2015;true
 ```
-Rows are grouped by `externalRef`, and each group becomes one orchard document with its `plots[]` (rule R2).
+Rows are grouped by `externalRef`, and each group becomes one orchard document with its `plots[]` (rule R2). The delegation name is normalised to the `Delegation` code (`Sakiet Ezzit` becomes `SAKIET_EZZIT`). The orchard is upserted on `orchards.externalRef`, and fields entered by hand are kept.
+
+**varieties.json** (upsert on `code`)
+```json
+{ "generatedAt": "2026-11-21T02:00:00Z",
+  "varieties": [ { "code": "CHEMLALI", "name": "Chemlali", "avgOilYieldPct": 21, "optimalMaturityMin": 3.0, "optimalMaturityMax": 4.5 } ] }
+```
+
+**mills.json** (upsert on `code`)
+```json
+{ "generatedAt": "2026-11-21T02:00:00Z",
+  "mills": [ { "code": "MIL-SFX-01", "name": "Huilerie Sakiet Ezzit", "lng": 10.78, "lat": 34.81, "dailyCapacityKg": 60000 } ] }
+```
+
+**resources.csv** (`;`-separated, `type` is `WORKER`, `TRACTOR` or `BIN`; workers are upserted on `workers.externalRef`, tractors and bins on `equipment.code` = `externalRef`)
+```text
+externalRef;type;name;phone;capacityKg
+WRK-0001;WORKER;Sami Trabelsi;+21620123456;
+BIN-0007;BIN;Bin 7;;4000
+```
+
+**File name patterns.** `orchards.csv`, `varieties.json`, `mills.json` and `resources.csv` are exact names (source 1, imported in that order: varieties, mills, orchards, resources). `weather_YYYYMMDDHHmm.json`, `maturity_YYYYMMDDHHmm.csv` and `mill_capacity_YYYYMMDD.json` are source 2. A file whose name matches nothing is rejected (`FAILED`, moved to `rejected/`) when found in the inbox, and refused with 400 when uploaded.
 
 **weather_202611210615.json**
 ```json
@@ -53,7 +74,7 @@ Rows are grouped by `externalRef`, and each group becomes one orchard document w
                   "temperatureC": 14.2, "humidityPct": 81, "rainfallMm": 2.4, "windKmh": 12 } ] }
 ```
 
-**maturity_202611210600.csv**
+**maturity_202611210600.csv** (`;`-separated, appended to the `maturity_readings` time series, then `orchards.currentMaturityIndex` is set from the latest reading)
 ```text
 orchardExternalRef;timestamp;maturityIndex;source
 ORC-0001;2026-11-21T06:00:00Z;3.8;SENSOR
@@ -75,7 +96,7 @@ ORC-0001;2026-11-21T06:00:00Z;3.8;SENSOR
 | Record — references | `varietyCode` exists; `orchardExternalRef` exists; `memberNumber` matches a FARMER (or the orchard is created unassigned and flagged) | `line 7, varietyCode 'XYZ' unknown` |
 | Record — consistency | sum of plot areas ≤ declared orchard area + 5 %; duplicate (same meta + timestamp) | `duplicate reading` |
 
-Each rejected record becomes an `ImportError {line, field, reason}`. The job ends with `SUCCESS` (0 rejects), `PARTIAL` (some rejects) or `FAILED` (the file is unusable or more than 50 % of records were rejected; in that case **nothing is committed**).
+`line` is the 1-based line of the CSV file (the header is line 1) or the 1-based index of the element in the JSON array. File-level failures use line 0 and field `file`. Each rejected record becomes an `ImportError {line, field, reason}`. The job ends with `SUCCESS` (0 rejects), `PARTIAL` (some rejects) or `FAILED` (the file is unusable or more than 50 % of records were rejected; in that case **nothing is committed**).
 
 ## 4. Processing pipeline
 
@@ -83,37 +104,37 @@ Each rejected record becomes an `ImportError {line, field, reason}`. The job end
 flowchart TD
     A[Scheduler tick] --> B[List /data/inbox/*]
     B --> C{checksum already<br/>in import_jobs?}
-    C -- yes --> Z[move to processed/, skip]
+    C -- "yes (SUCCESS or PARTIAL)" --> Z[move to processed/,<br/>skip, no job]
     C -- no --> D[ImportJob RUNNING]
     D --> E[Parse streaming<br/>CSV / Jackson streaming JSON]
     E --> F{parse OK?}
-    F -- no --> G[FAILED, move to rejected/,<br/>notify admins]
+    F -- no --> G[FAILED, move to rejected/]
     F -- yes --> H[Validate each record]
-    H --> I[Collect valid records<br/>in batches of 1000]
-    I --> J[BulkOperations upsert/insert<br/>unordered]
-    J --> K{reject ratio > 50 %?}
+    H --> I[findDuplicates, then count rejects]
+    I --> K{reject ratio > 50 %?}
     K -- yes --> G
-    K -- no --> L[Post-processing:<br/>update orchards.currentMaturityIndex,<br/>mills.availableCapacityKg,<br/>evict caches map & kpi]
-    L --> M[AutoAlertService:<br/>rain ≥ threshold in 24 h?<br/>maturity in optimal window?]
+    K -- no --> L[Persist valid records<br/>and update orchards.currentMaturityIndex,<br/>mills.availableCapacityKg]
+    L --> M[AutoAlertService.evaluate dynamic imports only:<br/>rain ≥ threshold in 24 h?<br/>maturity in optimal window?]
     M --> N[SUCCESS / PARTIAL,<br/>move to processed/]
 ```
 
 **Implementation**
 
-- `ImportScheduler` uses `@Scheduled` with **ShedLock**, backed by MongoDB, so that only one instance runs a given import when the API is scaled.
-- `ImportService` holds one `DatasetImporter<T>` strategy per dataset (`OrchardCsvImporter`, `WeatherJsonImporter`…). Each one implements `parse`, `validate` and `persist`, so adding a dataset only means adding a bean (open/closed principle).
-- Batch writes use `MongoTemplate.bulkOps(BulkMode.UNORDERED, …)`, which handles 10⁵ readings in seconds.
+- `ImportScheduler` uses `@Scheduled` with **ShedLock**, backed by MongoDB (collection `shedLock`), so that only one instance runs a given import when the API is scaled: cron `0 0 2 * * *` for the reference files, `fixedDelay` of 15 minutes for the dynamic files.
+- `ImportService` (package `tn.oliveconnect.imports`) holds one `DatasetImporter<T>` strategy per dataset (`OrchardCsvImporter`, `VarietiesJsonImporter`, `MillsJsonImporter`, `ResourcesCsvImporter`, `WeatherJsonImporter`, `MaturityCsvImporter`, `MillCapacityJsonImporter`). Each one implements `accepts(fileName)`, `parse`, `validate`, `findDuplicates` and `persist`, so adding a dataset only means adding a bean (open/closed principle).
+- The inbox is `app.imports.inbox-dir` (`IMPORT_INBOX_DIR`, `/data/inbox`). Handled files move to `processed/` or `rejected/` inside it. `POST /api/imports/run` and the scheduler share `ImportService.run(source)`, and `POST /api/imports/upload` copies the file into the inbox before importing it.
+- Batch writes use `MongoTemplate.bulkOps(BulkMode.UNORDERED, …)` in batches of 1000, which handles 10⁵ readings in seconds.
 - **Spring Batch** is a possible alternative: it brings restartable chunked steps, but more configuration. We keep the lighter design and mention Spring Batch in the report as a possible improvement.
-- Automatic alert rules come from `system_settings`: `rainAlertMm24h` (default 20), and maturity entering `[optimalMaturityMin, optimalMaturityMax]` of the variety. A rule creates a `FieldAlert` with `source = SENSOR` only when no open alert of the same type exists for that orchard.
+- Automatic alert rules come from `system_settings`: `rainAlertMm24h` (default 20), and maturity entering `[optimalMaturityMin, optimalMaturityMax]` of the variety. A rule creates a `FieldAlert` with `source = SENSOR` (`type` `RAIN` or `MATURITY`) only when no open alert of the same type exists for that orchard. The rules live in `AutoAlertService`, which runs after each successful dynamic import. Automatic alerts send no notification in M10.
 
 ## 5. Data simulator (`data-simulator/`)
 
-A small **Python script**, or a Spring profile `simulator` (Java is preferred if the group wants a single language). It:
+A small **Python 3 script** using only the standard library: `python3 simulator.py <inbox dir> [--only reference|dynamic] [--loop MINUTES] [--history] [--orchards N] [--seed S]` (see `data-simulator/README.md`). It writes the files of §2 into the inbox directory (in Docker, the `inbox-data` volume). It:
 
 1. generates the reference set once: around 1 500 orchards around Sfax (random points inside polygons of the delegations: Sakiet Ezzit, Sakiet Eddaier, El Ain, Agareb, Menzel Chaker, Jebeniana…), 5 mills, 300 workers, 60 tractors, 200 bins, the varieties, and 500 farmers;
 2. writes dynamic files every N minutes into the shared inbox volume, with realistic patterns: maturity rises by about 0.05 per day and differs per variety, and rain events are random;
 3. injects about 2 % **invalid records** on purpose (out-of-range values, unknown variety) to demonstrate the conformity checks;
-4. offers a `--history` mode that generates 3 past seasons of `mill_receptions` and readings (10⁵–10⁶ documents), to show the dashboard and the index performance on massive data.
+4. offers a `--history` mode that generates 3 past seasons of weather, maturity and mill capacity readings files (10⁵–10⁶ documents), to show the index performance on massive data. It does not generate `mill_receptions` (M7 data).
 
 ## 6. Intranet enrichment app
 
@@ -124,5 +145,6 @@ The subject requires "a small intranet application dedicated to enriching data a
 | Orchards data grid | Fix imported orchards: move pin on map, edit plots, assign owner (unassigned imports), boundary polygon drawing (Leaflet.draw) |
 | Equipment data grid | Add serial numbers, capacities, maintenance notes |
 | Rounds history | Correct quantities after the fact (with history entry), attach comments |
-| Import journal | Upload a file manually, see runs, download rejected rows as CSV |
-| Reference data | Varieties (optimal maturity window), delegations, thresholds (`system_settings`) |
+| Import journal (`/intranet/imports`, `/intranet/imports/$id`) | ADMIN only. List with `dataset` and `status` filters, detail with the rejected rows (line, field, reason) and a CSV download, manual run (`REFERENCE` or `DYNAMIC`) and file upload |
+| Settings (`/intranet/settings`) | ADMIN only. Form for `rainAlertMm24h` and `defaultBinCapacityKg` (`system_settings`) |
+| Reference data | Varieties (optimal maturity window), delegations (planned) |

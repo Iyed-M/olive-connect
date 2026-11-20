@@ -7,14 +7,14 @@ Target: a Linux VPS (Ubuntu Server 24.04 LTS, 2 vCPU / 4 GB RAM / 40 GB SSD is e
 | Status | Content |
 |---|---|
 | **Built (M0)** | `.github/workflows/ci.yml` (backend verify, frontend lint + test + build, Docker build), `.github/workflows/docs.yml` (Mermaid render), `backend/Dockerfile`, `frontend/Dockerfile`, `frontend/nginx.conf`, `deploy/docker-compose.yml` (production-like stack on port 80, runs locally), `deploy/docker-compose.dev.yml` (MongoDB + Redis only, for development). CI copies `deploy/.env.example` to `deploy/.env` before the build, because compose rejects the file without the secrets even for `build`. In M0, "done" means CI is green and the production compose stack works on a developer machine |
-| **Planned (M10)** | Data simulator and the import inbox volume |
+| **Built (M10)** | Import inbox volume `inbox-data` mounted on `api` at `/data/inbox`, Nginx upload limit `client_max_body_size 21m` on `/api/`. The data simulator is a script run by hand (`data-simulator/`), not a compose service |
 | **Planned (M13)** | VPS, TLS, rate limiting, monitoring stack (Prometheus, Grafana, Loki, exporters, Uptime Kuma), MongoDB authentication + keyfile, Redis password, `.env` secrets, backups, automatic deployment |
 
 Everything marked *planned* below is kept as the target design.
 
 ## 1. Deployment diagram
 
-Solid boxes exist in `deploy/docker-compose.yml`. Dashed boxes are planned (M10 for the simulator and the inbox, M13 for the rest).
+Solid boxes exist in `deploy/docker-compose.yml`. Dashed boxes are planned (M13). The simulator runs on the developer machine and writes into the inbox volume.
 
 ```mermaid
 flowchart TB
@@ -32,7 +32,6 @@ flowchart TB
             API["api<br/>eclipse-temurin:21-jre-alpine<br/>:8080 API + /actuator/health"]
             MONGO[("mongo:7.0<br/>replica set rs0, no auth in M0<br/>volume mongo-data")]
             REDIS[("redis:7-alpine<br/>no password in M0<br/>volume redis-data")]
-            SIM["data-simulator<br/>(planned M10)"]:::planned
         end
         subgraph MonNet["Docker network 'monitoring' (planned M13)"]
             PROM[prometheus]:::planned
@@ -41,7 +40,8 @@ flowchart TB
             EXP["node-exporter, cadvisor,<br/>mongodb-exporter, redis-exporter"]:::planned
             KUMA[uptime-kuma]:::planned
         end
-        VOL1[/"volume inbox<br/>/data/inbox (planned M10)"/]:::planned
+        VOL1[/"volume inbox-data<br/>/data/inbox (M10)"/]
+        SIM["data-simulator<br/>Python script (M10)"]
         BK["backup.sh (host cron 02:30, planned M13)<br/>/var/backups/oliveconnect"]:::planned
     end
     OFF[("Off-site storage<br/>rclone → Google Drive / S3 (planned M13)")]:::planned
@@ -52,8 +52,8 @@ flowchart TB
     WEB --> API
     API --> MONGO
     API --> REDIS
-    API -.-> VOL1
-    SIM -.-> VOL1
+    API --> VOL1
+    SIM --> VOL1
     PROM -.-> API
     PROM -.-> EXP
     GRAF -.-> PROM
@@ -150,6 +150,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in deploy/.env (at least 32 characters)}
       ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL in deploy/.env}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in deploy/.env}
+      IMPORT_INBOX_DIR: /data/inbox
+    volumes:
+      - inbox-data:/data/inbox   # files dropped here (by the simulator or the admin) are imported
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
       interval: 5s
@@ -199,6 +202,7 @@ networks:
 volumes:
   mongo-data:
   redis-data:
+  inbox-data:
 ```
 
 Only `web` publishes a port. MongoDB and Redis have no published port, so only the API can reach them. The replica set is initiated by the MongoDB healthcheck (container host name `mongo:27017`). The Actuator runs on the API port 8080 and is not reachable from outside, because Nginx only forwards `/api/`.
@@ -207,7 +211,7 @@ Only `web` publishes a port. MongoDB and Redis have no published port, so only t
 
 On startup, `MongoIndexInitializer` creates the declared indexes after reconciling the M2 orchard geospatial index. If an existing development database still has the legacy single-field index named `location`, the initializer removes that index only and recreates it as `location_2dsphere`; no orchard documents are deleted.
 
-### 3.2 Planned additions (M10 and M13)
+### 3.2 Planned additions (M13)
 
 Outline of what is added on top of the file above. Not built yet.
 
@@ -220,11 +224,11 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - nginx-logs:/var/log/nginx
 
-  api:                                   # M13 secrets, M10 inbox volume
+  api:                                   # M13 secrets (the inbox volume exists since M10)
     env_file: .env                       # JWT_SECRET, MONGO_URI, REDIS_PASSWORD … (never committed)
     environment:
       SPRING_PROFILES_ACTIVE: prod
-    volumes: [inbox:/data/inbox, api-logs:/app/logs]
+    volumes: [inbox-data:/data/inbox, api-logs:/app/logs]
     deploy: { resources: { limits: { memory: 1g } } }
 
   mongo:                                 # M13: authentication and keyfile
@@ -236,9 +240,6 @@ services:
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--maxmemory", "256mb",
               "--maxmemory-policy", "allkeys-lru", "--save", "900", "1"]
 
-  simulator:                             # M10
-    build: ../simulator
-    volumes: [inbox:/data/inbox]
     networks: [back]
 
   # M13: monitoring stack
@@ -254,7 +255,7 @@ services:
 
 networks:
   monitoring: {}                         # added to front and back
-volumes: { inbox: {}, api-logs: {}, nginx-logs: {}, prom-data: {}, grafana-data: {}, kuma-data: {} }
+volumes: { inbox-data: {}, api-logs: {}, nginx-logs: {}, prom-data: {}, grafana-data: {}, kuma-data: {} }
 ```
 
 The image versions above are placeholders. Pin exact versions (for example `mongo:7.0.14`) in the real file. The Actuator `prometheus` endpoint is exposed in M13 (`management.endpoints.web.exposure.include` is `health,info` today).
@@ -291,6 +292,7 @@ server {
     }
 
     location /api/ {
+        client_max_body_size 21m;   # import file upload (the API accepts up to 20 MB)
         proxy_pass http://api:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -323,7 +325,7 @@ server {
   add_header Referrer-Policy strict-origin-when-cross-origin always;
 
   gzip on; gzip_types application/json application/javascript text/css image/svg+xml;
-  client_max_body_size 6m;
+  client_max_body_size 21m;   # import upload, the API accepts 20 MB
 
   root /usr/share/nginx/html;
   location /assets/ { expires 1y; add_header Cache-Control "public, immutable"; }
@@ -374,7 +376,7 @@ Planned for M13. In M0 only step 6 is done locally, with `docker compose -f depl
 5. **Get the code**: `git clone` the repository to `/opt/oliveconnect`. In `deploy/`, create `.env` from `.env.example` with strong secrets (`openssl rand -base64 48`). Generate the Mongo keyfile (`openssl rand -base64 756 > mongo/keyfile && chmod 400`). Add the SSH deploy key and the VPS host as GitHub Actions secrets.
 6. `docker compose -f deploy/docker-compose.yml up -d --build`, then check `docker compose ps` (all healthy) and `docker compose exec api wget -qO- http://localhost:8080/actuator/health`. Later deployments are done by the GitHub Actions job over SSH: `git pull && docker compose -f deploy/docker-compose.yml up -d --build`.
 7. **Bootstrap**: the first start creates the Admin from `ADMIN_EMAIL`/`ADMIN_PASSWORD` in `deploy/.env` when no Admin exists (M1a). Forced password change comes with M9.
-8. **Load reference data**: drop the simulator reference files into the inbox (or `POST /api/imports/run?type=REFERENCE`), then check the import journal.
+8. **Load reference data**: run `python3 data-simulator/simulator.py <inbox dir> --only reference` against the inbox volume (or upload the files from `/intranet/imports`, or call `POST /api/imports/upload`), then run `POST /api/imports/run?type=REFERENCE` if needed, then check the import journal.
 9. **Monitoring**: open Grafana and import the provisioned dashboards (JVM Micrometer 4701, Node Exporter 1860, MongoDB, Redis, Nginx logs). Add the HTTP monitors in Uptime Kuma.
 10. **Smoke test**: log in with each role and run the E2E smoke suite against the public URL.
 
