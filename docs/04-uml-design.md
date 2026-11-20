@@ -22,12 +22,16 @@ classDiagram
         +boolean onboardingDone
         +String assignedMillId
         +Instant createdAt
+        +String createdBy
+        +Instant lastModifiedAt
+        +String lastModifiedBy
+        +Long version
     }
     class FarmerProfile {
         +String memberNumber
         +String cin
         +String address
-        +String delegation
+        +Delegation delegation
     }
     class RegistrationRequest {
         +String id
@@ -49,6 +53,25 @@ classDiagram
         LOGISTICS_MANAGER
         MILL_MANAGER
         ADMIN
+    }
+    class Delegation {
+        <<enumeration>>
+        SFAX_VILLE
+        SFAX_OUEST
+        SFAX_SUD
+        SAKIET_EZZIT
+        SAKIET_EDDAIER
+        THYNA
+        AGAREB
+        JEBINIANA
+        EL_AMRA
+        EL_HENCHA
+        MENZEL_CHAKER
+        GHRAIBA
+        BIR_ALI_BEN_KHALIFA
+        SKHIRA
+        MAHRES
+        KERKENNAH
     }
 
     class Orchard {
@@ -299,6 +322,7 @@ classDiagram
     %% ---- relationships ----
     User "1" *-- "0..1" FarmerProfile : farmer data
     User "1" --> "*" Role
+    FarmerProfile "*" --> "1" Delegation
     RegistrationRequest "*" --> "0..1" User : processed by
     User "1" --> "0..*" Orchard : owns
     Orchard "1" *-- "1..*" Plot
@@ -381,7 +405,7 @@ sequenceDiagram
 
     U->>FE: email + password
     FE->>AC: POST /api/auth/login
-    AC->>AS: login(cmd)
+    AC->>AS: login(email, password)
     AS->>RL: tryAcquire(email, ip)
     alt more than 5 failures in 15 min
         RL-->>AS: blocked

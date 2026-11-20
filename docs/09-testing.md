@@ -35,9 +35,12 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | ID | Use case | Scenario | Type | Level | Expected |
 |---|---|---|---|---|---|
 | T-SYS-1 | System status | `GET /api/system/status` with MongoDB and Redis running | Nominal | API | 200, `api`, `mongo`, `redis` = `UP`, `version` (`SystemStatusControllerTest`) |
-| T-AUTH-1 | Login | valid credentials | Nominal | API | 200, access token, refresh cookie |
+| T-AUTH-1 | Login | valid credentials (seeded Admin) | Nominal | API | 200, access token, `user.roles` contains `ADMIN` (refresh cookie: later M1a ticket) (`AuthControllerTest`) |
 | T-AUTH-2 | Login | wrong password ×6 | Alternative | API | 401 ×5 then 429 |
-| T-AUTH-3 | Login | disabled account | Alternative | API | 401 |
+| T-AUTH-3 | Login | disabled account (also wrong password, unknown email) | Alternative | API | 401 `INVALID_CREDENTIALS`, same message for all three (`AuthControllerTest`) |
+| T-AUTH-7 | Login | blank email | Alternative | API | 400 `VALIDATION_FAILED` with `errors[]` (`AuthControllerTest`) |
+| T-AUTH-8 | Startup | seeding run twice | Alternative | API | one Admin, `createdBy` = `system`; the `users` indexes exist (`AdminSeederTest`) |
+| T-SEC-5 | Any | `GET /api/me` without a token (or with a garbage token) | Alternative | API | 401 `UNAUTHENTICATED`; with a valid token 200 `MeDto` (`AuthControllerTest`) |
 | T-SEC-1 | Any | farmer reads another farmer's orchard | Alternative | API | **404** |
 | T-SEC-2 | Any | farmer calls `POST /rounds` | Alternative | Web | 403 |
 | T-SEC-3 | Public map | response contains no owner/phone/yield fields | Nominal | Web | JSON has no such keys |

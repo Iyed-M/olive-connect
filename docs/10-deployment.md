@@ -6,7 +6,7 @@ Target: a Linux VPS (Ubuntu Server 24.04 LTS, 2 vCPU / 4 GB RAM / 40 GB SSD is e
 
 | Status | Content |
 |---|---|
-| **Built (M0)** | `.github/workflows/ci.yml` (backend verify, frontend lint + build, Docker build), `.github/workflows/docs.yml` (Mermaid render), `backend/Dockerfile`, `frontend/Dockerfile`, `frontend/nginx.conf`, `deploy/docker-compose.yml` (production-like stack on port 80, runs locally), `deploy/docker-compose.dev.yml` (MongoDB + Redis only, for development). In M0, "done" means CI is green and the production compose stack works on a developer machine |
+| **Built (M0)** | `.github/workflows/ci.yml` (backend verify, frontend lint + build, Docker build), `.github/workflows/docs.yml` (Mermaid render), `backend/Dockerfile`, `frontend/Dockerfile`, `frontend/nginx.conf`, `deploy/docker-compose.yml` (production-like stack on port 80, runs locally), `deploy/docker-compose.dev.yml` (MongoDB + Redis only, for development). CI copies `deploy/.env.example` to `deploy/.env` before the build, because compose rejects the file without the secrets even for `build`. In M0, "done" means CI is green and the production compose stack works on a developer machine |
 | **Planned (M10)** | Data simulator and the import inbox volume |
 | **Planned (M13)** | VPS, TLS, rate limiting, monitoring stack (Prometheus, Grafana, Loki, exporters, Uptime Kuma), MongoDB authentication + keyfile, Redis password, `.env` secrets, backups, automatic deployment |
 
@@ -72,7 +72,7 @@ flowchart LR
     subgraph CI["ci.yml (3 parallel jobs)"]
         B["backend<br/>./mvnw -B verify<br/>(tests with Testcontainers)"]
         C["frontend<br/>pnpm install --frozen-lockfile<br/>pnpm lint, pnpm build"]
-        D["docker<br/>docker compose -f deploy/docker-compose.yml build"]
+        D["docker<br/>cp deploy/.env.example deploy/.env<br/>docker compose -f deploy/docker-compose.yml build"]
     end
     A --> DOC["docs.yml<br/>scripts/check-diagrams.sh"]
     CI --> M{"push to main<br/>and all green?"}
@@ -125,7 +125,7 @@ EXPOSE 80
 
 ### 3.1 As built (M0): `deploy/docker-compose.yml`
 
-Run with `docker compose -f deploy/docker-compose.yml up --build`, then open `http://localhost` (or `http://localhost:$HTTP_PORT`). Comments omitted.
+First copy `deploy/.env.example` to `deploy/.env` (gitignored) and set `JWT_SECRET`, `ADMIN_EMAIL` and `ADMIN_PASSWORD`. Run with `docker compose -f deploy/docker-compose.yml up --build`, then open `http://localhost` (or `http://localhost:$HTTP_PORT`). Comments omitted.
 
 ```yaml
 name: oliveconnect
@@ -146,6 +146,10 @@ services:
     environment:
       MONGO_URI: mongodb://mongo:27017/oliveconnect?replicaSet=rs0
       REDIS_HOST: redis
+      # no defaults: compose refuses to start when deploy/.env lacks one of these
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in deploy/.env (at least 32 characters)}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL in deploy/.env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in deploy/.env}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
       interval: 5s
@@ -356,7 +360,7 @@ Planned for M13. In M0 only step 6 is done locally, with `docker compose -f depl
 4. **TLS**: `certbot certonly --standalone -d oliveconnect.<domain>`, with renewal by cron (`certbot renew --deploy-hook "docker compose exec nginx nginx -s reload"`).
 5. **Get the code**: `git clone` the repository to `/opt/oliveconnect`. In `deploy/`, create `.env` from `.env.example` with strong secrets (`openssl rand -base64 48`). Generate the Mongo keyfile (`openssl rand -base64 756 > mongo/keyfile && chmod 400`). Add the SSH deploy key and the VPS host as GitHub Actions secrets.
 6. `docker compose -f deploy/docker-compose.yml up -d --build`, then check `docker compose ps` (all healthy) and `docker compose exec api wget -qO- http://localhost:8080/actuator/health`. Later deployments are done by the GitHub Actions job over SSH: `git pull && docker compose -f deploy/docker-compose.yml up -d --build`.
-7. **Bootstrap**: the first start creates the `admin` account from `ADMIN_EMAIL`/`ADMIN_INITIAL_PASSWORD` in the env. The initial password must be changed at first login.
+7. **Bootstrap**: the first start creates the Admin from `ADMIN_EMAIL`/`ADMIN_PASSWORD` in `deploy/.env` when no Admin exists (M1a). Forced password change comes with M9.
 8. **Load reference data**: drop the simulator reference files into the inbox (or `POST /api/imports/run?type=REFERENCE`), then check the import journal.
 9. **Monitoring**: open Grafana and import the provisioned dashboards (JVM Micrometer 4701, Node Exporter 1860, MongoDB, Redis, Nginx logs). Add the HTTP monitors in Uptime Kuma.
 10. **Smoke test**: log in with each role and run the E2E smoke suite against the public URL.

@@ -1,0 +1,3 @@
+# Short-lived JWT access tokens with Redis-backed refresh sessions
+
+We authenticate with a 15-minute HS256 JWT access token and an opaque refresh token stored in Redis (7 days, rotated on each use, sent as an HttpOnly cookie). A stateless JWT alone cannot be revoked before it expires, but disabling an account, logging out, and an admin password reset all need revocation, and refresh tokens must be rotated (the old id is deleted on use, so presenting it again fails), so the refresh session lives in Redis. Access tokens stay stateless, so ordinary API calls never touch Redis. The accepted cost is that a disabled user keeps access for up to 15 minutes.

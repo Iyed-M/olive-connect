@@ -4,9 +4,18 @@ spring:
   data:
     mongodb:
       uri: ${MONGO_URI:mongodb://localhost:27017/oliveconnect?directConnection=true}
+      # Creates the indexes declared on the entities (@Indexed, @CompoundIndex) at startup.
+      auto-index-creation: true
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+
+# Secrets and seed values. The defaults are for local dev only: the production compose file
+# passes the real values from deploy/.env and refuses to start without them.
+app:
+  jwt-secret: ${JWT_SECRET:dev-only-secret-change-me-0123456789abcdef}   # at least 32 characters
+  admin-email: ${ADMIN_EMAIL:admin@oliveconnect.tn}
+  admin-password: ${ADMIN_PASSWORD:admin1234}
 
 server:
   port: 8080

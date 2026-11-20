@@ -1,4 +1,5 @@
 # Production-like stack: web (nginx + React build) -> api (Spring Boot) -> mongo, redis.
+# First run: cp deploy/.env.example deploy/.env and edit the values.
 # Run:  docker compose -f deploy/docker-compose.yml up --build
 # Then open http://localhost (or http://localhost:$HTTP_PORT if port 80 is busy).
 # VPS deployment with login and HTTPS (TLS) comes later, in milestone M13.
@@ -20,6 +21,10 @@ services:
     environment:
       MONGO_URI: mongodb://mongo:27017/oliveconnect?replicaSet=rs0
       REDIS_HOST: redis
+      # No defaults: compose refuses to start when deploy/.env lacks one of these (see .env.example)
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in deploy/.env (at least 32 characters)}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL in deploy/.env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in deploy/.env}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
       interval: 5s

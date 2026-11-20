@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute } from '@tanstack/react-router'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getSystemStatus, type Health } from '@/lib/api'
 
@@ -33,6 +33,9 @@ function StatusPage() {
         <p className="mt-2 text-muted-foreground">
           Smart olive collection for the cooperative, from farm to mill.
         </p>
+        <Link to="/login" className={buttonVariants({ className: 'mt-4' })}>
+          Log in
+        </Link>
       </header>
 
       <Card>

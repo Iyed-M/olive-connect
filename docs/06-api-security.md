@@ -14,6 +14,21 @@ Base URL: `/api`. Format: JSON, dates in ISO-8601 UTC, GeoJSON for positions. AP
 | Status codes | 200 OK, 201 Created (+ `Location`), 204 No Content, 400 validation, 401 unauthenticated, 403 wrong role, **404 for another user's resource** (no information leak), 409 conflict/state, 422 business rule, 429 rate limit |
 | IDs | ObjectId hex strings |
 
+**Error codes** (`code` property of the ProblemDetail, produced by `GlobalExceptionHandler` and, for 401/403 raised by the security filters, by `ProblemSecurityHandler`). The frontend switches on `code`, never on the message.
+
+| Code | Status | When | Since |
+|---|---|---|---|
+| `VALIDATION_FAILED` | 400 | Bean Validation failed, `errors[]` lists `{field, message}` | M1a |
+| `UNAUTHENTICATED` | 401 | missing, expired or invalid access token | M1a |
+| `INVALID_CREDENTIALS` | 401 | unknown email, wrong password or disabled User (same generic message) | M1a |
+| `FORBIDDEN` | 403 | authenticated but the role is not allowed | M1a |
+| `NOT_FOUND` | 404 | resource missing (or not visible to the caller) | M1a |
+| `INTERNAL_ERROR` | 500 | unexpected error (details only in the logs) | M1a |
+| `EMAIL_TAKEN`, `MEMBER_NUMBER_TAKEN` | 409 | duplicate email or member number | M1b |
+| `SELF_LOCKOUT` | 422 | an Admin disables themselves or removes their own ADMIN role | M1b |
+| `TOO_MANY_ATTEMPTS` | 429 | 5 failed logins in 15 min, with `Retry-After` | M1a |
+| `STALE_VERSION` | 409 | optimistic locking conflict | later |
+
 ## 2. Endpoint catalogue
 
 Roles: **PUB** public, **F** farmer, **CM** collection manager, **TL** team leader, **LM** logistics manager, **MM** mill manager, **AD** admin. "own" means the service also checks ownership.
@@ -26,10 +41,10 @@ Roles: **PUB** public, **F** farmer, **CM** collection manager, **TL** team lead
 ### Auth & accounts
 | Method | Path | Roles | Description | FR |
 |---|---|---|---|---|
-| POST | `/auth/login` | PUB | login → access token + refresh cookie | — |
+| POST | `/auth/login` | PUB | body `{email, password}` → `200 {accessToken, expiresIn, user}` (M1a ticket 4: no refresh cookie yet), 400 `VALIDATION_FAILED`, 401 `INVALID_CREDENTIALS` | — |
 | POST | `/auth/refresh` | PUB (cookie) | rotate refresh token | — |
 | POST | `/auth/logout` | any | revoke refresh token | — |
-| GET | `/me` | any | profile + roles + `onboardingDone` | — |
+| GET | `/me` | any | `MeDto {id, email, firstName, lastName, roles, onboardingDone}`, 401 `UNAUTHENTICATED` without a valid token | — |
 | PATCH | `/me` | any | update phone, password, onboardingDone | NFR-3 |
 | POST | `/registrations` | PUB | visitor registration request | FR-6.1 |
 | GET | `/registrations` | AD | list, query `status` (for example `PENDING`) | FR-6.1 |
@@ -157,7 +172,7 @@ Roles: **PUB** public, **F** farmer, **CM** collection manager, **TL** team lead
   "estimatedQuantityKg": 9000, "comment": "Rain forecast Friday" }
 
 // 201 — HarvestRequestDto
-{ "id": "6671…", "orchard": { "id": "6660…", "name": "Henchir El Mezraa", "delegation": "Sakiet Ezzit" },
+{ "id": "6671…", "orchard": { "id": "6660…", "name": "Henchir El Mezraa", "delegation": "SAKIET_EZZIT" },
   "type": "URGENT", "status": "SUBMITTED", "desiredFrom": "2026-11-24", "desiredTo": "2026-11-27",
   "estimatedQuantityKg": 9000, "priorityScore": 82.5, "roundId": null,
   "history": [ { "to": "SUBMITTED", "at": "2026-11-21T09:12:00Z", "by": "Ali Ben Ali" } ],
@@ -187,14 +202,14 @@ flowchart LR
     ROT --> AT
 ```
 
-- Passwords hashed with **BCrypt** (strength 12). Password policy: 8+ characters. Temporary passwords must be changed at first login.
-- JWT claims: `sub` = userId, `roles`, `millId` (for mill managers), `exp`. The secret comes from an environment variable and is never committed.
+- Passwords hashed with **BCrypt** (strength 12). Password policy: 8+ characters. The forced change of a temporary password is deferred to M9 (no `mustChangePassword` field in M1).
+- JWT claims: `sub` = userId, `roles` (mapped to `ROLE_*` authorities), `millId` (for mill managers, from M7), `exp`. The secret comes from the `JWT_SECRET` environment variable (at least 32 characters, the API refuses to start otherwise) and is never committed. The seeded Admin comes from `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
 - Login rate limiting through Redis (5 failures in 15 min → 429).
 - **SSE authentication**: `EventSource` cannot send headers, so the client first calls `POST /api/events/ticket`. That returns a one-time ticket stored in Redis for 30 s, which is then passed as `?ticket=`.
 
 ### 4.2 Authorisation: three levels
 
-1. **URL level** (`SecurityFilterChain`): `/api/map/public/**`, `/api/varieties`, `/api/auth/**` and `POST /api/registrations` are `permitAll`. Everything else is `authenticated`. `/api/system/status` is also `permitAll` (M0). The Actuator exposes only `health` and `info` on port 8080, and Nginx never proxies it.
+1. **URL level** (`SecurityFilterChain`): `/api/map/public/**`, `/api/varieties`, `/api/auth/**` and `POST /api/registrations` are `permitAll`. Everything else is `authenticated`. `/api/system/status` is also `permitAll` (M0), as are `/actuator/health`, `/actuator/info` and the Swagger UI paths. A missing or invalid token returns 401 `UNAUTHENTICATED`. The Actuator exposes only `health` and `info` on port 8080, and Nginx never proxies it.
 2. **Method level** (`@PreAuthorize("hasRole('COLLECTION_MANAGER')")`) on controllers.
 3. **Data level (ownership)** in services. For example, `OrchardService.getForUser(id, user)` loads with `findByIdAndOwnerId(id, user.id())` when the user is only a FARMER. Missing → `NotFoundException` (404, not 403, so the existence of other farmers' data is never revealed). Mill managers are restricted to `assignedMillId`, team leaders to their own rounds.
 

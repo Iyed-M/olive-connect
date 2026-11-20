@@ -54,5 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      # Compose refuses to read the file without the secrets, even for a build, so use the example values.
+      - run: cp deploy/.env.example deploy/.env
       # Builds the backend and frontend images exactly as the deployment does.
       - run: docker compose -f deploy/docker-compose.yml build
