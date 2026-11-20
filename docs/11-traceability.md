@@ -34,7 +34,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | MaturityReading | R7, R12 | `maturity_readings` (time-series) | `telemetry.MaturityReading` (`@TimeSeries`) | `MaturityReadingRepository` | `TelemetryService` | `/orchards/{id}/maturity` | orchard detail chart |
 | Notification | R7 (+TTL) | `notifications` | `notification.Notification` | `NotificationRepository` | `NotificationService` | `/notifications`, `/events` | `notifications/` |
 | ImportJob / ImportError | R1 / R2 | `import_jobs` | `dataimport.ImportJob` | `ImportJobRepository` | `ImportService` | `ImportController /imports` | `intranet/ImportJournal` |
-| (System status — no class, read model) | — | none (pings MongoDB and Redis) | `system.SystemStatusDto` | — | `SystemStatusService` | `SystemStatusController /system` | `routes/index.tsx` (temporary status page), `lib/api.ts` |
+| (System status — no class, read model) | — | none (pings MongoDB and Redis) | `system.SystemStatusDto` | — | `SystemStatusService` | `SystemStatusController /system` | `lib/api.ts` (`getSystemStatus`, no page calls it since M9 replaced the status page with the public map) |
 | (KPIs — no class, read model) | R13 | aggregation over `mill_receptions`, `collection_rounds` | DTOs `dashboard.dto.*` | `KpiRepositoryCustom` | `KpiService` | `DashboardController /dashboard` | `dashboard/` |
 
 ## 2. Requirement ⇄ use case ⇄ endpoint ⇄ test
