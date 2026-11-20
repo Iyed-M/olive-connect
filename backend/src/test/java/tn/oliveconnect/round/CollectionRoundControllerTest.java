@@ -1,6 +1,7 @@
 package tn.oliveconnect.round;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -100,6 +101,21 @@ class CollectionRoundControllerTest extends AbstractIntegrationTest {
         assertThat(bookingRepository.findByRoundId(round.getId())).hasSize(2);
         assertThat(notificationRepository.findAll().stream().map(n -> n.getType()))
                 .contains(NotificationType.ROUND_SCHEDULED, NotificationType.ROUND_ASSIGNED);
+    }
+
+    @Test
+    void planningSuggestionsExposeTeamLeadersAndGroupRequestIds() throws Exception {
+        User manager = saveUser("manager@suggestions-test.tn", Role.COLLECTION_MANAGER);
+        User farmer = saveUser("farmer@suggestions-test.tn", Role.FARMER);
+        User leader = saveUser("leader@suggestions-test.tn", Role.TEAM_LEADER);
+        HarvestRequest request = saveValidatedRequest(farmer, manager, "Suggestion orchard", 900);
+
+        mockMvc.perform(get("/api/planning/suggestions")
+                        .param("date", "2026-11-25")
+                        .header("Authorization", token(manager.getEmail())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.teamLeaders[0].id").value(leader.getId()))
+                .andExpect(jsonPath("$.groups[0].requestIds[0]").value(request.getId()));
     }
 
     @Test

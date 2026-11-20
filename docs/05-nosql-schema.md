@@ -101,6 +101,7 @@ erDiagram
         string code UK
         date date
         string status
+        ObjectId plannedById
         ObjectId teamLeaderId
         ObjectId millId
         array stops "embedded 1..n (≤ 15)"
@@ -110,10 +111,21 @@ erDiagram
     resource_bookings {
         ObjectId _id
         string resourceKind
+        string resourceType
         ObjectId resourceId
         ObjectId roundId
         date start
         date end
+        string status
+    }
+    mills {
+        ObjectId _id
+        string name UK
+        object location "GeoJSON Point"
+        string address
+        double dailyCapacityKg
+        double availableCapacityKg
+        date capacityUpdatedAt
     }
     mill_receptions {
         ObjectId _id
@@ -317,7 +329,7 @@ by the M2 form yet.
   "stops": [
     { "order": 1, "harvestRequestId": ObjectId("..."), "orchardId": ObjectId("..."), "farmerId": ObjectId("..."),
       "orchardName": "Henchir El Mezraa", "location": {"type":"Point","coordinates":[10.7603,34.7998]},
-      "plannedArrival": "07:30", "estimatedKg": 9000, "status": "PENDING", "harvestedKg": null, "crateCount": null }
+      "plannedArrival": "07:30", "estimatedKg": 9000, "status": "PENDING", "harvestedKg": null, "crateCount": null, "comment": null }
   ],
   "estimatedTotalKg": 15000, "totalHarvestedKg": 0,
   "statusHistory": [ { "from": null, "to": "PLANNED", "at": ISODate("..."), "byUserId": ObjectId("...") } ],
@@ -372,6 +384,12 @@ Indexes: `{ type: 1, status: 1 }`, `{ code: 1 }` unique. Workers: `{ active: 1, 
 ### 4.8 `mills`, `mill_receptions` (R1, R2 quality, R3, R11 computed, R13 denormalised)
 
 ```json
+// mills — seeded reference destinations; capacity is mutable for later mill-management slices
+{ "_id": ObjectId("..."), "name": "Sfax North Olive Mill", "address": "Route de Tunis, Sfax",
+  "location": {"type": "Point", "coordinates": [10.7603, 34.7998]},
+  "dailyCapacityKg": 40000, "availableCapacityKg": 40000,
+  "capacityUpdatedAt": ISODate("2026-11-20T08:00:00Z") }
+
 // mill_receptions — the main "fact" collection for the dashboard
 {
   "_id": ObjectId("..."),
@@ -394,7 +412,12 @@ Indexes: `{ type: 1, status: 1 }`, `{ code: 1 }` unique. Workers: `{ active: 1, 
 | `{ farmerId: 1, receivedAt: -1 }` | farmer "my receptions" |
 | `{ roundId: 1, binId: 1, orchardId: 1 }` unique | prevents weighing the same bin load twice |
 
-`mills`: `{ location: "2dsphere" }` for nearest-mill suggestions. `availableCapacityKg` is updated by `$inc` on each reception and overwritten by the dynamic import (mill system).
+`mills`: `{ location: "2dsphere" }` for nearest-mill suggestions, plus `{ name: 1 }` unique for the seeded reference names. `availableCapacityKg` is updated by `$inc` on each reception and overwritten by the dynamic import (mill system).
+
+| Index | Purpose |
+|---|---|
+| `{ location: "2dsphere" }` (`location_2dsphere`) | nearest-mill `$geoNear` suggestions |
+| `{ name: 1 }` unique | idempotent lookup of seeded mill names |
 
 ### 4.9 `field_alerts` (R1, R2 history, R10)
 
@@ -472,7 +495,7 @@ flowchart LR
 | Public map, visible area | `orchards.find({location: {$geoWithin: {$box: [[w,s],[e,n]]}}, harvestStatus: {$in: [...]}}, {projection: name, location, mainVarietyCode, harvestStatus, currentMaturityIndex})` | `location_2dsphere` | < 300 ms (then cached in Redis per tile/zoom + filter) |
 | Manager queue | `harvest_requests.find({status: "VALIDATED"}).sort({priorityScore: -1}).limit(50)` | `status_1_priorityScore_-1` | < 50 ms |
 | Nearby requests (grouping) | `$geoNear` on `orchard.location`, `maxDistance 10 000`, `query {status: VALIDATED}` | `orchard.location_2dsphere_status_1` | < 100 ms |
-| Booking conflicts | `resource_bookings.find({resourceId: {$in: ids}, start: {$lt: e}, end: {$gt: s}, status: "ACTIVE"})` | `resourceId_1_start_1_end_1` | < 20 ms |
+| Booking conflicts | `resource_bookings.find({resourceId: {$in: ids}, start: {$lt: e}, end: {$gt: s}, status: "ACTIVE"})` | `resource_id_start_end_active` | < 20 ms |
 | Yield per orchard | aggregation below | `season_1_orchardId_1` | < 1 s for 10⁵ receptions |
 | Latest maturity history | `maturity_readings.find({"meta.orchardId": X}).sort({timestamp: -1}).limit(30)` | `meta.orchardId_1_timestamp_-1` | < 50 ms |
 

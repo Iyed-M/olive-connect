@@ -78,7 +78,8 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-RD-2 | Plan round | bin already booked on overlapping slot | Alternative | API | 409 BOOKING_CONFLICT, **nothing persisted** (transaction rollback) |
 | T-RD-3 | Plan round | request not VALIDATED | Alternative | API | 422 |
 | T-RD-4 | Plan round | estimate > mill capacity | Alternative | API | 201 + warning MILL_CAPACITY_LOW |
-| T-RD-5 | Plan round | two managers book same bin concurrently | Alternative | API | exactly one 201, one 409 |
+| T-RD-5 | Plan round | two managers book same bin concurrently | Alternative | API | exactly one 201, one 409 (`CollectionRoundControllerTest`) |
+| T-RD-9 | Planning suggestions | validated request and active team leader | Nominal (M5) | API | response includes team leader options and group `requestIds` (`CollectionRoundControllerTest`) |
 | T-RD-6 | Run round | start by another team leader | Alternative | API | 403 |
 | T-RD-7 | Run round | complete with pending stops | Alternative | API | 422 |
 | T-RD-8 | Run round | full run: start → stops → complete | Nominal | API + E2E | statuses cascade to requests & orchards |

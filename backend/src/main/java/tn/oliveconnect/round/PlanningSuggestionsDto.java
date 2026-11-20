@@ -12,6 +12,7 @@ public record PlanningSuggestionsDto(
         List<HarvestRequestDto> requests,
         List<WorkerDto> availableWorkers,
         List<EquipmentDto> availableEquipment,
+        List<TeamLeaderOptionDto> teamLeaders,
         List<MillDto> mills,
         List<PlanningGroupDto> groups,
         MillDto suggestedMill) {

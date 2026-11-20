@@ -184,21 +184,34 @@ classDiagram
         +LocalTime startTime
         +LocalTime endTime
         +RoundStatus status
+        +String plannedById
+        +String teamLeaderId
+        +String millId
+        +List~String~ workerIds
+        +List~String~ equipmentIds
+        +List~RoundStop~ stops
+        +double estimatedTotalKg
         +double totalHarvestedKg
         +Instant startedAt
         +Instant completedAt
-        +long version
+        +List~StatusChange~ statusHistory
+        +String season
+        +Long version
         +start()
         +complete()
     }
     class RoundStop {
         +int order
+        +String harvestRequestId
+        +String orchardId
+        +String farmerId
         +String orchardName
         +GeoPoint location
         +LocalTime plannedArrival
+        +double estimatedKg
         +StopStatus status
-        +double harvestedKg
-        +int crateCount
+        +Double harvestedKg
+        +Integer crateCount
         +String comment
     }
     class RoundStatus {
@@ -266,9 +279,22 @@ classDiagram
     class ResourceBooking {
         +String id
         +ResourceKind resourceKind
+        +String resourceType
+        +String resourceId
+        +String roundId
         +Instant start
         +Instant end
         +BookingStatus status
+    }
+    class ResourceKind {
+        <<enumeration>>
+        WORKER
+        EQUIPMENT
+    }
+    class BookingStatus {
+        <<enumeration>>
+        ACTIVE
+        RELEASED
     }
     class SupplyOrder {
         +String id
@@ -351,6 +377,10 @@ classDiagram
         NEW_REQUEST
         REQUEST_VALIDATED
         REQUEST_REJECTED
+        ROUND_SCHEDULED
+        ROUND_ASSIGNED
+        ROUND_UPDATED
+        ROUND_CANCELLED
     }
     class ImportJob {
         +String id
@@ -408,6 +438,8 @@ classDiagram
     ResourceBooking "*" --> "1" CollectionRound : for
     ResourceBooking "*" --> "0..1" Worker : books
     ResourceBooking "*" --> "0..1" Equipment : books
+    ResourceBooking --> ResourceKind
+    ResourceBooking --> BookingStatus
     SupplyOrder "*" --> "1" Tool : replenishes
 
     Mill "*" --> "*" User : managed by
@@ -637,6 +669,8 @@ sequenceDiagram
         C-->>FE: 422 "Request R-123 is not validated"
     else all validated
         Note over S,RR: MongoDB multi-document transaction (@Transactional)
+        S->>MR: findById(millId)
+        S->>RR: save(round PLANNED, stops ordered)
         S->>BS: checkAndBook(resources, slot)
         BS->>BR: findOverlapping(resourceIds, start, end)
         alt conflict found
@@ -645,11 +679,9 @@ sequenceDiagram
             C-->>FE: 409 "Bin B-07 already booked by round T-2026-118"
         else free
             BS->>BR: saveAll(bookings)
-            S->>MR: findById(millId)
             opt sum(estimatedKg) > availableCapacityKg
                 S-->>S: add warning MILL_CAPACITY_LOW
             end
-            S->>RR: save(round PLANNED, stops ordered)
             S->>HR: updateStatus(requests, SCHEDULED, roundId)
             S->>NS: notify farmers (ROUND_SCHEDULED), team leader (ROUND_ASSIGNED)
             S-->>C: round + warnings

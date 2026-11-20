@@ -16,7 +16,6 @@ public class ResourceBooking {
     private String id;
     private ResourceKind resourceKind;
     private String resourceType;
-    @Indexed
     private String resourceId;
     @Indexed(name = "round_id")
     private String roundId;

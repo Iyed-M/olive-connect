@@ -33,6 +33,8 @@ Base URL: `/api`. Format: JSON, dates in ISO-8601 UTC, GeoJSON for positions. AP
 | `STALE_VERSION` | 409 | optimistic locking conflict (stale `version`) | M1b |
 | `ACTIVE_REQUEST_EXISTS` | 409 | an orchard already has an active harvest request | M3 |
 | `INVALID_TRANSITION` | 409 | the requested HarvestRequest state transition is not allowed | M3 |
+| `BOOKING_CONFLICT` | 409 | a worker or equipment item is already booked for the requested slot | M5 |
+| `ROUND_NOT_PLANNED`, `ROUND_STARTED` | 409 | a planned round cannot be edited, or a started round cannot be cancelled | M5 |
 
 ## 2. Endpoint catalogue
 
@@ -101,7 +103,7 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 |---|---|---|---|---|
 | GET | `/planning/suggestions` | CM | priority-sorted groups, free resources, mill, query `date` | FR-1.5 |
 | POST | `/rounds` | CM | plan round (transaction + bookings) | FR-1.5 |
-| GET | `/rounds` | CM, LM, TL (own) | calendar/list, query `from`, `to`, `status`, `teamLeaderId` | FR-3.3 |
+| GET | `/rounds` | CM, LM, TL (own), MM (assigned mill), AD | calendar/list, query `from`, `to`, `status`, `teamLeaderId` | FR-3.3 |
 | GET | `/rounds/{id}` | CM, LM, TL own, MM (if delivering to their mill) | detail | — |
 | PUT | `/rounds/{id}` | CM (PLANNED only) | modify stops/resources | FR-1.5 |
 | POST | `/rounds/{id}/cancel` | CM | cancel + release bookings | — |
@@ -180,6 +182,29 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 ## 3. DTO examples (the API contract)
 
 ```jsonc
+// GET /api/planning/suggestions?date=2026-11-25 — PlanningSuggestionsDto
+{ "date": "2026-11-25", "teamLeaders": [ { "id": "665f…", "firstName": "Sami", "lastName": "Trabelsi", "available": true } ],
+  "availableWorkers": [ … ], "availableEquipment": [ … ], "mills": [ … ],
+  "groups": [ { "requestIds": ["6671…"], "estimatedTotalKg": 9000, "nearestMillId": "66a0…" } ],
+  "suggestedMill": { "id": "66a0…", "name": "Sfax North Olive Mill", "availableCapacityKg": 40000 } }
+
+// POST /api/rounds — CollectionRoundCreateDto
+{ "date": "2026-11-25", "startTime": "07:00", "endTime": "15:00",
+  "teamLeaderId": "665f…", "requestIds": ["6671…"], "workerIds": ["6680…"],
+  "equipmentIds": ["6690…"], "millId": "66a0…" }
+
+// 201 — CollectionRoundDto (warnings is empty or contains MILL_CAPACITY_LOW)
+{ "id": "66b0…", "code": "T-2026-AB12CD34", "date": "2026-11-25", "startTime": "07:00", "endTime": "15:00",
+  "status": "PLANNED", "teamLeaderId": "665f…", "millId": "66a0…", "workerIds": ["6680…"],
+  "equipmentIds": ["6690…"], "stops": [ … ], "estimatedTotalKg": 9000, "totalHarvestedKg": 0,
+  "history": [ … ], "season": "2026-2027", "version": 0, "warnings": [] }
+
+// PUT /api/rounds/{id} — same fields are optional; version is used for optimistic locking
+{ "startTime": "07:30", "endTime": "15:30", "requestIds": ["6671…"], "version": 0 }
+
+// GET /api/resources/availability?start=2026-11-25T07:00:00Z&end=2026-11-25T15:00:00Z
+{ "workers": [ … ], "equipment": [ … ] }
+
 // POST /api/harvest-requests  — HarvestRequestCreateDto
 { "orchardId": "6660…", "type": "URGENT", "desiredFrom": "2026-11-24", "desiredTo": "2026-11-27",
   "estimatedQuantityKg": 9000, "comment": "Rain forecast Friday" }
