@@ -14,5 +14,6 @@ public record PlanningSuggestionsDto(
         List<TeamLeaderOptionDto> teamLeaders,
         List<MillDto> mills,
         List<PlanningGroupDto> groups,
-        MillDto suggestedMill) {
+        MillDto suggestedMill,
+        List<PlanningWarningDto> warnings) {
 }

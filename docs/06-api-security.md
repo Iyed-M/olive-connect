@@ -37,6 +37,11 @@ Base URL: `/api`. Format: JSON, dates in ISO-8601 UTC, GeoJSON for positions. AP
 | `ROUND_NOT_PLANNED`, `ROUND_STARTED` | 409 | a planned round cannot be edited, or a started round cannot be cancelled | M5 |
 | `REQUEST_OUTSIDE_WINDOW` | 422 | a round date is outside a selected request's desired harvest window | M5 |
 | `ROUND_EMPTY`, `ROUND_TOO_MANY_STOPS` | 422 | a round has no stops or exceeds the 15-stop bound | M5 |
+| `DUPLICATE_REQUEST`, `DUPLICATE_RESOURCE` | 422 | the same request or resource was selected more than once | M5 |
+| `REQUEST_NOT_VALIDATED` | 422 | a selected harvest request is not ready to schedule | M5 |
+| `RESOURCE_UNAVAILABLE` | 422 | a selected worker or equipment item is inactive, unavailable or outside its slot | M5 |
+| `INVALID_TEAM_LEADER`, `INVALID_TIME_WINDOW` | 422 | the selected team leader is invalid, or the round slot is incomplete/invalid | M5 |
+| `RESOURCE_NOT_FOUND` | 422 | a selected worker or equipment item does not exist | M5 |
 
 ## 2. Endpoint catalogue
 
@@ -105,8 +110,8 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 |---|---|---|---|---|
 | GET | `/planning/suggestions` | CM | priority-sorted groups, free resources, mill, query `date` | FR-1.5 |
 | POST | `/rounds` | CM | plan round (transaction + bookings) | FR-1.5 |
-| GET | `/rounds` | CM, LM, TL (own), MM (assigned mill), AD | calendar/list, query `from`, `to`, `status`, `teamLeaderId` | FR-3.3 |
-| GET | `/rounds/{id}` | CM, LM, TL own, MM (if delivering to their mill) | detail | — |
+| GET | `/rounds` | CM, TL (own) | calendar/list, query `from`, `to`, `status`, `teamLeaderId` | FR-1.5 |
+| GET | `/rounds/{id}` | CM, TL own | detail | FR-1.5 |
 | PUT | `/rounds/{id}` | CM (PLANNED only) | modify stops/resources | FR-1.5 |
 | POST | `/rounds/{id}/cancel` | CM | cancel + release bookings | — |
 | POST | `/rounds/{id}/start` | TL own | start round | FR-1.7 |
@@ -188,7 +193,8 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 { "date": "2026-11-25", "teamLeaders": [ { "id": "665f…", "firstName": "Sami", "lastName": "Trabelsi", "available": true } ],
   "availableWorkers": [ … ], "availableEquipment": [ … ], "mills": [ … ],
   "groups": [ { "requestIds": ["6671…"], "estimatedTotalKg": 9000, "nearestMillId": "66a0…" } ],
-  "suggestedMill": { "id": "66a0…", "name": "Sfax North Olive Mill", "availableCapacityKg": 40000 } }
+  "suggestedMill": { "id": "66a0…", "name": "Sfax North Olive Mill", "availableCapacityKg": 40000 },
+  "warnings": [] }
 
 // POST /api/rounds — CollectionRoundCreateDto; LocalTime fields are interpreted as UTC
 { "date": "2026-11-25", "startTime": "07:00", "endTime": "15:00",
@@ -316,7 +322,7 @@ flowchart LR
 | Public map (no personal data) | R | R | R | R | R | R | R |
 | Orchards | – | CRUD own | R all | R (round stops) | – | – | CRUD |
 | Harvest requests | – | C, R/U/cancel own | R, validate/reject | R (own rounds) | – | – | R |
-| Rounds | – | – (request status is returned on own harvest requests) | CRUD | R own, start/stops/complete | R | R (to their mill) | R |
+| Rounds | – | – (request status is returned on own harvest requests) | CRUD | R own, start/stops/complete | – | – | – |
 | Workers / equipment | – | – | R | – | CRUD | – | CRUD |
 | Bookings / calendar | – | – | CR | R own | CRUD | – | R |
 | Supply orders | – | – | – | – | CRUD | – | R |

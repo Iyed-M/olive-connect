@@ -62,7 +62,10 @@ public class PlanningService {
                 .mapToDouble(HarvestRequest::getEstimatedQuantityKg).sum();
         MillDto suggestedMill = mills.stream()
                 .filter(mill -> mill.availableCapacityKg() >= estimatedTotalKg)
-                .findFirst().orElse(mills.isEmpty() ? null : mills.get(0));
+                .findFirst().orElse(null);
+        List<PlanningWarningDto> warnings = suggestedMill == null && !groupedRequests.isEmpty()
+                ? List.of(new PlanningWarningDto("MILL_CAPACITY_LOW",
+                        "No available mill has enough capacity for the suggested load.")) : List.of();
         PlanningGroupDto group = new PlanningGroupDto(groupedRequests.stream()
                 .map(request -> HarvestRequestDto.from(request, List.of())).toList(),
                 groupedRequests.stream().map(HarvestRequest::getId).toList(), estimatedTotalKg,
@@ -72,7 +75,7 @@ public class PlanningService {
                 .map(user -> TeamLeaderOptionDto.from(user,
                         availabilityService.isTeamLeaderAvailable(user.getId(), slotStart, slotEnd))).toList();
         return new PlanningSuggestionsDto(selectedDate, requestDtos, availability.workers(), availability.equipment(),
-                teamLeaders, mills, requests.isEmpty() ? List.of() : List.of(group), suggestedMill);
+                teamLeaders, mills, requests.isEmpty() ? List.of() : List.of(group), suggestedMill, warnings);
     }
 
     private List<HarvestRequest> groupRequests(List<HarvestRequest> requests,

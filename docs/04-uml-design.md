@@ -214,6 +214,13 @@ classDiagram
         +Integer crateCount
         +String comment
     }
+    class StopStatus {
+        <<enumeration>>
+        PENDING
+        IN_PROGRESS
+        DONE
+        SKIPPED
+    }
     class RoundStatus {
         <<enumeration>>
         PLANNED
@@ -423,6 +430,7 @@ classDiagram
     CollectionRound "1" *-- "1..*" RoundStop : stops
     RoundStop "*" --> "1" HarvestRequest : serves
     RoundStop "*" --> "1" Orchard : visits
+    RoundStop --> StopStatus
     CollectionRound "*" --> "1" User : team leader
     CollectionRound "*" --> "1" User : planned by
     CollectionRound "*" --> "1" Mill : delivers to
@@ -672,6 +680,10 @@ sequenceDiagram
     else all validated
         Note over S,RR: MongoDB multi-document transaction (@Transactional)
         S->>MR: findById(millId)
+        alt invalid date, time, request or selection
+            S-->>C: BusinessRuleException(code)
+            C-->>FE: 422 code + detail
+        else valid round data
         S->>RR: save(round PLANNED, stops ordered)
         S->>BS: checkAndBook(team leader, resources, slot)
         BS->>BR: findOverlapping(resourceIds, start, end)
@@ -689,8 +701,14 @@ sequenceDiagram
             S-->>C: round + warnings
             C-->>FE: 201 Created
         end
+        end
     end
 ```
+
+The business-rule branch returns `INVALID_TIME_WINDOW`, `INVALID_TEAM_LEADER`, `DUPLICATE_REQUEST`,
+`DUPLICATE_RESOURCE`, `REQUEST_OUTSIDE_WINDOW`, `REQUEST_NOT_VALIDATED`, `RESOURCE_NOT_FOUND`, or
+`RESOURCE_UNAVAILABLE` as appropriate, all with HTTP 422. Missing rounds, requests, or mills keep the
+generic `NOT_FOUND` 404 response.
 
 ### SD-4 Farmer modifies / cancels a request (alternative: round already started)
 
@@ -1048,6 +1066,15 @@ stateDiagram-v2
     IN_PROGRESS --> SKIPPED
     DONE --> [*]
     SKIPPED --> [*]
+```
+
+### ResourceBooking
+
+```mermaid
+stateDiagram-v2
+    [*] --> ACTIVE : round planned
+    ACTIVE --> RELEASED : round cancelled / stop removed
+    RELEASED --> [*]
 ```
 
 ### FieldAlert

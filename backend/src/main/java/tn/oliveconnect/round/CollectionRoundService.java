@@ -338,16 +338,11 @@ public class CollectionRoundService {
     }
 
     private boolean canView(CollectionRound round, Authentication authentication) {
-        if (hasRole(authentication, Role.COLLECTION_MANAGER) || hasRole(authentication, Role.LOGISTICS_MANAGER)
-                || hasRole(authentication, Role.ADMIN)) {
+        if (hasRole(authentication, Role.COLLECTION_MANAGER)) {
             return true;
         }
         if (hasRole(authentication, Role.TEAM_LEADER)) {
             return Objects.equals(round.getTeamLeaderId(), authentication.getName());
-        }
-        if (hasRole(authentication, Role.MILL_MANAGER)) {
-            return userRepository.findById(authentication.getName())
-                    .map(user -> Objects.equals(user.getAssignedMillId(), round.getMillId())).orElse(false);
         }
         return false;
     }

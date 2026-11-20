@@ -15,6 +15,7 @@ import {
   millCapacityWarning,
   planningErrorMessage,
   resourceLabel,
+  resourceAvailabilityLabel,
   teamLeaderLabel,
   toAvailabilityRange,
   updateRound,
@@ -71,7 +72,7 @@ export function RoundForm({
   const availabilityQuery = useQuery({
     queryKey: ['resource-availability', range],
     queryFn: () => {
-      if (!range) throw new Error('The planning slot is incomplete.')
+      if (!range) throw new Error('Le créneau de planification est incomplet.')
       return getResourceAvailability(range)
     },
     enabled: Boolean(range),
@@ -89,7 +90,7 @@ export function RoundForm({
   const teamLeaders = useMemo(() => {
     const values = [...(suggestions?.teamLeaders ?? [])]
     if (existingRound && !values.some((leader) => leader.id === existingRound.teamLeaderId)) {
-      values.unshift(existingRound.teamLeader ?? { id: existingRound.teamLeaderId, name: `Team leader ${existingRound.teamLeaderId}` })
+      values.unshift(existingRound.teamLeader ?? { id: existingRound.teamLeaderId, name: `Chef d’équipe ${existingRound.teamLeaderId}` })
     }
     return values
   }, [existingRound, suggestions?.teamLeaders])
@@ -127,9 +128,9 @@ export function RoundForm({
       existingResourceIds,
       existingTeamLeaderId: existingRound?.teamLeaderId,
     })
-    if (!range) errorsFromSelection.push('Choose a valid time range with the end after the start.')
-    if (range && availabilityQuery.isPending) errorsFromSelection.push('Wait for resource availability to finish loading.')
-    if (availabilityQuery.isError) errorsFromSelection.push('Resource availability could not be checked. Refresh before saving.')
+    if (!range) errorsFromSelection.push('Choisissez un créneau valide avec une fin après le début.')
+    if (range && availabilityQuery.isPending) errorsFromSelection.push('Attendez la fin du chargement de la disponibilité des ressources.')
+    if (availabilityQuery.isError) errorsFromSelection.push('La disponibilité des ressources n’a pas pu être vérifiée. Actualisez avant d’enregistrer.')
     setSelectionErrors(errorsFromSelection)
     if (errorsFromSelection.length > 0) return
     mutation.mutate(raw)
@@ -141,37 +142,37 @@ export function RoundForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{existingRound ? `Edit round ${existingRound.code}` : 'Plan a collection round'}</CardTitle>
+        <CardTitle>{existingRound ? `Modifier la tournée ${existingRound.code}` : 'Planifier une tournée de collecte'}</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Selected requests remain visible while you choose a slot and resources. Saving is blocked if the server data is stale.
+          Les demandes sélectionnées restent visibles pendant le choix du créneau et des ressources. L’enregistrement est bloqué si les données du serveur sont obsolètes.
         </p>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <Field id="round-date" label="Date" type="date" error={errors.date?.message} {...register('date', { required: 'Choose a date.' })} />
-            <Field id="round-start" label="Start" type="time" error={errors.startTime?.message} {...register('startTime', { required: 'Choose a start time.' })} />
-            <Field id="round-end" label="End" type="time" error={errors.endTime?.message} {...register('endTime', { required: 'Choose an end time.' })} />
+            <Field id="round-date" label="Date" type="date" error={errors.date?.message} {...register('date', { required: 'Choisissez une date.' })} />
+            <Field id="round-start" label="Début" type="time" error={errors.startTime?.message} {...register('startTime', { required: 'Choisissez une heure de début.' })} />
+            <Field id="round-end" label="Fin" type="time" error={errors.endTime?.message} {...register('endTime', { required: 'Choisissez une heure de fin.' })} />
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="round-team-leader">Team leader</Label>
-            <select id="round-team-leader" className="h-11 w-full rounded-lg border border-input bg-background px-2 text-base md:text-sm" aria-invalid={!!errors.teamLeaderId} {...register('teamLeaderId', { required: 'Choose a team leader.' })}>
-              <option value="">Choose a team leader</option>
+            <Label htmlFor="round-team-leader">Chef d’équipe</Label>
+            <select id="round-team-leader" className="h-11 w-full rounded-lg border border-input bg-background px-2 text-base md:text-sm" aria-invalid={!!errors.teamLeaderId} {...register('teamLeaderId', { required: 'Choisissez un chef d’équipe.' })}>
+              <option value="">Choisir un chef d’équipe</option>
               {teamLeaders.map((leader) => (
                 <option key={leader.id} value={leader.id}>
-                  {teamLeaderLabel(leader)}{leader.available === false ? ' · busy' : ''}
+                  {teamLeaderLabel(leader)}{leader.available === false ? ' · occupé' : ''}
                 </option>
               ))}
             </select>
             {errors.teamLeaderId?.message && <p className="text-sm text-destructive">{errors.teamLeaderId.message}</p>}
-            {teamLeaders.length === 0 && <p className="text-sm text-muted-foreground">No team leaders are available for this date.</p>}
+            {teamLeaders.length === 0 && <p className="text-sm text-muted-foreground">Aucun chef d’équipe n’est disponible pour cette date.</p>}
           </div>
 
           <SelectedRequests requests={selectedRequests} selectedIds={selectedRequestIds} />
 
           <ResourceChoices
-            label="Workers"
+            label="Ouvriers"
             name="workerIds"
             resources={availability?.workers ?? []}
             selectedIds={selectedWorkerIds}
@@ -179,7 +180,7 @@ export function RoundForm({
             register={register}
           />
           <ResourceChoices
-            label="Equipment and bins"
+            label="Équipements et bacs"
             name="equipmentIds"
             resources={availability?.equipment ?? []}
             selectedIds={selectedEquipmentIds}
@@ -188,16 +189,16 @@ export function RoundForm({
             showCapacity
           />
 
-          {availabilityQuery.isPending && <p className="text-sm text-muted-foreground">Checking free/busy resources…</p>}
-          {availabilityQuery.isError && <p role="alert" className="text-sm text-destructive">Could not load resource availability.</p>}
+          {availabilityQuery.isPending && <p className="text-sm text-muted-foreground">Vérification des ressources libres/occupées…</p>}
+          {availabilityQuery.isError && <p role="alert" className="text-sm text-destructive">Impossible de charger la disponibilité des ressources.</p>}
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="round-mill">Destination mill</Label>
-            <select id="round-mill" className="h-11 w-full rounded-lg border border-input bg-background px-2 text-base md:text-sm" aria-invalid={!!errors.millId} {...register('millId', { required: 'Choose a destination mill.' })}>
-              <option value="">Choose a mill</option>
+            <Label htmlFor="round-mill">Moulin de destination</Label>
+            <select id="round-mill" className="h-11 w-full rounded-lg border border-input bg-background px-2 text-base md:text-sm" aria-invalid={!!errors.millId} {...register('millId', { required: 'Choisissez un moulin de destination.' })}>
+              <option value="">Choisir un moulin</option>
               {mills.map((mill) => (
                 <option key={mill.id} value={mill.id}>
-                  {mill.name} · {formatKg(mill.availableCapacityKg)} available
+                  {mill.name} · {formatKg(mill.availableCapacityKg)} disponibles
                 </option>
               ))}
             </select>
@@ -207,7 +208,7 @@ export function RoundForm({
 
           {selectionErrors.length > 0 && (
             <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-              <p className="font-medium">Fix these selections before saving:</p>
+              <p className="font-medium">Corrigez ces sélections avant l’enregistrement :</p>
               <ul className="mt-1 list-disc pl-5">
                 {selectionErrors.map((message) => <li key={message}>{message}</li>)}
               </ul>
@@ -217,9 +218,9 @@ export function RoundForm({
 
           <div className="flex flex-wrap gap-2">
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Saving…' : existingRound ? 'Save changes' : 'Create round'}
+              {mutation.isPending ? 'Enregistrement…' : existingRound ? 'Enregistrer les modifications' : 'Créer la tournée'}
             </Button>
-            {existingRound && onCancelEdit && <Button type="button" variant="outline" onClick={onCancelEdit} disabled={mutation.isPending}>Cancel editing</Button>}
+            {existingRound && onCancelEdit && <Button type="button" variant="outline" onClick={onCancelEdit} disabled={mutation.isPending}>Annuler la modification</Button>}
           </div>
         </form>
       </CardContent>
@@ -232,17 +233,17 @@ function SelectedRequests({ requests, selectedIds }: { requests: HarvestRequest[
   return (
     <section className="flex flex-col gap-2" aria-labelledby="selected-requests-heading">
       <div className="flex items-center justify-between gap-2">
-        <h2 id="selected-requests-heading" className="font-medium">Requests in this round</h2>
-        <span className="text-sm text-muted-foreground">{selectedIds.length} selected</span>
+        <h2 id="selected-requests-heading" className="font-medium">Demandes de la tournée</h2>
+        <span className="text-sm text-muted-foreground">{selectedIds.length} sélectionnée(s)</span>
       </div>
-      {selectedIds.length === 0 && <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">Select validated requests from the board.</p>}
+      {selectedIds.length === 0 && <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">Sélectionnez des demandes validées dans le tableau.</p>}
       {selectedIds.length > 0 && (
         <ul className="flex flex-col gap-2">
           {selectedIds.map((id) => {
             const request = requestMap.get(id)
             return (
               <li key={id} className="flex items-center justify-between gap-2 rounded-lg bg-muted/50 px-3 py-2 text-sm">
-                <span>{request?.orchard.name ?? `Request ${id} · no longer in the validated queue`}</span>
+                <span>{request?.orchard.name ?? `Demande ${id} · absente de la file des demandes validées`}</span>
                 {request && <span className="shrink-0 text-muted-foreground">{formatKg(request.estimatedQuantityKg)}</span>}
               </li>
             )
@@ -274,7 +275,7 @@ function ResourceChoices({
   return (
     <fieldset className="flex flex-col gap-2">
       <legend className="font-medium">{label}</legend>
-      {resources.length === 0 && <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">No resources returned for this slot.</p>}
+      {resources.length === 0 && <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">Aucune ressource retournée pour ce créneau.</p>}
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {resources.map((resource) => {
           const isBusy = !resource.available
@@ -291,14 +292,14 @@ function ResourceChoices({
               <span className="min-w-0 flex-1">
                 <span className="block truncate">{resourceLabel(resource)}</span>
                 <span className="block text-xs text-muted-foreground">
-                  {showCapacity && resource.capacityKg ? `${formatKg(resource.capacityKg)} · ` : ''}{isBusy ? resource.reason ?? 'Busy' : 'Free'}
+                  {showCapacity && resource.capacityKg ? `${formatKg(resource.capacityKg)} · ` : ''}{resourceAvailabilityLabel(resource)}
                 </span>
               </span>
             </label>
           )
         })}
       </div>
-      {selectedIds.length > 0 && <p className="text-xs text-muted-foreground">{selectedIds.length} selected</p>}
+      {selectedIds.length > 0 && <p className="text-xs text-muted-foreground">{selectedIds.length} sélectionnée(s)</p>}
     </fieldset>
   )
 }

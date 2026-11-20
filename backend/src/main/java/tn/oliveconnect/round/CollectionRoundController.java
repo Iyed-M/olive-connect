@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/rounds")
-@PreAuthorize("hasAnyRole('COLLECTION_MANAGER', 'LOGISTICS_MANAGER', 'TEAM_LEADER', 'MILL_MANAGER', 'ADMIN')")
+@PreAuthorize("hasAnyRole('COLLECTION_MANAGER', 'TEAM_LEADER')")
 public class CollectionRoundController {
 
     private final CollectionRoundService roundService;

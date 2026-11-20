@@ -59,7 +59,7 @@ function PlanningBoard() {
   const cancelMutation = useMutation({
     mutationFn: cancelRound,
     onSuccess: async () => {
-      setNotice('Round cancelled and its resources were released.')
+      setNotice('Tournée annulée et ressources libérées.')
       await queryClient.invalidateQueries({ queryKey: ['rounds'] })
       await queryClient.invalidateQueries({ queryKey: ['planning-requests'] })
     },
@@ -80,7 +80,7 @@ function PlanningBoard() {
     if (!group) return
     setEditingRound(null)
     setSelectedRequestIds(group.requestIds)
-    setNotice(`Suggestion selected: ${group.requestIds.length} request(s), ${formatKg(group.estimatedTotalKg)} estimated.`)
+    setNotice(`Suggestion sélectionnée : ${group.requestIds.length} demande(s), ${formatKg(group.estimatedTotalKg)} estimés.`)
   }
 
   function startEditing(round: CollectionRound) {
@@ -97,14 +97,14 @@ function PlanningBoard() {
   }
 
   function saved(result: RoundMutationResult) {
-    setNotice(`${result.round.code} ${editingRound ? 'updated' : 'created'} successfully.`)
-    if (result.warnings.length > 0) setNotice(`${result.round.code} saved. ${result.warnings.map(formatRoundWarning).join(' ')}`)
+    setNotice(`${result.round.code} ${editingRound ? 'mise à jour' : 'créée'} avec succès.`)
+    if (result.warnings.length > 0) setNotice(`${result.round.code} enregistrée. ${result.warnings.map(formatRoundWarning).join(' ')}`)
     setEditingRound(null)
     setSelectedRequestIds([])
   }
 
   function cancelExisting(round: CollectionRound) {
-    if (!window.confirm(`Cancel ${round.code}? Its bookings will be released.`)) return
+    if (!window.confirm(`Annuler ${round.code} ? Ses réservations seront libérées.`)) return
     cancelMutation.mutate(round.id)
   }
 
@@ -114,28 +114,28 @@ function PlanningBoard() {
     <div className="flex min-w-0 flex-col gap-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-primary">Planning board</h1>
-          <p className="text-sm text-muted-foreground">Validated requests are ordered by priority. Select stops, then reserve a complete team.</p>
+          <h1 className="font-heading text-2xl font-bold text-primary">Tableau de planification</h1>
+          <p className="text-sm text-muted-foreground">Les demandes validées sont classées par priorité. Sélectionnez les étapes, puis réservez une équipe complète.</p>
         </div>
         <div className="flex flex-col gap-2 sm:w-48">
-          <Label htmlFor="planning-date">Planning date</Label>
+          <Label htmlFor="planning-date">Date de planification</Label>
           <Input id="planning-date" type="date" value={planningDate} onChange={(event) => setPlanningDate(event.target.value)} />
         </div>
       </div>
 
       {notice && <p role="status" className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-primary">{notice}</p>}
-      {cancelMutation.error && <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{loadError(cancelMutation.error, 'The round could not be cancelled.')}</p>}
+      {cancelMutation.error && <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{loadError(cancelMutation.error, 'La tournée n’a pas pu être annulée.')}</p>}
 
       <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(14rem,0.8fr)_minmax(18rem,1.2fr)]">
         <section className="flex min-w-0 flex-col gap-3" aria-labelledby="validated-requests-heading">
           <div className="flex items-center justify-between gap-2">
-            <h2 id="validated-requests-heading" className="font-heading text-xl font-bold text-primary">Validated requests</h2>
-            <span className="text-sm text-muted-foreground">{selectedRequestIds.length} selected</span>
+            <h2 id="validated-requests-heading" className="font-heading text-xl font-bold text-primary">Demandes validées</h2>
+            <span className="text-sm text-muted-foreground">{selectedRequestIds.length} sélectionnée(s)</span>
           </div>
-          {requestsQuery.isPending && <p className="text-sm text-muted-foreground">Loading requests…</p>}
-          {requestsQuery.isError && <p role="alert" className="text-sm text-destructive">{loadError(requestsQuery.error, 'Could not load validated requests.')}</p>}
-          {requestsQuery.data && requests.length === 0 && <Card><CardContent className="py-5"><p className="text-sm text-muted-foreground">No validated requests are waiting to be planned.</p></CardContent></Card>}
-          {staleRequestIds.length > 0 && <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">Some selected requests are no longer validated. Review the selection before saving.</p>}
+          {requestsQuery.isPending && <p className="text-sm text-muted-foreground">Chargement des demandes…</p>}
+          {requestsQuery.isError && <p role="alert" className="text-sm text-destructive">{loadError(requestsQuery.error, 'Impossible de charger les demandes validées.')}</p>}
+          {requestsQuery.data && requests.length === 0 && <Card><CardContent className="py-5"><p className="text-sm text-muted-foreground">Aucune demande validée n’attend d’être planifiée.</p></CardContent></Card>}
+          {staleRequestIds.length > 0 && <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">Certaines demandes sélectionnées ne sont plus validées. Vérifiez la sélection avant l’enregistrement.</p>}
           <div className="flex flex-col gap-2">
             {requests.map((request) => {
               const selected = selectedRequestIds.includes(request.id)
@@ -149,10 +149,10 @@ function PlanningBoard() {
                 >
                   <span className="flex items-start justify-between gap-2">
                     <span className="font-medium">{request.orchard.name}</span>
-                    <span className="shrink-0 rounded-full bg-secondary px-2 py-1 text-xs">{request.type === 'URGENT' ? 'Urgent' : 'Planned'}</span>
+                    <span className="shrink-0 rounded-full bg-secondary px-2 py-1 text-xs">{request.type === 'URGENT' ? 'Urgente' : 'Planifiée'}</span>
                   </span>
                   <span className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                    <span>Priority {request.priorityScore.toFixed(1)}</span>
+                    <span>Priorité {request.priorityScore.toFixed(1)}</span>
                     <span>{formatKg(request.estimatedQuantityKg)}</span>
                     <span>{request.orchard.delegation.replaceAll('_', ' ')}</span>
                   </span>
@@ -164,19 +164,19 @@ function PlanningBoard() {
 
         <section className="flex min-w-0 flex-col gap-3" aria-labelledby="request-map-heading">
           <div className="flex items-center justify-between gap-2">
-            <h2 id="request-map-heading" className="font-heading text-xl font-bold text-primary">Requests map</h2>
-            {suggestionsQuery.isFetching && <span className="text-xs text-muted-foreground">Refreshing suggestions…</span>}
+            <h2 id="request-map-heading" className="font-heading text-xl font-bold text-primary">Carte des demandes</h2>
+            {suggestionsQuery.isFetching && <span className="text-xs text-muted-foreground">Actualisation des suggestions…</span>}
           </div>
           <PlanningMap requests={requests} selectedRequestIds={selectedRequestIds} onToggle={toggleRequest} />
-          {suggestionsQuery.isError && <p role="alert" className="text-sm text-destructive">{loadError(suggestionsQuery.error, 'Could not load planning suggestions.')}</p>}
-          {suggestionsQuery.data?.groups.length ? <SuggestionCard suggestions={suggestionsQuery.data} onChoose={() => chooseSuggestion(suggestionsQuery.data!)} /> : <p className="text-sm text-muted-foreground">No grouping suggestion is available for this date yet.</p>}
+          {suggestionsQuery.isError && <p role="alert" className="text-sm text-destructive">{loadError(suggestionsQuery.error, 'Impossible de charger les suggestions de planification.')}</p>}
+          {suggestionsQuery.data?.groups.length ? <SuggestionCard suggestions={suggestionsQuery.data} onChoose={() => chooseSuggestion(suggestionsQuery.data!)} /> : <p className="text-sm text-muted-foreground">Aucune suggestion de regroupement n’est disponible pour cette date.</p>}
         </section>
       </div>
 
       <section className="flex flex-col gap-3" aria-labelledby="round-form-heading">
         <div className="flex items-center justify-between gap-2">
-          <h2 id="round-form-heading" className="font-heading text-xl font-bold text-primary">{editingRound ? 'Edit planned round' : 'Round details'}</h2>
-          {editingRound && <Button type="button" variant="outline" onClick={startNewRound}>Plan a new round</Button>}
+          <h2 id="round-form-heading" className="font-heading text-xl font-bold text-primary">{editingRound ? 'Modifier la tournée planifiée' : 'Détails de la tournée'}</h2>
+          {editingRound && <Button type="button" variant="outline" onClick={startNewRound}>Planifier une nouvelle tournée</Button>}
         </div>
         <RoundForm
           key={editingRound?.id ?? 'new-round'}
@@ -190,17 +190,17 @@ function PlanningBoard() {
           onSaved={saved}
           onCancelEdit={startNewRound}
         />
-        {millsQuery.isPending && <p className="text-sm text-muted-foreground">Loading mills…</p>}
-        {millsQuery.isError && <p role="alert" className="text-sm text-destructive">{loadError(millsQuery.error, 'Could not load mills.')}</p>}
+        {millsQuery.isPending && <p className="text-sm text-muted-foreground">Chargement des moulins…</p>}
+        {millsQuery.isError && <p role="alert" className="text-sm text-destructive">{loadError(millsQuery.error, 'Impossible de charger les moulins.')}</p>}
       </section>
 
       <section className="flex flex-col gap-3" aria-labelledby="planned-rounds-heading">
         <div className="flex items-center justify-between gap-2">
-          <h2 id="planned-rounds-heading" className="font-heading text-xl font-bold text-primary">Planned rounds for {roundDateLabel(planningDate)}</h2>
-          {roundsQuery.isFetching && <span className="text-xs text-muted-foreground">Refreshing…</span>}
+          <h2 id="planned-rounds-heading" className="font-heading text-xl font-bold text-primary">Tournées planifiées pour le {roundDateLabel(planningDate)}</h2>
+          {roundsQuery.isFetching && <span className="text-xs text-muted-foreground">Actualisation…</span>}
         </div>
-        {roundsQuery.isError && <p role="alert" className="text-sm text-destructive">{loadError(roundsQuery.error, 'Could not load planned rounds.')}</p>}
-        {roundsQuery.data && roundsQuery.data.content.length === 0 && <p className="text-sm text-muted-foreground">No planned rounds for this date.</p>}
+        {roundsQuery.isError && <p role="alert" className="text-sm text-destructive">{loadError(roundsQuery.error, 'Impossible de charger les tournées planifiées.')}</p>}
+        {roundsQuery.data && roundsQuery.data.content.length === 0 && <p className="text-sm text-muted-foreground">Aucune tournée planifiée pour cette date.</p>}
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {roundsQuery.data?.content.map((round) => (
             <PlannedRoundCard
@@ -223,16 +223,16 @@ function SuggestionCard({ suggestions, onChoose }: { suggestions: PlanningSugges
   return (
     <Card>
       <CardHeader className="gap-2">
-        <CardTitle>Suggested grouping</CardTitle>
-        <p className="text-sm text-muted-foreground">The first group follows priority and nearby orchards for the selected date.</p>
+        <CardTitle>Regroupement suggéré</CardTitle>
+        <p className="text-sm text-muted-foreground">Le premier groupe suit la priorité et la proximité des vergers pour la date sélectionnée.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="flex flex-wrap gap-2 text-sm">
-          <span>{first.requestIds.length} request(s)</span>
+          <span>{first.requestIds.length} demande(s)</span>
           <span>{formatKg(first.estimatedTotalKg)}</span>
         </div>
         {suggestions.warnings.map((warning) => <p key={`${warning.code}-${warning.message}`} className="text-sm text-amber-900">{formatRoundWarning(warning)}</p>)}
-        <Button type="button" variant="outline" className="w-fit" onClick={onChoose}>Use this suggestion</Button>
+        <Button type="button" variant="outline" className="w-fit" onClick={onChoose}>Utiliser cette suggestion</Button>
       </CardContent>
     </Card>
   )
@@ -256,11 +256,11 @@ function PlannedRoundCard({
           <span>{round.code}</span>
           <span className="text-sm font-normal text-muted-foreground">{round.startTime}–{round.endTime}</span>
         </CardTitle>
-        <p className="text-sm text-muted-foreground">{round.stops.length} stop(s) · {formatKg(round.estimatedTotalKg)}</p>
+        <p className="text-sm text-muted-foreground">{round.stops.length} étape(s) · {formatKg(round.estimatedTotalKg)}</p>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" onClick={onEdit} disabled={cancelling}>Edit</Button>
-        <Button type="button" variant="destructive" onClick={onCancel} disabled={cancelling}>{cancelling ? 'Cancelling…' : 'Cancel round'}</Button>
+        <Button type="button" variant="outline" onClick={onEdit} disabled={cancelling}>Modifier</Button>
+        <Button type="button" variant="destructive" onClick={onCancel} disabled={cancelling}>{cancelling ? 'Annulation…' : 'Annuler la tournée'}</Button>
       </CardContent>
     </Card>
   )

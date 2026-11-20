@@ -164,6 +164,125 @@ class CollectionRoundControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void plannedRoundCanBeUpdatedAndRebooksItsResources() throws Exception {
+        User manager = saveUser("manager@round-update.tn", Role.COLLECTION_MANAGER);
+        User farmer = saveUser("farmer@round-update.tn", Role.FARMER);
+        User leader = saveUser("leader@round-update.tn", Role.TEAM_LEADER);
+        Worker worker = saveWorker("11111111");
+        Bin bin = saveBin("B-07");
+        Mill mill = saveMill("Sfax North", 10000);
+        HarvestRequest request = saveValidatedRequest(farmer, manager, "Update orchard", 900);
+        MvcResult created = mockMvc.perform(post("/api/rounds").header("Authorization", token(manager.getEmail()))
+                        .contentType(MediaType.APPLICATION_JSON).content(planJson(request, leader, worker, bin, mill)))
+                .andExpect(status().isCreated()).andReturn();
+        String roundId = JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+        int version = JsonPath.read(created.getResponse().getContentAsString(), "$.version");
+
+        mockMvc.perform(put("/api/rounds/" + roundId).header("Authorization", token(manager.getEmail()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"endTime\":\"14:00\",\"version\":" + version + "}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.endTime").value("14:00:00"));
+        assertThat(bookingRepository.findByRoundId(roundId).stream()
+                .filter(booking -> booking.getStatus() == tn.oliveconnect.resource.BookingStatus.ACTIVE))
+                .hasSize(3)
+                .allMatch(booking -> booking.getEnd().equals(Instant.parse("2026-11-25T14:00:00Z")));
+    }
+
+    @Test
+    void cancellingPlannedRoundReleasesRequestsAndBookings() throws Exception {
+        User manager = saveUser("manager@round-cancel.tn", Role.COLLECTION_MANAGER);
+        User farmer = saveUser("farmer@round-cancel.tn", Role.FARMER);
+        User leader = saveUser("leader@round-cancel.tn", Role.TEAM_LEADER);
+        Worker worker = saveWorker("11111111");
+        Bin bin = saveBin("B-07");
+        Mill mill = saveMill("Sfax North", 10000);
+        HarvestRequest request = saveValidatedRequest(farmer, manager, "Cancel orchard", 900);
+        MvcResult created = mockMvc.perform(post("/api/rounds").header("Authorization", token(manager.getEmail()))
+                        .contentType(MediaType.APPLICATION_JSON).content(planJson(request, leader, worker, bin, mill)))
+                .andExpect(status().isCreated()).andReturn();
+        String roundId = JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+        int version = JsonPath.read(created.getResponse().getContentAsString(), "$.version");
+
+        mockMvc.perform(post("/api/rounds/" + roundId + "/cancel")
+                        .header("Authorization", token(manager.getEmail()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":" + version + "}"))
+                .andExpect(status().isNoContent());
+
+        assertThat(roundRepository.findById(roundId).orElseThrow().getStatus()).isEqualTo(RoundStatus.CANCELLED);
+        assertThat(requestRepository.findById(request.getId()).orElseThrow().getStatus())
+                .isEqualTo(HarvestRequestStatus.VALIDATED);
+        assertThat(bookingRepository.findByRoundId(roundId)).allMatch(booking ->
+                booking.getStatus() == tn.oliveconnect.resource.BookingStatus.RELEASED);
+    }
+
+    @Test
+    void startedRoundCannotBeCancelledByCollectionManager() throws Exception {
+        User manager = saveUser("manager@started-cancel.tn", Role.COLLECTION_MANAGER);
+        User farmer = saveUser("farmer@started-cancel.tn", Role.FARMER);
+        User leader = saveUser("leader@started-cancel.tn", Role.TEAM_LEADER);
+        Worker worker = saveWorker("11111111");
+        Bin bin = saveBin("B-07");
+        Mill mill = saveMill("Sfax North", 10000);
+        HarvestRequest request = saveValidatedRequest(farmer, manager, "Started orchard", 900);
+        MvcResult created = mockMvc.perform(post("/api/rounds").header("Authorization", token(manager.getEmail()))
+                        .contentType(MediaType.APPLICATION_JSON).content(planJson(request, leader, worker, bin, mill)))
+                .andExpect(status().isCreated()).andReturn();
+        String roundId = JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+        CollectionRound round = roundRepository.findById(roundId).orElseThrow();
+        round.start(leader.getId());
+        roundRepository.save(round);
+
+        mockMvc.perform(post("/api/rounds/" + roundId + "/cancel")
+                        .header("Authorization", token(manager.getEmail())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ROUND_STARTED"));
+    }
+
+    @Test
+    void availabilityShowsFreeAndBookedResources() throws Exception {
+        User manager = saveUser("manager@availability.tn", Role.COLLECTION_MANAGER);
+        Worker worker = saveWorker("11111111");
+        Bin bin = saveBin("B-07");
+        bookingRepository.save(ResourceBooking.forEquipment(bin.getId(), bin.getType(), "existing-round",
+                Instant.parse("2026-11-25T07:00:00Z"), Instant.parse("2026-11-25T15:00:00Z")));
+
+        mockMvc.perform(get("/api/resources/availability")
+                        .param("start", "2026-11-25T08:00:00Z")
+                        .param("end", "2026-11-25T09:00:00Z")
+                        .header("Authorization", token(manager.getEmail())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.workers[0].id").value(worker.getId()))
+                .andExpect(jsonPath("$.workers[0].available").value(true))
+                .andExpect(jsonPath("$.equipment[0].id").value(bin.getId()))
+                .andExpect(jsonPath("$.equipment[0].available").value(false))
+                .andExpect(jsonPath("$.equipment[0].reason").value("Booked"));
+    }
+
+    @Test
+    void suggestionsWarnWhenNoMillHasEnoughCapacity() throws Exception {
+        User manager = saveUser("manager@suggestion-capacity.tn", Role.COLLECTION_MANAGER);
+        User farmer = saveUser("farmer@suggestion-capacity.tn", Role.FARMER);
+        saveValidatedRequest(farmer, manager, "Low capacity orchard", 900);
+        saveMill("Sfax North", 100);
+
+        mockMvc.perform(get("/api/planning/suggestions")
+                        .param("date", "2026-11-25")
+                        .header("Authorization", token(manager.getEmail())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.suggestedMill").doesNotExist())
+                .andExpect(jsonPath("$.warnings[0].code").value("MILL_CAPACITY_LOW"));
+    }
+
+    @Test
+    void logisticsManagerCannotReadCollectionRoundsInM5() throws Exception {
+        User logistics = saveUser("logistics@m5-scope.tn", Role.LOGISTICS_MANAGER);
+        mockMvc.perform(get("/api/rounds").header("Authorization", token(logistics.getEmail())))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void sameTeamLeaderCannotBeBookedTwiceForOverlappingRounds() throws Exception {
         User manager = saveUser("manager@leader-conflict.tn", Role.COLLECTION_MANAGER);
         User farmerOne = saveUser("farmer-one@leader-conflict.tn", Role.FARMER);

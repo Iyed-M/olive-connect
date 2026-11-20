@@ -73,20 +73,20 @@ describe('planning warnings and conflicts', () => {
   it('renders the low mill capacity warning with the code visible', () => {
     const warning: RoundWarning = { code: 'MILL_CAPACITY_LOW', message: 'Mill capacity is lower than the estimate.' }
     expect(formatRoundWarning(warning)).toMatch(/MILL_CAPACITY_LOW/)
-    expect(formatRoundWarning(warning)).toMatch(/Mill capacity/)
+    expect(formatRoundWarning(warning)).toMatch(/capacité/)
   })
 
   it('renders a useful booking conflict message', () => {
     expect(
       planningErrorMessage(new ApiError(409, 'BOOKING_CONFLICT', 'Bin B-07 is already booked by round T-2026-118.')),
-    ).toBe('Booking conflict: Bin B-07 is already booked by round T-2026-118.')
+    ).toBe('Conflit de réservation : Bin B-07 is already booked by round T-2026-118.')
   })
 })
 
 describe('planning DTO normalization', () => {
   it('normalizes the backend suggestion resource fields and group request ids', () => {
     const suggestions = normalizePlanningSuggestions({
-      availableWorkers: [{ id: 'w-1', resourceKind: 'WORKER', firstName: 'Sami', lastName: 'Trabelsi' }],
+      availableWorkers: [{ id: 'w-1', resourceKind: 'WORKER', firstName: 'Sami', lastName: 'Trabelsi', available: true }],
       availableEquipment: [{ id: 'b-1', resourceKind: 'EQUIPMENT', resourceType: 'BIN', code: 'B-07', available: true }],
       groups: [{ requests: [{ id: 'request-1' } as HarvestRequest], estimatedTotalKg: 900, nearestMillId: 'mill-1' }],
     })
@@ -97,9 +97,11 @@ describe('planning DTO normalization', () => {
 
   it('normalizes grouped free and busy resources for the form', () => {
     const availability = normalizeAvailability({
-      workers: [{ id: 'w-1', firstName: 'Sami', lastName: 'Trabelsi' }],
-      equipment: [{ id: 'b-1', code: 'B-07', type: 'BIN', capacityKg: 4000 }],
-      busyEquipment: [{ id: 't-1', code: 'TR-02', type: 'TRACTOR', reason: 'Booked' }],
+      workers: [{ id: 'w-1', resourceKind: 'WORKER', firstName: 'Sami', lastName: 'Trabelsi', available: true }],
+      equipment: [
+        { id: 'b-1', resourceKind: 'EQUIPMENT', code: 'B-07', resourceType: 'BIN', capacityKg: 4000, available: true },
+        { id: 't-1', resourceKind: 'EQUIPMENT', code: 'TR-02', resourceType: 'TRACTOR', reason: 'Booked', available: false },
+      ],
     })
     expect(availability.workers[0]).toMatchObject({ id: 'w-1', resourceKind: 'WORKER', available: true })
     expect(availability.equipment).toEqual([
@@ -138,9 +140,9 @@ describe('stale planning selections', () => {
       },
     )
     expect(errors).toEqual([
-      'Request request-gone is no longer available.',
-      'Resource worker-gone is no longer available.',
-      'Resource bin-gone is no longer available.',
+      'La demande request-gone n’est plus disponible.',
+      'La ressource worker-gone n’est plus disponible.',
+      'La ressource bin-gone n’est plus disponible.',
     ])
   })
 })
