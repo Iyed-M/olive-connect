@@ -56,7 +56,10 @@ public class ImportService {
     public synchronized RunResult run(ImportSource source) {
         List<ImportJob> jobs = new ArrayList<>();
         int skipped = 0;
-        for (Path file : listInbox()) {
+        List<Path> files = new ArrayList<>(listInbox());
+        files.sort(Comparator.comparingInt((Path file) -> findImporter(file.getFileName().toString())
+                .map(DatasetImporter::order).orElse(Integer.MAX_VALUE)));   // stable: ties stay sorted by name
+        for (Path file : files) {
             Optional<DatasetImporter<?>> importer = findImporter(file.getFileName().toString());
             if (importer.isPresent() && importer.get().source() != source) {
                 continue;   // belongs to the other source, its own run will take it

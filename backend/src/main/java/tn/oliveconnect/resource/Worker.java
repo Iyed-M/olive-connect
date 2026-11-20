@@ -21,6 +21,9 @@ public class Worker {
 
     @Id
     private String id;
+    // key of the source system (resources.csv), null for workers created in the app
+    @Indexed(unique = true, sparse = true)
+    private String externalRef;
     private String firstName;
     private String lastName;
     @Indexed(unique = true)
@@ -43,6 +46,8 @@ public class Worker {
     private Long version;
 
     public String getId() { return id; }
+    public String getExternalRef() { return externalRef; }
+    public void setExternalRef(String externalRef) { this.externalRef = externalRef; }
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
     public String getLastName() { return lastName; }

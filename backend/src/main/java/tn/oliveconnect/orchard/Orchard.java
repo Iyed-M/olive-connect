@@ -22,6 +22,9 @@ public class Orchard {
     @Id
     private String id;
     private String name;
+    // key of the source system (orchards.csv), null for orchards created in the app
+    @Indexed(unique = true, sparse = true)
+    private String externalRef;
     @Indexed
     private String ownerId;
     private Map<String, String> owner = new LinkedHashMap<>();
@@ -49,6 +52,14 @@ public class Orchard {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getExternalRef() {
+        return externalRef;
+    }
+
+    public void setExternalRef(String externalRef) {
+        this.externalRef = externalRef;
     }
 
     public String getOwnerId() {

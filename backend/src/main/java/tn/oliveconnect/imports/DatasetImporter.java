@@ -20,6 +20,11 @@ public interface DatasetImporter<T> {
     /** File name pattern of this dataset, e.g. weather_202611210615.json. */
     boolean accepts(String fileName);
 
+    /** Files of one run are imported in this order (reference data that others point to comes first). */
+    default int order() {
+        return 100;
+    }
+
     /** Reads the file. Throws ImportFormatException when the file as a whole is unusable. */
     ParseResult<T> parse(Path file) throws IOException;
 
