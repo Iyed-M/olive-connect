@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -63,5 +64,25 @@ public class CollectionRoundController {
                                        Authentication authentication) {
         roundService.cancel(id, dto, authentication);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/start")
+    @PreAuthorize("hasRole('TEAM_LEADER')")
+    public CollectionRoundDto start(@PathVariable String id, Authentication authentication) {
+        return roundService.start(id, authentication);
+    }
+
+    @PatchMapping("/{id}/stops/{order}")
+    @PreAuthorize("hasRole('TEAM_LEADER')")
+    public CollectionRoundDto updateStop(@PathVariable String id, @PathVariable int order,
+                                         @Valid @RequestBody RoundStopUpdateDto dto,
+                                         Authentication authentication) {
+        return roundService.updateStop(id, order, dto, authentication);
+    }
+
+    @PostMapping("/{id}/complete")
+    @PreAuthorize("hasRole('TEAM_LEADER')")
+    public CollectionRoundDto complete(@PathVariable String id, Authentication authentication) {
+        return roundService.complete(id, authentication);
     }
 }
