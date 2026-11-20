@@ -1,6 +1,7 @@
 package tn.oliveconnect.user;
 
 import java.util.Optional;
+import java.util.List;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 public interface UserRepository extends MongoRepository<User, String> {
@@ -10,4 +11,6 @@ public interface UserRepository extends MongoRepository<User, String> {
     Optional<User> findByFarmerProfileMemberNumber(String memberNumber);
 
     boolean existsByRolesContaining(Role role);
+
+    List<User> findByRolesContainingAndEnabledTrueOrderByLastNameAscFirstNameAsc(Role role);
 }

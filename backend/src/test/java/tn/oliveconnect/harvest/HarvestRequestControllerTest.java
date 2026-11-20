@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jayway.jsonpath.JsonPath;
+import java.time.LocalDate;
 import java.util.EnumSet;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +23,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import tn.oliveconnect.AbstractIntegrationTest;
 import tn.oliveconnect.notification.NotificationRepository;
+import tn.oliveconnect.resource.ResourceBooking;
+import tn.oliveconnect.resource.ResourceBookingRepository;
 import tn.oliveconnect.orchard.GeoPoint;
 import tn.oliveconnect.orchard.Orchard;
 import tn.oliveconnect.orchard.OrchardRepository;
@@ -31,6 +34,10 @@ import tn.oliveconnect.user.FarmerProfile;
 import tn.oliveconnect.user.Role;
 import tn.oliveconnect.user.User;
 import tn.oliveconnect.user.UserRepository;
+import tn.oliveconnect.round.CollectionRound;
+import tn.oliveconnect.round.CollectionRoundRepository;
+import tn.oliveconnect.round.RoundStatus;
+import tn.oliveconnect.round.RoundStop;
 
 class HarvestRequestControllerTest extends AbstractIntegrationTest {
 
@@ -40,6 +47,10 @@ class HarvestRequestControllerTest extends AbstractIntegrationTest {
     HarvestRequestRepository harvestRequestRepository;
     @Autowired
     NotificationRepository notificationRepository;
+    @Autowired
+    CollectionRoundRepository roundRepository;
+    @Autowired
+    ResourceBookingRepository bookingRepository;
     @Autowired
     OrchardRepository orchardRepository;
     @Autowired
@@ -52,6 +63,8 @@ class HarvestRequestControllerTest extends AbstractIntegrationTest {
     @BeforeEach
     void clean() {
         notificationRepository.deleteAll();
+        bookingRepository.deleteAll();
+        roundRepository.deleteAll();
         harvestRequestRepository.deleteAll();
         orchardRepository.deleteAll();
         userRepository.deleteAll();
@@ -193,6 +206,118 @@ class HarvestRequestControllerTest extends AbstractIntegrationTest {
                         .header("Authorization", token("ali@example.tn")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CANCELLED"));
+    }
+
+    @Test
+    void farmerCanCancelScheduledRequestWhileRoundIsPlanned() throws Exception {
+        User farmer = saveFarmer("ali@example.tn", "M-001");
+        saveUser("manager@example.tn", EnumSet.of(Role.COLLECTION_MANAGER));
+        User leader = saveUser("leader@example.tn", EnumSet.of(Role.TEAM_LEADER));
+        String orchardId = saveOrchard(farmer.getId(), "North orchard");
+        String requestId = createRequest(token("ali@example.tn"), orchardId, "PLANNED");
+        mockMvc.perform(post("/api/harvest-requests/" + requestId + "/validate")
+                        .header("Authorization", token("manager@example.tn")))
+                .andExpect(status().isOk());
+
+        HarvestRequest request = harvestRequestRepository.findById(requestId).orElseThrow();
+        CollectionRound round = new CollectionRound();
+        round.setCode("T-2026-CANCEL");
+        round.setDate(LocalDate.of(2026, 11, 25));
+        round.setStartTime(java.time.LocalTime.of(7, 0));
+        round.setEndTime(java.time.LocalTime.of(15, 0));
+        round.setTeamLeaderId(leader.getId());
+        round.setStatus(RoundStatus.PLANNED);
+        round.setStops(List.of(RoundStop.from(request, 1, java.time.LocalTime.of(7, 30))));
+        round = roundRepository.save(round);
+        request.setRoundId(round.getId());
+        request.transitionTo(HarvestRequestStatus.SCHEDULED, "manager@example.tn", round.getCode());
+        harvestRequestRepository.save(request);
+
+        mockMvc.perform(post("/api/harvest-requests/" + requestId + "/cancel")
+                        .header("Authorization", token("ali@example.tn")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"));
+
+        assertThat(roundRepository.findById(round.getId()).orElseThrow().getStops()).isEmpty();
+        assertThat(roundRepository.findById(round.getId()).orElseThrow().getStatus()).isEqualTo(RoundStatus.CANCELLED);
+    }
+
+    @Test
+    void farmerCanModifyScheduledRequestWhileRoundIsPlanned() throws Exception {
+        User farmer = saveFarmer("modify-scheduled@example.tn", "M-001");
+        saveUser("modify-manager@example.tn", EnumSet.of(Role.COLLECTION_MANAGER));
+        User leader = saveUser("modify-leader@example.tn", EnumSet.of(Role.TEAM_LEADER));
+        String orchardId = saveOrchard(farmer.getId(), "Modify orchard");
+        String requestId = createRequest(token("modify-scheduled@example.tn"), orchardId, "PLANNED");
+        mockMvc.perform(post("/api/harvest-requests/" + requestId + "/validate")
+                        .header("Authorization", token("modify-manager@example.tn")))
+                .andExpect(status().isOk());
+
+        HarvestRequest request = harvestRequestRepository.findById(requestId).orElseThrow();
+        CollectionRound round = new CollectionRound();
+        round.setCode("T-2026-MODIFY");
+        round.setDate(LocalDate.of(2026, 11, 25));
+        round.setStartTime(java.time.LocalTime.of(7, 0));
+        round.setEndTime(java.time.LocalTime.of(15, 0));
+        round.setTeamLeaderId(leader.getId());
+        round.setStatus(RoundStatus.PLANNED);
+        round.setStops(List.of(RoundStop.from(request, 1, java.time.LocalTime.of(7, 30))));
+        round = roundRepository.save(round);
+        request.setRoundId(round.getId());
+        request.transitionTo(HarvestRequestStatus.SCHEDULED, "modify-manager@example.tn", round.getCode());
+        harvestRequestRepository.save(request);
+        bookingRepository.save(ResourceBooking.forWorker("worker-for-modify", round.getId(),
+                java.time.Instant.parse("2026-11-25T07:00:00Z"), java.time.Instant.parse("2026-11-25T15:00:00Z")));
+
+        mockMvc.perform(put("/api/harvest-requests/" + requestId)
+                        .header("Authorization", token("modify-scheduled@example.tn"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"desiredFrom\":\"2026-11-26\",\"desiredTo\":\"2026-11-28\","
+                                + "\"estimatedQuantityKg\":1100}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("VALIDATED"));
+
+        assertThat(roundRepository.findById(round.getId()).orElseThrow().getStatus()).isEqualTo(RoundStatus.CANCELLED);
+        assertThat(roundRepository.findById(round.getId()).orElseThrow().getStops()).isEmpty();
+        assertThat(bookingRepository.findByRoundId(round.getId())).allMatch(booking ->
+                booking.getStatus() == tn.oliveconnect.resource.BookingStatus.RELEASED);
+    }
+
+    @Test
+    void farmerCannotModifyOrCancelScheduledRequestAfterRoundStarts() throws Exception {
+        User farmer = saveFarmer("started-scheduled@example.tn", "M-001");
+        saveUser("started-manager@example.tn", EnumSet.of(Role.COLLECTION_MANAGER));
+        User leader = saveUser("started-leader@example.tn", EnumSet.of(Role.TEAM_LEADER));
+        String orchardId = saveOrchard(farmer.getId(), "Started orchard");
+        String requestId = createRequest(token("started-scheduled@example.tn"), orchardId, "PLANNED");
+        mockMvc.perform(post("/api/harvest-requests/" + requestId + "/validate")
+                        .header("Authorization", token("started-manager@example.tn")))
+                .andExpect(status().isOk());
+
+        HarvestRequest request = harvestRequestRepository.findById(requestId).orElseThrow();
+        CollectionRound round = new CollectionRound();
+        round.setCode("T-2026-STARTED");
+        round.setDate(LocalDate.of(2026, 11, 25));
+        round.setStartTime(java.time.LocalTime.of(7, 0));
+        round.setEndTime(java.time.LocalTime.of(15, 0));
+        round.setTeamLeaderId(leader.getId());
+        round.setStatus(RoundStatus.IN_PROGRESS);
+        round.setStops(List.of(RoundStop.from(request, 1, java.time.LocalTime.of(7, 30))));
+        round = roundRepository.save(round);
+        request.setRoundId(round.getId());
+        request.transitionTo(HarvestRequestStatus.SCHEDULED, "started-manager@example.tn", round.getCode());
+        harvestRequestRepository.save(request);
+
+        mockMvc.perform(put("/api/harvest-requests/" + requestId)
+                        .header("Authorization", token("started-scheduled@example.tn"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"desiredFrom\":\"2026-11-25\",\"desiredTo\":\"2026-11-27\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ROUND_STARTED"));
+        mockMvc.perform(post("/api/harvest-requests/" + requestId + "/cancel")
+                        .header("Authorization", token("started-scheduled@example.tn")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ROUND_STARTED"));
     }
 
     @Test

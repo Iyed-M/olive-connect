@@ -17,6 +17,7 @@ import { Route as AppChangePasswordRouteImport } from './routes/_app.change-pass
 import { Route as AppFarmerRouteImport } from './routes/_app.farmer'
 import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
 import { Route as AppAdminRegistrationsRouteImport } from './routes/_app.admin.registrations'
+import { Route as AppCollectionPlanningRouteImport } from './routes/_app.collection.planning'
 import { Route as AppCollectionRequestsRouteImport } from './routes/_app.collection.requests'
 import { Route as AppFarmerIndexRouteImport } from './routes/_app.farmer.index'
 import { Route as AppMillIncomingRouteImport } from './routes/_app.mill.incoming'
@@ -74,6 +75,11 @@ const AppNotificationsRoute = AppNotificationsRouteImport.update({
 const AppAdminRegistrationsRoute = AppAdminRegistrationsRouteImport.update({
   id: '/admin/registrations',
   path: '/admin/registrations',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCollectionPlanningRoute = AppCollectionPlanningRouteImport.update({
+  id: '/collection/planning',
+  path: '/collection/planning',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCollectionRequestsRoute = AppCollectionRequestsRouteImport.update({
@@ -183,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/farmer': typeof AppFarmerRouteWithChildren
   '/notifications': typeof AppNotificationsRoute
   '/admin/registrations': typeof AppAdminRegistrationsRoute
+  '/collection/planning': typeof AppCollectionPlanningRoute
   '/collection/requests': typeof AppCollectionRequestsRoute
   '/mill/incoming': typeof AppMillIncomingRoute
   '/rounds/mine': typeof AppRoundsMineRoute
@@ -210,6 +217,7 @@ export interface FileRoutesByTo {
   '/change-password': typeof AppChangePasswordRoute
   '/notifications': typeof AppNotificationsRoute
   '/admin/registrations': typeof AppAdminRegistrationsRoute
+  '/collection/planning': typeof AppCollectionPlanningRoute
   '/collection/requests': typeof AppCollectionRequestsRoute
   '/mill/incoming': typeof AppMillIncomingRoute
   '/rounds/mine': typeof AppRoundsMineRoute
@@ -240,6 +248,7 @@ export interface FileRoutesById {
   '/_app/farmer': typeof AppFarmerRouteWithChildren
   '/_app/notifications': typeof AppNotificationsRoute
   '/_app/admin/registrations': typeof AppAdminRegistrationsRoute
+  '/_app/collection/planning': typeof AppCollectionPlanningRoute
   '/_app/collection/requests': typeof AppCollectionRequestsRoute
   '/_app/mill/incoming': typeof AppMillIncomingRoute
   '/_app/rounds/mine': typeof AppRoundsMineRoute
@@ -270,6 +279,7 @@ export interface FileRouteTypes {
     | '/farmer'
     | '/notifications'
     | '/admin/registrations'
+    | '/collection/planning'
     | '/collection/requests'
     | '/mill/incoming'
     | '/rounds/mine'
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | '/change-password'
     | '/notifications'
     | '/admin/registrations'
+    | '/collection/planning'
     | '/collection/requests'
     | '/mill/incoming'
     | '/rounds/mine'
@@ -326,6 +337,7 @@ export interface FileRouteTypes {
     | '/_app/farmer'
     | '/_app/notifications'
     | '/_app/admin/registrations'
+    | '/_app/collection/planning'
     | '/_app/collection/requests'
     | '/_app/mill/incoming'
     | '/_app/rounds/mine'
@@ -410,6 +422,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/registrations'
       fullPath: '/admin/registrations'
       preLoaderRoute: typeof AppAdminRegistrationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/collection/planning': {
+      id: '/_app/collection/planning'
+      path: '/collection/planning'
+      fullPath: '/collection/planning'
+      preLoaderRoute: typeof AppCollectionPlanningRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/collection/requests': {
@@ -577,6 +596,7 @@ interface AppRouteChildren {
   AppFarmerRoute: typeof AppFarmerRouteWithChildren
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppAdminRegistrationsRoute: typeof AppAdminRegistrationsRoute
+  AppCollectionPlanningRoute: typeof AppCollectionPlanningRoute
   AppCollectionRequestsRoute: typeof AppCollectionRequestsRoute
   AppMillIncomingRoute: typeof AppMillIncomingRoute
   AppRoundsMineRoute: typeof AppRoundsMineRoute
@@ -596,6 +616,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFarmerRoute: AppFarmerRouteWithChildren,
   AppNotificationsRoute: AppNotificationsRoute,
   AppAdminRegistrationsRoute: AppAdminRegistrationsRoute,
+  AppCollectionPlanningRoute: AppCollectionPlanningRoute,
   AppCollectionRequestsRoute: AppCollectionRequestsRoute,
   AppMillIncomingRoute: AppMillIncomingRoute,
   AppRoundsMineRoute: AppRoundsMineRoute,

@@ -192,22 +192,42 @@ classDiagram
         +LocalTime startTime
         +LocalTime endTime
         +RoundStatus status
+        +String plannedById
+        +String teamLeaderId
+        +String millId
+        +List~String~ workerIds
+        +List~String~ equipmentIds
+        +List~RoundStop~ stops
+        +double estimatedTotalKg
         +double totalHarvestedKg
         +Instant startedAt
         +Instant completedAt
-        +long version
+        +List~StatusChange~ statusHistory
+        +String season
+        +Long version
         +start()
         +complete()
     }
     class RoundStop {
         +int order
+        +String harvestRequestId
+        +String orchardId
+        +String farmerId
         +String orchardName
         +GeoPoint location
         +LocalTime plannedArrival
+        +double estimatedKg
         +StopStatus status
-        +double harvestedKg
-        +int crateCount
+        +Double harvestedKg
+        +Integer crateCount
         +String comment
+    }
+    class StopStatus {
+        <<enumeration>>
+        PENDING
+        IN_PROGRESS
+        DONE
+        SKIPPED
     }
     class RoundStatus {
         <<enumeration>>
@@ -274,9 +294,23 @@ classDiagram
     class ResourceBooking {
         +String id
         +ResourceKind resourceKind
+        +String resourceType
+        +String resourceId
+        +String roundId
         +Instant start
         +Instant end
         +BookingStatus status
+    }
+    class ResourceKind {
+        <<enumeration>>
+        WORKER
+        EQUIPMENT
+        TEAM_LEADER
+    }
+    class BookingStatus {
+        <<enumeration>>
+        ACTIVE
+        RELEASED
     }
     class SupplyOrder {
         +String id
@@ -359,6 +393,10 @@ classDiagram
         NEW_REQUEST
         REQUEST_VALIDATED
         REQUEST_REJECTED
+        ROUND_SCHEDULED
+        ROUND_ASSIGNED
+        ROUND_UPDATED
+        ROUND_CANCELLED
     }
     class ImportJob {
         +String id
@@ -400,6 +438,7 @@ classDiagram
     CollectionRound "1" *-- "1..*" RoundStop : stops
     RoundStop "*" --> "1" HarvestRequest : serves
     RoundStop "*" --> "1" Orchard : visits
+    RoundStop --> StopStatus
     CollectionRound "*" --> "1" User : team leader
     CollectionRound "*" --> "1" User : planned by
     CollectionRound "*" --> "1" Mill : delivers to
@@ -416,6 +455,9 @@ classDiagram
     ResourceBooking "*" --> "1" CollectionRound : for
     ResourceBooking "*" --> "0..1" Worker : books
     ResourceBooking "*" --> "0..1" Equipment : books
+    ResourceBooking "*" --> "0..1" User : books team leader
+    ResourceBooking --> ResourceKind
+    ResourceBooking --> BookingStatus
     SupplyOrder "*" --> "1" Tool : replenishes
 
     Mill "*" --> "*" User : managed by
@@ -698,7 +740,13 @@ sequenceDiagram
         C-->>FE: 422 "Request R-123 is not validated"
     else all validated
         Note over S,RR: MongoDB multi-document transaction (@Transactional)
-        S->>BS: checkAndBook(resources, slot)
+        S->>MR: findById(millId)
+        alt invalid date, time, request or selection
+            S-->>C: BusinessRuleException(code)
+            C-->>FE: 422 code + detail
+        else valid round data
+        S->>RR: save(round PLANNED, stops ordered)
+        S->>BS: checkAndBook(team leader, resources, slot)
         BS->>BR: findOverlapping(resourceIds, start, end)
         alt conflict found
             BS-->>S: BookingConflictException(resource, otherRound)
@@ -706,18 +754,22 @@ sequenceDiagram
             C-->>FE: 409 "Bin B-07 already booked by round T-2026-118"
         else free
             BS->>BR: saveAll(bookings)
-            S->>MR: findById(millId)
             opt sum(estimatedKg) > availableCapacityKg
                 S-->>S: add warning MILL_CAPACITY_LOW
             end
-            S->>RR: save(round PLANNED, stops ordered)
             S->>HR: updateStatus(requests, SCHEDULED, roundId)
             S->>NS: notify farmers (ROUND_SCHEDULED), team leader (ROUND_ASSIGNED)
             S-->>C: round + warnings
             C-->>FE: 201 Created
         end
+        end
     end
 ```
+
+The business-rule branch returns `INVALID_TIME_WINDOW`, `INVALID_TEAM_LEADER`, `DUPLICATE_REQUEST`,
+`DUPLICATE_RESOURCE`, `REQUEST_OUTSIDE_WINDOW`, `REQUEST_NOT_VALIDATED`, `RESOURCE_NOT_FOUND`, or
+`RESOURCE_UNAVAILABLE` as appropriate, all with HTTP 422. Missing rounds, requests, or mills keep the
+generic `NOT_FOUND` 404 response.
 
 ### SD-4 Farmer modifies / cancels a request (alternative: round already started)
 
@@ -1090,6 +1142,15 @@ stateDiagram-v2
     SKIPPED --> [*]
 ```
 
+### ResourceBooking
+
+```mermaid
+stateDiagram-v2
+    [*] --> ACTIVE : round planned
+    ACTIVE --> RELEASED : round cancelled / stop removed
+    RELEASED --> [*]
+```
+
 ### FieldAlert
 
 ```mermaid
@@ -1161,7 +1222,7 @@ The subject asks to plan "according to orchard maturity and resource availabilit
    the `FieldAlert` collection is implemented. Waiting days are measured from `createdAt` and the
    score is stored on every create/update, so the manager queue can sort without recalculating it.
 2. **Grouping suggestion**: for a chosen date, take requests sorted by score. Seed a round with the top one, then add the nearest requests (`$geoNear` from the seed orchard, within 10 km) until the estimated kg reach the sum of the booked bin capacities.
-3. **Availability**: list the workers and equipment with no overlapping `ResourceBooking`, no `Unavailability`, and status `AVAILABLE`.
+3. **Availability**: return workers and equipment with `available`/`reason` flags based on overlapping `ResourceBooking`, `Unavailability`, and `AVAILABLE` status.
 4. **Mill choice**: pick the nearest mill whose `availableCapacityKg` covers the estimate, using a `$geoNear` query on `mills`.
 
 The `GET /api/planning/suggestions?date=` endpoint returns these suggestions. Creating the round still goes through SD-3.

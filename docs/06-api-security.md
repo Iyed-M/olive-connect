@@ -35,6 +35,15 @@ Base URL: `/api`. Format: JSON, dates in ISO-8601 UTC, GeoJSON for positions. AP
 | `STALE_VERSION` | 409 | optimistic locking conflict (stale `version`) | M1b |
 | `ACTIVE_REQUEST_EXISTS` | 409 | an orchard already has an active harvest request | M3 |
 | `INVALID_TRANSITION` | 409 | the requested HarvestRequest state transition is not allowed | M3 |
+| `BOOKING_CONFLICT` | 409 | a team leader, worker or equipment item is already booked for the requested slot | M5 |
+| `ROUND_NOT_PLANNED`, `ROUND_STARTED` | 409 | a planned round cannot be edited, or a started round cannot be cancelled | M5 |
+| `REQUEST_OUTSIDE_WINDOW` | 422 | a round date is outside a selected request's desired harvest window | M5 |
+| `ROUND_EMPTY`, `ROUND_TOO_MANY_STOPS` | 422 | a round has no stops or exceeds the 15-stop bound | M5 |
+| `DUPLICATE_REQUEST`, `DUPLICATE_RESOURCE` | 422 | the same request or resource was selected more than once | M5 |
+| `REQUEST_NOT_VALIDATED` | 422 | a selected harvest request is not ready to schedule | M5 |
+| `RESOURCE_UNAVAILABLE` | 422 | a selected worker or equipment item is inactive, unavailable or outside its slot | M5 |
+| `INVALID_TEAM_LEADER`, `INVALID_TIME_WINDOW` | 422 | the selected team leader is invalid, or the round slot is incomplete/invalid | M5 |
+| `RESOURCE_NOT_FOUND` | 422 | a selected worker or equipment item does not exist | M5 |
 
 ## 2. Endpoint catalogue
 
@@ -104,8 +113,8 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 |---|---|---|---|---|
 | GET | `/planning/suggestions` | CM | priority-sorted groups, free resources, mill, query `date` | FR-1.5 |
 | POST | `/rounds` | CM | plan round (transaction + bookings) | FR-1.5 |
-| GET | `/rounds` | CM, LM, TL (own) | calendar/list, query `from`, `to`, `status`, `teamLeaderId` | FR-3.3 |
-| GET | `/rounds/{id}` | CM, LM, TL own, MM (if delivering to their mill) | detail | — |
+| GET | `/rounds` | CM, TL (own) | calendar/list, query `from`, `to`, `status`, `teamLeaderId` | FR-1.5 |
+| GET | `/rounds/{id}` | CM, TL own | detail | FR-1.5 |
 | PUT | `/rounds/{id}` | CM (PLANNED only) | modify stops/resources | FR-1.5 |
 | POST | `/rounds/{id}/cancel` | CM | cancel + release bookings | — |
 | POST | `/rounds/{id}/start` | TL own | start round | FR-1.7 |
@@ -127,7 +136,7 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 | DELETE | `/equipment/{id}` | LM, AD | delete equipment (hard delete until M5) | FR-3.2 |
 | POST | `/workers/{id}/unavailabilities` | LM, AD | worker leave, 201 with the updated worker | FR-3.2 |
 | POST | `/equipment/{id}/unavailabilities` | LM, AD | equipment maintenance, 201 with the updated equipment, `status` unchanged | FR-3.2 |
-| GET | `/resources/availability` | CM, LM, AD | free resources on a slot, query `start`, `end`, `type` | FR-1.5 |
+| GET | `/resources/availability` | CM, LM, AD | resources on a slot with `available`/`reason`, query `start`, `end`, `type` | FR-1.5 |
 | GET | `/resources/calendar` | CM, LM, AD | bookings + unavailabilities, query `resourceId`, `from`, `to` | FR-3.3 |
 | GET | `/supply-orders` | LM | list | FR-3.5 |
 | POST | `/supply-orders` | LM | create | FR-3.5 |
@@ -183,6 +192,32 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 ## 3. DTO examples (the API contract)
 
 ```jsonc
+// GET /api/planning/suggestions?date=2026-11-25 — PlanningSuggestionsDto
+{ "date": "2026-11-25", "teamLeaders": [ { "id": "665f…", "firstName": "Sami", "lastName": "Trabelsi", "available": true } ],
+  "availableWorkers": [ … ], "availableEquipment": [ … ], "mills": [ … ],
+  "groups": [ { "requestIds": ["6671…"], "estimatedTotalKg": 9000, "nearestMillId": "66a0…" } ],
+  "suggestedMill": { "id": "66a0…", "name": "Sfax North Olive Mill", "availableCapacityKg": 40000 },
+  "warnings": [] }
+
+// POST /api/rounds — CollectionRoundCreateDto; LocalTime fields are interpreted as UTC
+{ "date": "2026-11-25", "startTime": "07:00", "endTime": "15:00",
+  "teamLeaderId": "665f…", "requestIds": ["6671…"], "workerIds": ["6680…"],
+  "equipmentIds": ["6690…"], "millId": "66a0…" }
+
+// 201 — CollectionRoundDto (warnings is empty or contains MILL_CAPACITY_LOW)
+{ "id": "66b0…", "code": "T-2026-AB12CD34", "date": "2026-11-25", "startTime": "07:00", "endTime": "15:00",
+  "status": "PLANNED", "teamLeaderId": "665f…", "millId": "66a0…", "workerIds": ["6680…"],
+  "equipmentIds": ["6690…"], "stops": [ … ], "estimatedTotalKg": 9000, "totalHarvestedKg": 0,
+  "history": [ … ], "season": "2026-2027", "version": 0, "warnings": [] }
+
+// PUT /api/rounds/{id} — same fields are optional; version is used for optimistic locking
+{ "startTime": "07:30", "endTime": "15:30", "requestIds": ["6671…"], "version": 0 }
+
+// GET /api/resources/availability?start=2026-11-25T07:00:00Z&end=2026-11-25T15:00:00Z
+// Each item includes available=true/false and reason when it is booked, inactive or unavailable.
+{ "workers": [ { "id": "6680…", "resourceKind": "WORKER", "available": true, "reason": null } ],
+  "equipment": [ { "id": "6690…", "resourceKind": "EQUIPMENT", "resourceType": "BIN", "available": false, "reason": "Booked" } ] }
+
 // POST /api/harvest-requests  — HarvestRequestCreateDto
 { "orchardId": "6660…", "type": "URGENT", "desiredFrom": "2026-11-24", "desiredTo": "2026-11-27",
   "estimatedQuantityKg": 9000, "comment": "Rain forecast Friday" }
@@ -253,8 +288,7 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 // 409 example
 { "type": "https://oliveconnect.tn/errors/booking-conflict", "title": "Resource already booked",
   "status": 409, "code": "BOOKING_CONFLICT",
-  "detail": "Bin B-07 is already booked by round T-2026-118 (07:00–15:00).",
-  "conflicts": [ { "resourceId": "…", "resourceCode": "B-07", "roundCode": "T-2026-118" } ] }
+  "detail": "Bin B-07 is already booked by round T-2026-118 (07:00–15:00)." }
 ```
 
 ## 4. Security design
@@ -291,7 +325,7 @@ flowchart LR
 | Public map (no personal data) | R | R | R | R | R | R | R |
 | Orchards | – | CRUD own | R all | R (round stops) | – | – | CRUD |
 | Harvest requests | – | C, R/U/cancel own | R, validate/reject | R (own rounds) | – | – | R |
-| Rounds | – | R own stops (status only) | CRUD | R own, start/stops/complete | R | R (to their mill) | R |
+| Rounds | – | – (request status is returned on own harvest requests) | CRUD | R own, start/stops/complete | – | – | – |
 | Workers / equipment | – | – | R | – | CRUD | – | CRUD |
 | Bookings / calendar | – | – | CR | R own | CRUD | – | R |
 | Supply orders | – | – | – | – | CRUD | – | R |

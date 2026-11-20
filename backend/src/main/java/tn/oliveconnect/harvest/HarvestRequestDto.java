@@ -24,7 +24,7 @@ public record HarvestRequestDto(
         List<String> allowedActions,
         Long version) {
 
-    static HarvestRequestDto from(HarvestRequest request, List<String> allowedActions) {
+    public static HarvestRequestDto from(HarvestRequest request, List<String> allowedActions) {
         return new HarvestRequestDto(request.getId(), request.getFarmerId(),
                 OrchardSnapshotDto.from(request.getOrchard()), request.getType(), request.getDesiredFrom(),
                 request.getDesiredTo(), request.getEstimatedQuantityKg(), request.getComment(), request.getStatus(),
