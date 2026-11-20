@@ -1,9 +1,11 @@
-# Local agent skill installs (not shared)
+# Agent skills: shared ones live in .agents/skills (Codex) and are symlinked
+# into .claude/skills (Claude Code). Personal installs stay local.
 .claude/*
 !.claude/skills/
-.claude/skills/*
-!.claude/skills/check-docs/
-.agents/
+.agents/*
+!.agents/skills/
+.agents/skills/diagram-design/
+.claude/skills/diagram-design
 skills-lock.json
 
 # Secrets
