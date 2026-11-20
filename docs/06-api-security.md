@@ -78,7 +78,8 @@ Users are never deleted: disabling replaces deletion, so there is no `DELETE /us
 Each plot contains `{code, varietyCode, areaHa, treeCount, plantingYear, irrigated}`. The service
 rejects unknown varieties, duplicate plot codes and positions outside Tunisia with
 `400 VALIDATION_FAILED`. `GET /varieties` is public and reads the seeded reference collection
-through the Redis key `cache:varieties::all`.
+through the Redis key `cache:varieties::all`. An Admin may additionally send `ownerId` when
+creating an orchard for a Farmer; a Farmer's owner is always the authenticated User.
 
 ### Harvest requests (F1)
 | Method | Path | Roles | Description | FR |
