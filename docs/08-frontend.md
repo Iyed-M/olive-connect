@@ -35,7 +35,7 @@ frontend/
 │   │   └── ui/                # (M0) shadcn/ui components: badge, button, card, input, label (more are added with the CLI when needed)
 │   ├── features/
 │   │   ├── public/            # PublicMapPage, RegistrationPage, AboutPage
-│   │   ├── farmer/            # FarmerHome, OrchardsPage, OrchardForm, HarvestRequestForm, MyRequests, AlertForm, MyReceptions
+│   │   ├── farmer/            # FarmerHome, OrchardsPage, OrchardForm, OrchardMap, orchard API, HarvestRequestForm, MyRequests, AlertForm, MyReceptions
 │   │   ├── collection/        # RequestQueue, PlanningBoard, RoundForm, AlertsBoard, OperationsMap
 │   │   ├── teamleader/        # MyRounds, RoundRunner (stop-by-stop)
 │   │   ├── logistics/         # Workers, Equipment, ResourceCalendar, SupplyOrders
@@ -68,7 +68,14 @@ The route `/` is a temporary public status page (API, MongoDB, Redis, version, f
 - A logged-in User who opens `/login` is redirected to their Role home.
 - Each Role home is wrapped in `RequireRole`. A User without the role sees a **"Not allowed" page** (inside the layout, with a link to their Role home), not a redirect. The API checks the roles again.
 
-In M1a the six Role homes were placeholders ("Coming in M…"). In M1b `/admin/users` became real: a list with role and status filters and pagination (cards on mobile), `/admin/users/new` and `/admin/users/$id` sharing one form. The Farmer profile section appears when FARMER is ticked, and Enable / Disable are on the detail page (Disable asks for confirmation). Server field errors (`errors[]`) are shown on the matching fields, and 409 / 422 errors as messages. The routes below the homes are planned for later milestones.
+In M1a the six Role homes were placeholders ("Coming in M…"). In M1b `/admin/users` became real: a list with role and status filters and pagination (cards on mobile), `/admin/users/new` and `/admin/users/$id` sharing one form. The Farmer profile section appears when FARMER is ticked, and Enable / Disable are on the detail page (Disable asks for confirmation). Server field errors (`errors[]`) are shown on the matching fields, and 409 / 422 errors as messages.
+
+M2 makes `/farmer/orchards` real. The Farmer navigation contains Home and Orchards, with
+`/farmer/orchards/new` for the GPS-assisted form and `/farmer/orchards/$id` for editing. The
+form uses a Leaflet map picker, asks `navigator.geolocation` for an initial position, supports
+bounded plot rows, and displays the server-computed area, tree count and main variety on the
+mobile-first list. Loading, empty, validation and API error states remain visible without
+leaving the role layout.
 
 ```mermaid
 flowchart TB

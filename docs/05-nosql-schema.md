@@ -58,7 +58,11 @@ erDiagram
         ObjectId ownerId
         object owner "extended ref: name"
         GeoJSON location "2dsphere"
+        string delegation
         array plots "embedded 1..n (bounded)"
+        double areaHa "computed"
+        int treeCount "computed"
+        string mainVarietyCode "computed"
         string harvestStatus
         double currentMaturityIndex
     }
@@ -213,7 +217,6 @@ flowchart TD
   "ownerId": ObjectId("665f..."),
   "owner": { "displayName": "Ali Ben Ali" },
   "location": { "type": "Point", "coordinates": [10.7603, 34.7998] },
-  "boundary": { "type": "Polygon", "coordinates": [[[10.75,34.79],[10.77,34.79],[10.77,34.81],[10.75,34.79]]] },
   "delegation": "SAKIET_EZZIT",
   "plots": [
     { "code": "P1", "varietyCode": "CHEMLALI", "areaHa": 4.5, "treeCount": 450, "plantingYear": 1998, "irrigated": false },
@@ -226,6 +229,12 @@ flowchart TD
   "version": 3
 }
 ```
+
+The M2 API persists the point and bounded plot array on every write. `ownerId` is the
+authenticated Farmer id and `owner.displayName` is the extended-reference snapshot used by
+staff searches. `areaHa`, `treeCount` and `mainVarietyCode` are recomputed from `plots` before
+the document is saved. A future boundary polygon remains part of the design but is not accepted
+by the M2 form yet.
 | Index | Purpose |
 |---|---|
 | `{ location: "2dsphere" }` | map bbox `$geoWithin`, nearest orchard, `$geoNear` grouping |
