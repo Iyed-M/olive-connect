@@ -419,7 +419,7 @@ sequenceDiagram
             AC-->>FE: 401 (generic message)
         else valid
             AS->>RL: reset(email, ip)
-            AS->>JS: accessToken(user, roles) TTL 15 min
+            AS->>JS: accessToken(user) TTL 15 min
             AS->>RT: create(userId) (TTL 7 days)
             AS-->>AC: tokens + profile
             AC-->>FE: 200 {accessToken} + HttpOnly cookie refresh

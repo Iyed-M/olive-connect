@@ -115,14 +115,15 @@ Cross-cutting: `GlobalExceptionHandler` (`@RestControllerAdvice`) → RFC 7807 `
 ```text
 tn.oliveconnect
 ├── OliveConnectApplication.java
-├── config/            MongoConfig (auditing, indexes, transactions), RedisConfig, CacheConfig,
-│                      OpenApiConfig, AsyncConfig, SchedulingConfig
-├── security/          SecurityConfig, JwtService, JwtAuthFilter, RefreshTokenService,
-│                      CurrentUser, LoginRateLimiter
-├── common/            exception/ (NotFound, Conflict, Forbidden, BusinessRule), GeoPointDto,
-│                      PageResponse, AuditMetadata
-├── user/              User, Role, RegistrationRequest, UserRepository, UserService, AuthController,
-│                      UserController (admin), RegistrationController
+├── config/            (M1a) SecurityConfig, ProblemSecurityHandler, AppProperties, AuditingConfig.
+│                      Planned: RedisConfig, CacheConfig, OpenApiConfig, AsyncConfig, SchedulingConfig
+├── auth/              (M1a) AuthController, MeController, AuthService, JwtService, RefreshTokenStore,
+│                      LoginRateLimiter, LoginRequest, LoginResponse, AccessToken, Session,
+│                      InvalidCredentialsException, UnauthenticatedException, TooManyAttemptsException
+├── common/            (M1a) GlobalExceptionHandler, NotFoundException.
+│                      Planned: Conflict, Forbidden, BusinessRule exceptions, GeoPointDto, PageResponse
+├── user/              (M1a) User, FarmerProfile, Role, Delegation, MeDto, UserRepository, AdminSeeder.
+│                      Planned: RegistrationRequest, UserService, UserController (admin), RegistrationController
 ├── orchard/           Orchard, Plot, OliveVariety, OrchardRepository, OliveVarietyRepository,
 │                      OrchardService, OrchardController, MapController (public + private layers)
 ├── harvest/           HarvestRequest, HarvestRequestStatus, StatusChange, HarvestRequestRepository,
@@ -154,7 +155,7 @@ tn.oliveconnect
 | Build | Maven via `mvnw` | 3.9 |
 | Mapping | Hand-written static `from(entity)` methods on DTO records | — |
 | API doc | springdoc-openapi (Swagger UI) | 2.x |
-| Auth | JWT (jjwt or Spring Security OAuth2 Resource Server with HMAC key) | — |
+| Auth | JWT HS256 signed and checked by the Spring Security OAuth2 Resource Server (Nimbus, HMAC key from `JWT_SECRET`), BCrypt passwords | — |
 | Logging | Log4j2 (`spring-boot-starter-log4j2`, JSON layout for Loki) — the subject cites Log4j | 2.x |
 | CSV | OpenCSV or Jackson CSV | — |
 | Metrics | Micrometer + Prometheus registry | — |
@@ -175,7 +176,7 @@ sequenceDiagram
     autonumber
     participant B as Browser
     participant N as Nginx
-    participant F as JwtAuthFilter
+    participant F as BearerTokenAuthenticationFilter
     participant C as Controller
     participant S as Service
     participant R as Repository

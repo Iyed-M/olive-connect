@@ -31,7 +31,7 @@ frontend/
 │   ├── lib/                   # (M0) api.ts (fetch wrapper under /api + typed calls, JWT and refresh added with M1), utils.ts (cn helper)
 │   ├── auth/                  # (M1a) AuthContext, session (in memory), refresh, roles (Role labels, ROLE_PRIORITY, ROLE_HOME, priorityRole, activeRole), activeRole (localStorage), nav (NAV per Active role), redirect (safeRedirect), types (hand-written Role union); unit tests *.test.ts (Vitest)
 │   ├── components/            # (M1a) AppLayout (header, side nav, bottom nav), RequireRole, RoleHome, PublicPage. Planned: HelpDrawer, MapView, StatusBadge, Timeline, ConfirmDialog
-│   │   └── ui/                # (M0) shadcn/ui components: badge, button, card (more are added with the CLI when needed)
+│   │   └── ui/                # (M0) shadcn/ui components: badge, button, card, input, label (more are added with the CLI when needed)
 │   ├── features/
 │   │   ├── public/            # PublicMapPage, RegistrationPage, AboutPage
 │   │   ├── farmer/            # FarmerHome, OrchardsPage, OrchardForm, HarvestRequestForm, MyRequests, AlertForm, MyReceptions

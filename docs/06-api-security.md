@@ -42,7 +42,7 @@ Roles: **PUB** public, **F** farmer, **CM** collection manager, **TL** team lead
 ### Auth & accounts
 | Method | Path | Roles | Description | FR |
 |---|---|---|---|---|
-| POST | `/auth/login` | PUB | body `{email, password}` → `200 {accessToken, expiresIn, user}` + `refresh_token` cookie, 400 `VALIDATION_FAILED`, 401 `INVALID_CREDENTIALS` | — |
+| POST | `/auth/login` | PUB | body `{email, password}` → `200 {accessToken, expiresIn, user}` + `refresh_token` cookie, 400 `VALIDATION_FAILED`, 401 `INVALID_CREDENTIALS`, 429 `TOO_MANY_ATTEMPTS` (`Retry-After` header and `retryAfterSeconds`) | — |
 | POST | `/auth/refresh` | PUB (cookie) | rotate the refresh token → `200` same body as login + new cookie; 401 `UNAUTHENTICATED` (cookie missing) or `SESSION_EXPIRED` (cookie unknown or already used, User disabled → all their sessions revoked); the cookie is cleared on 401 | — |
 | POST | `/auth/logout` | PUB (cookie) | revoke this session only (identified by the cookie, works with an expired access token), clear the cookie → `204`, idempotent | — |
 | GET | `/me` | any | `MeDto {id, email, firstName, lastName, roles, onboardingDone}`, 401 `UNAUTHENTICATED` without a valid token | — |

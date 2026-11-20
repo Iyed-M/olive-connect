@@ -36,9 +36,9 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 |---|---|---|---|---|---|
 | T-SYS-1 | System status | `GET /api/system/status` with MongoDB and Redis running | Nominal | API | 200, `api`, `mongo`, `redis` = `UP`, `version` (`SystemStatusControllerTest`) |
 | T-AUTH-1 | Login | valid credentials (seeded Admin) | Nominal | API | 200, access token, `user.roles` contains `ADMIN`, `refresh_token` cookie is `HttpOnly; Secure; SameSite=Strict; Path=/api/auth` (`AuthControllerTest`, `RefreshTokenTest`) |
-| T-AUTH-2 | Login | wrong password ×6 | Alternative | API | 401 ×5 then 429 `TOO_MANY_ATTEMPTS` + `Retry-After` |
-| T-AUTH-12 | Login | 5 failures then the right password | Alternative | API | 429 (still blocked) |
-| T-AUTH-13 | Login | 4 failures, a success, 5 failures | Alternative | API | 401 ×5 (counter reset) |
+| T-AUTH-2 | Login | wrong password ×6 | Alternative | API | 401 ×5 then 429 `TOO_MANY_ATTEMPTS` + `Retry-After` (`LoginRateLimitTest`, `LoginRateLimiterTest`) |
+| T-AUTH-12 | Login | 5 failures then the right password | Alternative | API | 429 (still blocked) (`LoginRateLimitTest`) |
+| T-AUTH-13 | Login | 4 failures, a success, 5 failures | Alternative | API | 401 ×5 (counter reset) (`LoginRateLimitTest`) |
 | T-AUTH-3 | Login | disabled account (also wrong password, unknown email) | Alternative | API | 401 `INVALID_CREDENTIALS`, same message for all three (`AuthControllerTest`) |
 | T-AUTH-4 | Refresh | refresh with the cookie, then again with the old cookie | Alternative | API | 200 with a new access token and a new cookie value; the old cookie gets 401 `SESSION_EXPIRED` (`RefreshTokenTest`) |
 | T-AUTH-5 | Logout | logout, then refresh with that cookie, then logout again | Alternative | API | 204 (cookie cleared), refresh 401, second logout 204 (`RefreshTokenTest`) |
