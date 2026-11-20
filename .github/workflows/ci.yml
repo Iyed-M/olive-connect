@@ -26,7 +26,8 @@ jobs:
           cache: maven            # reuse downloaded Maven dependencies between runs
           cache-dependency-path: backend/pom.xml
       # verify = compile + tests. Testcontainers starts MongoDB and Redis via Docker.
-      - run: ./mvnw -B verify
+      # -U: re-check releases that a restored ~/.m2 cache marked as "absent" (failed earlier lookups)
+      - run: ./mvnw -B -U verify
 
   frontend:
     name: Frontend (lint, test and build)

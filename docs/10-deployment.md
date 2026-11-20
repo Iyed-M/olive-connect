@@ -70,7 +70,7 @@ flowchart TB
 flowchart LR
     A["git push / pull request"] --> CI
     subgraph CI["ci.yml (3 parallel jobs)"]
-        B["backend<br/>./mvnw -B verify<br/>(tests with Testcontainers)"]
+        B["backend<br/>./mvnw -B -U verify<br/>(tests with Testcontainers)"]
         C["frontend<br/>pnpm install --frozen-lockfile<br/>pnpm lint, pnpm test, pnpm build"]
         D["docker<br/>cp deploy/.env.example deploy/.env<br/>docker compose -f deploy/docker-compose.yml build"]
     end
