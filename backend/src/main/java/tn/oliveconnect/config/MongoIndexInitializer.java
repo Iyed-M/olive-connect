@@ -16,6 +16,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.data.mongodb.core.mapping.MongoPersistentEntity;
 import org.springframework.stereotype.Component;
+import tn.oliveconnect.imports.MaturityReading;
 import tn.oliveconnect.imports.WeatherReading;
 import tn.oliveconnect.orchard.Orchard;
 
@@ -56,6 +57,9 @@ public class MongoIndexInitializer implements ApplicationRunner {
     void createTimeSeriesCollections() {
         if (!mongoTemplate.collectionExists(WeatherReading.class)) {
             mongoTemplate.createCollection(WeatherReading.class);
+        }
+        if (!mongoTemplate.collectionExists(MaturityReading.class)) {
+            mongoTemplate.createCollection(MaturityReading.class);
         }
     }
 
