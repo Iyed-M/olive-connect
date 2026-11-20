@@ -34,7 +34,7 @@ Base URL: `/api`. Format: JSON, dates in ISO-8601 UTC, GeoJSON for positions. AP
 | `TOO_MANY_ATTEMPTS` | 429 | 5 failed logins in 15 min, with `Retry-After` | M1a |
 | `STALE_VERSION` | 409 | optimistic locking conflict (stale `version`) | M1b |
 | `ACTIVE_REQUEST_EXISTS` | 409 | an orchard already has an active harvest request | M3 |
-| `INVALID_TRANSITION` | 409 | the requested HarvestRequest state transition is not allowed | M3 |
+| `INVALID_TRANSITION` | 409 | the requested HarvestRequest or RoundStop state transition is not allowed | M3–M6 |
 | `BOOKING_CONFLICT` | 409 | a team leader, worker or equipment item is already booked for the requested slot | M5 |
 | `ROUND_NOT_PLANNED`, `ROUND_STARTED` | 409 | a round action requires `PLANNED`, or a started round cannot be cancelled | M5–M6 |
 | `ROUND_NOT_TODAY`, `ROUND_NOT_IN_PROGRESS` | 409 | a team leader can start only on the round date, or can update/complete only an in-progress round | M6 |

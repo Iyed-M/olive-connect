@@ -221,6 +221,7 @@ classDiagram
         +Double harvestedKg
         +Integer crateCount
         +String comment
+        +canTransitionTo(status) boolean
     }
     class StopStatus {
         <<enumeration>>
@@ -865,6 +866,7 @@ sequenceDiagram
     participant C as CollectionRoundController
     participant S as CollectionRoundService
     participant RR as CollectionRoundRepository
+    participant MT as MongoTemplate
     participant OR as OrchardRepository
     participant HR as HarvestRequestRepository
     participant NS as NotificationService
@@ -879,18 +881,19 @@ sequenceDiagram
     else ok
         S->>RR: status IN_PROGRESS
         S->>HR: requests → IN_PROGRESS
+        S->>OR: orchards → IN_PROGRESS
         S->>NS: notify farmers (ROUND_STARTED)
     end
     loop each stop
         TL->>FE: Tap arrival at the orchard
         FE->>C: PATCH /api/rounds/{id}/stops/{order} {status: IN_PROGRESS}
         C->>S: updateStop(...)
-        S->>RR: updateFirst(stops.$[s], filterArray(s.order), version check)
+        S->>MT: updateFirst(stops.$[s], filterArray(s.order), version check)
         S->>OR: harvestStatus = IN_PROGRESS
         TL->>FE: enter harvested kg, crates, status DONE/SKIPPED
         FE->>C: PATCH /api/rounds/{id}/stops/{order} {status: DONE or SKIPPED}
         C->>S: updateStop(...)
-        S->>RR: updateFirst(stops.$[s], filterArray(s.order), version check)
+        S->>MT: updateFirst(stops.$[s], filterArray(s.order), version check)
         alt stop DONE
             S->>OR: harvestStatus = HARVESTED
         else stop SKIPPED
@@ -907,6 +910,7 @@ sequenceDiagram
     else all DONE/SKIPPED
         S->>RR: COMPLETED, totalHarvestedKg
         S->>HR: DONE stops → COMPLETED, SKIPPED → VALIDATED (to re-plan)
+        S->>OR: DONE orchards → HARVESTED, SKIPPED → NOT_HARVESTED
         S->>NS: notify farmers (ROUND_COMPLETED)
     end
 ```
