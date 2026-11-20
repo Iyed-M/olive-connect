@@ -16,6 +16,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.data.mongodb.core.mapping.MongoPersistentEntity;
 import org.springframework.stereotype.Component;
+import tn.oliveconnect.imports.WeatherReading;
 import tn.oliveconnect.orchard.Orchard;
 
 /** Creates declared MongoDB indexes after reconciling the M2 orchard index name. */
@@ -38,6 +39,7 @@ public class MongoIndexInitializer implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         reconcileLegacyOrchardGeoIndex();
+        createTimeSeriesCollections();
 
         MongoPersistentEntityIndexResolver resolver = new MongoPersistentEntityIndexResolver(mappingContext);
         for (MongoPersistentEntity<?> entity : mappingContext.getPersistentEntities()) {
@@ -47,6 +49,13 @@ public class MongoIndexInitializer implements ApplicationRunner {
             for (IndexDefinitionHolder definition : resolver.resolveIndexForEntity(entity)) {
                 mongoTemplate.indexOps(definition.getCollection()).ensureIndex(definition);
             }
+        }
+    }
+
+    /** Time-series collections cannot be created implicitly by an insert, so they are created first (R7, R12). */
+    void createTimeSeriesCollections() {
+        if (!mongoTemplate.collectionExists(WeatherReading.class)) {
+            mongoTemplate.createCollection(WeatherReading.class);
         }
     }
 
