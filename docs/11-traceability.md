@@ -12,9 +12,10 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | Delegation (enum) | R2 | `users.farmerProfile.delegation` (code, e.g. `SAKIET_EZZIT`) | `user.Delegation` | — | — | — | labels in `admin/users.ts` |
 | (User admin DTOs — no class, write and read models) | — | `users` | `user.UserDto`, `UserCreateDto`, `UserUpdateDto`, `FarmerProfileDto` | — | `UserService` | `UserController /users` | `admin/users.ts` |
 | RegistrationRequest | R1 | `registration_requests` | `user.RegistrationRequest` | `RegistrationRequestRepository` | `RegistrationService` | `RegistrationController /registrations` | `public/RegistrationPage`, `admin/Registrations` |
-| Orchard | R1, R4, R10, R11 | `orchards` | `orchard.Orchard` | `OrchardRepository` (+ custom geo) | `OrchardService`, `MapService` | `OrchardController /orchards`, `MapController /map` | `farmer/Orchards`, `public/PublicMapPage` |
-| Plot | R2 | `orchards.plots[]` | `orchard.Plot` (embedded) | — | `OrchardService` | `/orchards` | `farmer/OrchardForm` |
-| OliveVariety | R1 (natural key) | `olive_varieties` | `orchard.OliveVariety` | `OliveVarietyRepository` | `OrchardService` (cached) | `/varieties` | selects, `intranet/Reference` |
+| Orchard | R1, R4, R10, R11 | `orchards` | `orchard.Orchard` | `OrchardRepository` | `OrchardService` | `OrchardController /orchards` | `features/farmer/OrchardsPage`, `features/farmer/OrchardForm`, `features/farmer/OrchardMap` |
+| Plot | R2 | `orchards.plots[]` | `orchard.Plot` (embedded) | — | `OrchardService` | `/orchards` | `features/farmer/OrchardForm` |
+| GeoPoint | R10 | `orchards.location` | `orchard.GeoPoint` (embedded GeoJSON) | — | `OrchardService` | `/orchards` | `features/farmer/OrchardMap` |
+| OliveVariety | R1 (natural key) | `olive_varieties` | `orchard.OliveVariety` | `OliveVarietyRepository` | `OrchardService` (Redis cached), `OliveVarietySeeder` | `OliveVarietyController /varieties` | `features/farmer/OrchardForm`, `intranet/Reference` |
 | HarvestRequest | R1, R3, R4, R11, R14 | `harvest_requests` | `harvest.HarvestRequest` | `HarvestRequestRepository` | `HarvestRequestService`, `PriorityCalculator` | `HarvestRequestController /harvest-requests` | `farmer/HarvestRequestForm`, `collection/RequestQueue` |
 | StatusChange | R2 | `*.statusHistory[]` | `common.StatusChange` (embedded) | — | each owning service | in detail DTOs | `components/Timeline` |
 | CollectionRound | R1, R5, R14 | `collection_rounds` | `round.CollectionRound` | `CollectionRoundRepository` | `CollectionRoundService`, `PlanningService` | `CollectionRoundController /rounds`, `/planning` | `collection/PlanningBoard`, `teamleader/RoundRunner` |
@@ -42,7 +43,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | (M0, no FR) | System status / walking skeleton | `GET /system/status` | T-SYS-1 |
 | FR-6.2 (M1a) | Log in / SD-1 | `POST /auth/login`, `/auth/refresh`, `/auth/logout`, `GET /me` | T-AUTH-1, T-AUTH-3..5, T-AUTH-7, T-AUTH-9..11, T-SEC-5 |
 | FR-6.2 (M1b) | Admin manages Users / SD-10 | `GET /users`, `POST /users`, `GET` and `PUT /users/{id}`, `POST /users/{id}/enable`, `/disable` | T-USR-1..4, T-SEC-4, T-AUTH-6 |
-| FR-1.1 | Manage orchards | `/orchards` | T-SEC-1 |
+| FR-1.1 | Manage orchards | `/orchards` | T-SEC-1, T-ORCH-1..6 |
 | FR-1.2 | Declare harvest request / SD-2 | `POST /harvest-requests` | T-HR-1..3 |
 | FR-1.3 | Modify / cancel / SD-4 | `PUT /harvest-requests/{id}`, `/cancel` | T-HR-4..6 |
 | FR-1.4 | Validate / reject | `/validate`, `/reject` | T-HR-7 |

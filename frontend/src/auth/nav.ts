@@ -1,4 +1,4 @@
-import { ClipboardList, Factory, HardHat, Route, Sprout, Truck, Users, type LucideIcon } from 'lucide-react'
+import { ClipboardList, Factory, HardHat, Map, Route, Sprout, Truck, Users, type LucideIcon } from 'lucide-react'
 import type { LinkProps } from '@tanstack/react-router'
 import type { Role } from './types'
 
@@ -11,7 +11,10 @@ export interface NavItem {
 // Navigation entries of each Active role. In M1a each role only has its home;
 // later milestones add entries here.
 export const NAV: Record<Role, NavItem[]> = {
-  FARMER: [{ to: '/farmer', label: 'Home', icon: Sprout }],
+  FARMER: [
+    { to: '/farmer', label: 'Home', icon: Sprout },
+    { to: '/farmer/orchards', label: 'Orchards', icon: Map },
+  ],
   COLLECTION_MANAGER: [{ to: '/collection/requests', label: 'Requests', icon: ClipboardList }],
   TEAM_LEADER: [{ to: '/rounds/mine', label: 'My rounds', icon: Route }],
   LOGISTICS_MANAGER: [

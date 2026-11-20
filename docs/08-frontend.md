@@ -36,7 +36,7 @@ frontend/
 │   │   └── ui/                # (M0) shadcn/ui components: badge, button, card, input, label (more are added with the CLI when needed)
 │   ├── features/
 │   │   ├── public/            # PublicMapPage, RegistrationPage, AboutPage
-│   │   ├── farmer/            # FarmerHome, OrchardsPage, OrchardForm, HarvestRequestForm, MyRequests, AlertForm, MyReceptions
+│   │   ├── farmer/            # FarmerHome, OrchardsPage, OrchardForm, OrchardMap, orchard API, HarvestRequestForm, MyRequests, AlertForm, MyReceptions
 │   │   ├── collection/        # RequestQueue, PlanningBoard, RoundForm, AlertsBoard, OperationsMap
 │   │   ├── teamleader/        # MyRounds, RoundRunner (stop-by-stop)
 │   │   ├── logistics/         # ResourceCalendar, SupplyOrders (Workers and Equipment: see src/logistics/, M4)
@@ -80,7 +80,22 @@ The route `/` is a temporary public status page (API, MongoDB, Redis, version, f
 - A logged-in User who opens `/login` is redirected to their Role home.
 - Each Role home is wrapped in `RequireRole`. A User without the role sees a **"Not allowed" page** (inside the layout, with a link to their Role home), not a redirect. The API checks the roles again.
 
-In M1a the six Role homes were placeholders ("Coming in M…"). In M1b `/admin/users` became real: a list with role and status filters and pagination (cards on mobile), `/admin/users/new` and `/admin/users/$id` sharing one form. The Farmer profile section appears when FARMER is ticked, and Enable / Disable are on the detail page (Disable asks for confirmation). Server field errors (`errors[]`) are shown on the matching fields, and 409 / 422 errors as messages. In M4 the Logistics manager and the Admin (full CRUD in the API) get `/logistics/workers` and `/logistics/equipment` with the same pattern: list with filters (`active` for workers, `type` and `status` for equipment), pagination, cards on mobile, `/new` and `/$id` pages sharing one form. The equipment form adapts to the type (Tractor: plate number, power; Bin: serial number, capacity; Net and Shaker: stock quantity, tool type is the type). The type is read-only on an existing equipment. The detail pages list the unavailabilities and have an add form (end after start, checked on the client and by the API). Delete asks for confirmation. The navigation has two entries, Workers and Equipment, for both roles (for the Admin they come after Users); `RequireRole` accepts a list of Roles. The Collection manager can read workers and equipment through the API but gets no page in M4, by choice: the planning board of M5 uses the availability endpoint. The routes below the homes are planned for later milestones.
+In M1a the six Role homes were placeholders ("Coming in M…"). In M1b `/admin/users` became real: a list with role and status filters and pagination (cards on mobile), `/admin/users/new` and `/admin/users/$id` sharing one form. The Farmer profile section appears when FARMER is ticked, and Enable / Disable are on the detail page (Disable asks for confirmation). Server field errors (`errors[]`) are shown on the matching fields, and 409 / 422 errors as messages.
+
+M2 makes `/farmer/orchards` real. The Farmer navigation contains Home and Orchards, with
+`/farmer/orchards/new` for the GPS-assisted form and `/farmer/orchards/$id` for editing. The
+form uses a Leaflet map picker, asks `navigator.geolocation` for an initial position, supports
+bounded plot rows, and displays the server-computed area, tree count and main variety on the
+mobile-first list. Loading, empty, validation and API error states remain visible without
+leaving the role layout. M2 renders the farmer's bounded orchard list with simple Leaflet
+markers; marker clustering remains part of the later public bbox map work.
+
+M4 adds Worker and Equipment pages for the Logistics manager and Admin (full CRUD in the API), with
+filters, pagination, mobile cards, shared `/new` and `/$id` forms, and unavailability panels.
+Equipment fields adapt to the selected type and the type is read-only when editing. Delete asks
+for confirmation. The navigation has Workers and Equipment entries for both roles; the Collection
+manager can read those resources through the API but gets no page in M4. `RequireRole` accepts a
+list of roles. All forms use React Hook Form with field-level server errors and accessible labels.
 
 ```mermaid
 flowchart TB

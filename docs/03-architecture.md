@@ -121,11 +121,12 @@ tn.oliveconnect
 │                      LoginRateLimiter, LoginRequest, LoginResponse, AccessToken, Session,
 │                      InvalidCredentialsException, UnauthenticatedException, TooManyAttemptsException
 ├── common/            (M1a) GlobalExceptionHandler, NotFoundException.
-│                      Planned: Conflict, Forbidden, BusinessRule exceptions, GeoPointDto, PageResponse
+│                      Planned: Conflict, Forbidden, BusinessRule exceptions, PageResponse
 ├── user/              (M1a) User, FarmerProfile, Role, Delegation, MeDto, UserRepository, AdminSeeder.
 │                      Planned: RegistrationRequest, UserService, UserController (admin), RegistrationController
-├── orchard/           Orchard, Plot, OliveVariety, OrchardRepository, OliveVarietyRepository,
-│                      OrchardService, OrchardController, MapController (public + private layers)
+├── orchard/           Orchard, Plot, GeoPoint, OliveVariety, HarvestStatus, DTOs, repositories,
+│                      OrchardService, OrchardController, OliveVarietyController, OliveVarietySeeder,
+│                      MapController (public + private layers, future)
 ├── harvest/           HarvestRequest, HarvestRequestStatus, StatusChange, HarvestRequestRepository,
 │                      HarvestRequestService, HarvestRequestController
 ├── round/             CollectionRound, RoundStop, RoundStatus, CollectionRoundRepository,

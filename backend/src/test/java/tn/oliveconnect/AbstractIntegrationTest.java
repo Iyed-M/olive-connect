@@ -18,7 +18,7 @@ import org.testcontainers.containers.MongoDBContainer;
 public abstract class AbstractIntegrationTest {
 
     @ServiceConnection
-    static final MongoDBContainer mongo = new MongoDBContainer("mongo:7.0");
+    static final MongoDBContainer mongo = new MongoDBContainer("mongo:8");
 
     // "redis" name tells @ServiceConnection this generic container is Redis
     @ServiceConnection(name = "redis")

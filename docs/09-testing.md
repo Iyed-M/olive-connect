@@ -20,7 +20,7 @@ flowchart TB
 | Level | Tools | What it proves | Runs |
 |---|---|---|---|
 | Unit | JUnit 5, Mockito, AssertJ | Business rules in isolation (no Spring context) | every build |
-| Repository | `@DataMongoTest` + Testcontainers `mongo:7` | Derived queries, `@Query`, geo queries, aggregation pipelines, **indexes used** (`explain()` asserts `IXSCAN`) | every build |
+| Repository | `@DataMongoTest` + Testcontainers `mongo:8` | Derived queries, `@Query`, geo queries, aggregation pipelines, **indexes used** (`explain()` asserts `IXSCAN`) | every build |
 | Web/security | `@WebMvcTest` + `spring-security-test` (`@WithMockUser`) | Status codes, validation errors, role access (403), JSON shape | every build |
 | Integration | `@SpringBootTest` + `MockMvc` + Testcontainers (Mongo replica set + Redis) | Full layers incl. transactions, cache, SSE | every build (CI) |
 | Frontend | Vitest + React Testing Library + MSW (mocked API) | Forms, role-based rendering, error display. Built so far (M1a): Vitest unit tests of the pure auth functions (`priorityRole`, `activeRole` fallback, `safeRedirect`). M1b: Vitest tests of the user form's error mapping (`fieldMessages`, `errorBanner` in `admin/users.ts`) | every build |
@@ -51,6 +51,12 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-SEC-5 | Any | `GET /api/me` without a token (or with a garbage token) | Alternative | API | 401 `UNAUTHENTICATED`; with a valid token 200 `MeDto` (`AuthControllerTest`) |
 | T-SEC-6 | Me | valid token whose User was deleted | Alternative | API | 401 `UNAUTHENTICATED` (`AuthControllerTest`) |
 | T-SEC-1 | Any | farmer reads another farmer's orchard | Alternative | API | **404** |
+| T-ORCH-1 | Manage orchards | farmer creates an orchard with two valid plots | Nominal | API + unit | 201, totals recomputed, owner snapshot stored (`OrchardControllerTest`, `OrchardTest`) |
+| T-ORCH-2 | Manage orchards | another farmer reads the orchard URL | Alternative | API | 404 `NOT_FOUND` (`OrchardControllerTest`) |
+| T-ORCH-3 | Manage orchards | plot has an out-of-range area | Alternative | API | 400 `VALIDATION_FAILED` (`OrchardControllerTest`) |
+| T-ORCH-4 | Manage orchards | GPS point is outside Tunisia | Alternative | API | 400 `VALIDATION_FAILED` (`OrchardControllerTest`) |
+| T-ORCH-5 | Manage orchards | collection manager lists farmers' orchards | Nominal | API | all orchards are returned (`OrchardControllerTest`) |
+| T-ORCH-6 | Reference data | variety list is read twice after the first request | Nominal | API | second response is served from `cache:varieties::all` (`OrchardControllerTest`) |
 | T-SEC-2 | Any | farmer calls `POST /rounds` | Alternative | Web | 403 |
 | T-SEC-3 | Public map | response contains no owner/phone/yield fields | Nominal | Web | JSON has no such keys |
 | T-SEC-4 | Users | Farmer calls `GET /users`, `GET /users/{id}` and `POST /users/{id}/disable` | Alternative | API | 403 `FORBIDDEN` on each (`UserControllerTest`) |
@@ -134,7 +140,7 @@ class PlanRoundIT {
     @Autowired MockMvc mockMvc;
 
     @Container @ServiceConnection
-    static MongoDBContainer mongo = new MongoDBContainer("mongo:7.0"); // starts as replica set → transactions OK
+    static MongoDBContainer mongo = new MongoDBContainer("mongo:8"); // starts as replica set → transactions OK
     @Container @ServiceConnection(name = "redis")
     static GenericContainer<?> redis = new GenericContainer<>("redis:7-alpine").withExposedPorts(6379);
 

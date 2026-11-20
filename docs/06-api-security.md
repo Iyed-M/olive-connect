@@ -65,16 +65,23 @@ Users are never deleted: disabling replaces deletion, so there is no `DELETE /us
 ### Orchards, varieties, map (F1, F4)
 | Method | Path | Roles | Description | FR |
 |---|---|---|---|---|
-| GET | `/orchards` | F (own), CM, AD | list (farmer: only own) | FR-1.1 |
-| POST | `/orchards` | F, AD | create with plots | FR-1.1 |
-| GET | `/orchards/{id}` | F own, CM, AD | detail | FR-1.1 |
-| PUT | `/orchards/{id}` | F own, AD | edit | FR-1.1 |
-| DELETE | `/orchards/{id}` | F own, AD | delete | FR-1.1 |
+| GET | `/orchards` | F (own), CM, AD | list (farmer: only own), sorted by name | FR-1.1 |
+| POST | `/orchards` | F, AD | create with GeoJSON Point and embedded plots; returns 201 + `Location` | FR-1.1 |
+| GET | `/orchards/{id}` | F own, CM, AD | detail; another Farmer's orchard is indistinguishable from missing and returns 404 | FR-1.1 |
+| PUT | `/orchards/{id}` | F own, AD | replace name, delegation, position and plots; totals are recomputed | FR-1.1 |
+| DELETE | `/orchards/{id}` | F own, AD | delete an owned orchard | FR-1.1 |
 | GET | `/orchards/{id}/maturity` | F own, CM | maturity time series, query `days` (default 30) | FR-4.3 |
 | GET | `/orchards/nearest` | F | own orchard nearest to GPS position, query `lng`, `lat` (alert form) | FR-2.1 |
 | GET | `/varieties` | PUB | reference list | — |
 | GET | `/map/public` | PUB | GeoJSON FeatureCollection **without personal data**, query `bbox=w,s,e,n`, `variety`, `status`, `maturityMin`, `maturityMax` | FR-4.1, 4.2, 4.4 |
 | GET | `/map/private` | F (own), CM, AD | enriched layers, query `bbox`, `layers=orchards,alerts,rounds` | FR-4.3 |
+
+`POST` and `PUT /orchards` accept `{name, delegation, location: {type: "Point", coordinates: [lng, lat]}, plots}`.
+Each plot contains `{code, varietyCode, areaHa, treeCount, plantingYear, irrigated}`. The service
+rejects unknown varieties, duplicate plot codes and positions outside Tunisia with
+`400 VALIDATION_FAILED`. `GET /varieties` is public and reads the seeded reference collection
+through the Redis key `cache:varieties::all`. An Admin may additionally send `ownerId` when
+creating an orchard for a Farmer; a Farmer's owner is always the authenticated User.
 
 ### Harvest requests (F1)
 | Method | Path | Roles | Description | FR |

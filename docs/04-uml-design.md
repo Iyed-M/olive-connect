@@ -78,8 +78,11 @@ classDiagram
     class Orchard {
         +String id
         +String name
+        +String ownerId
+        +Map~String,String~ owner
         +GeoPoint location
         +GeoPolygon boundary
+        +List~Plot~ plots
         +double areaHa
         +String delegation
         +int treeCount
@@ -88,7 +91,12 @@ classDiagram
         +double currentMaturityIndex
         +Instant maturityUpdatedAt
         +double lastSeasonYieldKgHa
+        +Long version
         +recomputeTotals()
+    }
+    class GeoPoint {
+        +String type
+        +List~Double~ coordinates
     }
     class Plot {
         +String code
@@ -480,6 +488,59 @@ sequenceDiagram
 ```
 
 Rotation has **no reuse detection**: presenting an old id again only returns 401, it does not revoke the other sessions of the User.
+
+### SD-ORCHARD Register and edit an orchard (F1)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor F as Farmer
+    participant FE as React mobile
+    participant GEO as Browser Geolocation API
+    participant C as OrchardController
+    participant S as OrchardService
+    participant OR as OrchardRepository
+    participant UVR as OliveVarietyRepository
+    participant UR as UserRepository
+    participant M as MongoDB
+    F->>FE: open /farmer/orchards/new
+    FE->>GEO: request current position
+    GEO-->>FE: longitude, latitude
+    F->>FE: add name, delegation and plots
+    FE->>C: POST /api/orchards {name, location, plots}
+    C->>S: create(dto, authenticated Farmer)
+    S->>UR: findById(ownerId)
+    UR-->>S: Farmer and profile
+    S->>UVR: existsById(plot.varietyCode) for each plot
+    alt invalid plot or unknown variety
+        S-->>C: FieldValidationException
+        C-->>FE: 400 VALIDATION_FAILED
+    else position outside Tunisia
+        S-->>C: FieldValidationException
+        C-->>FE: 400 VALIDATION_FAILED
+    else valid orchard
+        S->>S: recomputeTotals and create owner snapshot
+        S->>OR: save(orchard)
+        OR->>M: insert orchards document and derived totals
+        M-->>OR: saved document
+        OR-->>S: Orchard
+        S-->>C: OrchardDto
+        C-->>FE: 201 Created and Location
+    end
+    F->>FE: tap a marker and edit plots
+    FE->>C: PUT /api/orchards/{id} {name, location, plots}
+    C->>S: update(id, dto, authenticated Farmer)
+    S->>OR: findByIdAndOwnerId(id, ownerId)
+    alt orchard belongs to another Farmer
+        S-->>C: NotFoundException
+        C-->>FE: 404 NOT_FOUND
+    else owned orchard
+        S->>OR: save(orchard with recomputed totals)
+        OR-->>S: Orchard
+        S-->>C: OrchardDto
+        C-->>FE: 200 OK
+    end
+```
 
 ### SD-2 Declare a harvest request (F1)
 
