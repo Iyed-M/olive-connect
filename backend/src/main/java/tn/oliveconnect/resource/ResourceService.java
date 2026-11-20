@@ -167,14 +167,14 @@ public class ResourceService {
         }
     }
 
-    private <T> T required(String field, T value) {
+    <T> T required(String field, T value) {
         if (value == null || value instanceof String s && s.isBlank()) {
             throw new FieldValidationException(field, "is required for this type");
         }
         return value;
     }
 
-    private Unavailability toUnavailability(UnavailabilityDto dto) {
+    Unavailability toUnavailability(UnavailabilityDto dto) {
         if (!dto.to().isAfter(dto.from())) {
             throw new FieldValidationException("to", "must be after from");
         }

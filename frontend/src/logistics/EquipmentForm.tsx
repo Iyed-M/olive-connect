@@ -48,7 +48,6 @@ export function EquipmentForm({ equipment }: { equipment?: EquipmentDto }) {
         powerHp: type === 'TRACTOR' ? parseNumber(powerHp) : null,
         serialNumber: type === 'BIN' ? serialNumber : null,
         capacityKg: type === 'BIN' ? parseNumber(capacityKg) : null,
-        toolType: isTool ? type : null,
         stockQuantity: isTool ? parseNumber(stockQuantity) : null,
       }
       return equipment ? updateEquipment(equipment.id, body) : createEquipment(body)

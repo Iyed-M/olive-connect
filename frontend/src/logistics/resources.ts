@@ -41,6 +41,7 @@ export interface WorkerDto {
   dailyRate: number
   active: boolean
   unavailabilities: Unavailability[]
+  createdAt: string
   version: number
 }
 
@@ -67,10 +68,12 @@ export interface EquipmentDto {
   toolType: ToolType | null // NET, SHAKER
   stockQuantity: number | null // NET, SHAKER
   unavailabilities: Unavailability[]
+  createdAt: string
   version: number
 }
 
 // The body of POST and PUT: the fields of the other kinds are sent as null.
+// toolType is not sent: the API derives it from the type.
 export interface EquipmentWriteBody {
   code: string
   type: EquipmentType
@@ -79,7 +82,6 @@ export interface EquipmentWriteBody {
   powerHp: number | null
   serialNumber: string | null
   capacityKg: number | null
-  toolType: ToolType | null
   stockQuantity: number | null
 }
 

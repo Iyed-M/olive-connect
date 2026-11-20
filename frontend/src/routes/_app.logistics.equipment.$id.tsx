@@ -9,7 +9,7 @@ export const Route = createFileRoute('/_app/logistics/equipment/$id')({ componen
 
 function Page() {
   return (
-    <RequireRole role="LOGISTICS_MANAGER">
+    <RequireRole role={['LOGISTICS_MANAGER', 'ADMIN']}>
       <EquipmentDetail />
     </RequireRole>
   )

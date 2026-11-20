@@ -89,7 +89,7 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-RS-8 | Equipment | `PUT` with another `type` | Alternative | API | 422 `EQUIPMENT_TYPE_IMMUTABLE` (`ResourceControllerTest`) |
 | T-RS-9 | Equipment | `capacityKg` 0, `powerHp` < 0, `stockQuantity` < 0, field missing for the type, `dailyRate` < 0 | Alternative | API | 400 `VALIDATION_FAILED` (`ResourceControllerTest`) |
 | T-RS-10 | Unavailability | add a period to a bin and to a worker | Nominal | API | 201 with the updated resource, `status` unchanged (`ResourceControllerTest`) |
-| T-RS-11 | Unavailability | `to` not after `from` | Alternative | API | 400 on field `to`, nothing stored (`ResourceControllerTest`) |
+| T-RS-11 | Unavailability | `to` not after `from` | Alternative | API | 400 `VALIDATION_FAILED` on field `to`, nothing stored (`ResourceControllerTest`; the rule itself in `ResourceServiceTest`) |
 | T-RS-12 | Workers / equipment | collection manager | Alternative | API | GET 200, POST/PUT/DELETE 403 (`ResourceControllerTest`) |
 | T-RS-13 | Workers / equipment | farmer and admin | Alternative | API | farmer 403 on every route, admin full access, no token 401 (`ResourceControllerTest`) |
 | T-RS-2 | Supply order | receive → stock incremented | Nominal | API | `stockQuantity` += qty |
