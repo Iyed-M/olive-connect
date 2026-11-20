@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import tn.oliveconnect.auth.InvalidCredentialsException;
+import tn.oliveconnect.auth.TooManyAttemptsException;
 
 /**
  * Turns exceptions into RFC 7807 ProblemDetail responses with a "code" the frontend can switch on.
@@ -42,6 +43,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(InvalidCredentialsException.class)
     ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
         return problem(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", ex.getMessage());
+    }
+
+    @ExceptionHandler(TooManyAttemptsException.class)
+    ResponseEntity<ProblemDetail> handleTooManyAttempts(TooManyAttemptsException ex) {
+        ProblemDetail problem = problem(HttpStatus.TOO_MANY_REQUESTS, "TOO_MANY_ATTEMPTS", ex.getMessage());
+        problem.setProperty("retryAfterSeconds", ex.getRetryAfterSeconds());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(ex.getRetryAfterSeconds()))
+                .body(problem);
     }
 
     @ExceptionHandler(NotFoundException.class)

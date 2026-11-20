@@ -12,13 +12,21 @@ export class ApiError extends Error {
   code: string
   detail: string
   errors: FieldError[]
+  retryAfterSeconds?: number
 
-  constructor(status: number, code: string, detail: string, errors: FieldError[] = []) {
+  constructor(
+    status: number,
+    code: string,
+    detail: string,
+    errors: FieldError[] = [],
+    retryAfterSeconds?: number,
+  ) {
     super(detail)
     this.status = status
     this.code = code
     this.detail = detail
     this.errors = errors
+    this.retryAfterSeconds = retryAfterSeconds
   }
 }
 
@@ -51,6 +59,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
       problem?.code ?? 'UNKNOWN',
       problem?.detail ?? res.statusText,
       problem?.errors ?? [],
+      problem?.retryAfterSeconds,
     )
   }
   if (res.status === 204) return undefined as T

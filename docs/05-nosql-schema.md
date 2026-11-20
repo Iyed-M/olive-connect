@@ -494,7 +494,7 @@ db.weather_readings.aggregate([
 | `cache:kpi::{name}:{filterHash}` | string (JSON) | 300 s | dashboard |
 | `refresh:{tokenId}` | hash `{userId, exp}` | 7 days | refresh tokens (deletion = logout / revocation) |
 | `user:{userId}:refresh` | set of tokenIds | 7 days | revoke all sessions of a user |
-| `ratelimit:login:{email}:{ip}` | counter | 15 min | brute-force protection |
+| `ratelimit:login:{email}:{ip}` | counter | 15 min | brute-force protection: +1 per failed login, TTL set at the first failure (fixed window), deleted on success; 5 → 429 |
 | `lock:resource:{resourceId}` | string (NX) | 5 s | serialise concurrent bookings |
 | channel `notifications` | pub/sub | — | SSE fan-out between API instances |
 

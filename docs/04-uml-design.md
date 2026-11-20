@@ -405,19 +405,20 @@ sequenceDiagram
 
     U->>FE: email + password
     FE->>AC: POST /api/auth/login
-    AC->>AS: login(email, password)
-    AS->>RL: tryAcquire(email, ip)
-    alt more than 5 failures in 15 min
+    AC->>AS: login(email, password, client IP)
+    AS->>RL: checkAllowed(email, ip)
+    alt 5 failures already in the 15 min window
         RL-->>AS: blocked
         AS-->>AC: TooManyAttemptsException
-        AC-->>FE: 429 Too Many Requests
+        AC-->>FE: 429 TOO_MANY_ATTEMPTS + Retry-After
     else allowed
         AS->>UR: findByEmail(email)
         alt unknown user or wrong password or disabled
-            AS->>RL: recordFailure
-            AS-->>AC: BadCredentialsException
+            AS->>RL: recordFailure (first one starts the 15 min window)
+            AS-->>AC: InvalidCredentialsException
             AC-->>FE: 401 (generic message)
         else valid
+            AS->>RL: reset(email, ip)
             AS->>JS: accessToken(user, roles) TTL 15 min
             AS->>RT: create(userId) (TTL 7 days)
             AS-->>AC: tokens + profile

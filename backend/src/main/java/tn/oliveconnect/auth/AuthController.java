@@ -1,5 +1,6 @@
 package tn.oliveconnect.auth;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.time.Duration;
 import java.util.Optional;
@@ -27,8 +28,10 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        Session session = authService.login(request.email(), request.password());
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest) {
+        // behind Nginx, getRemoteAddr() is the real client IP thanks to X-Forwarded-For (server.forward-headers-strategy)
+        Session session = authService.login(request.email(), request.password(), httpRequest.getRemoteAddr());
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, refreshCookie(session.refreshToken(), RefreshTokenStore.LIFETIME).toString())
                 .body(session.body());

@@ -70,7 +70,11 @@ function LoginPage() {
           </div>
           {error && error.code !== 'VALIDATION_FAILED' && (
             <p role="alert" className="text-sm text-destructive">
-              {error.code === 'INVALID_CREDENTIALS' ? 'Invalid email or password.' : error.detail}
+              {error.code === 'INVALID_CREDENTIALS'
+                ? 'Invalid email or password.'
+                : error.code === 'TOO_MANY_ATTEMPTS'
+                  ? `Too many attempts. Try again in ${Math.max(1, Math.ceil((error.retryAfterSeconds ?? 900) / 60))} min.`
+                  : error.detail}
             </p>
           )}
           <Button type="submit" disabled={pending}>

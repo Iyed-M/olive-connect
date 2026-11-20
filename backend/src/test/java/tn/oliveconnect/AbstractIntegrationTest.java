@@ -1,8 +1,11 @@
 package tn.oliveconnect;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MongoDBContainer;
 
@@ -24,5 +27,17 @@ public abstract class AbstractIntegrationTest {
     static {
         mongo.start();
         redis.start();
+    }
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+    // Rate-limit counters must not leak from one test to the next (all tests use the same IP).
+    @BeforeEach
+    void clearLoginRateLimits() {
+        var keys = stringRedisTemplate.keys("ratelimit:login:*");
+        if (keys != null && !keys.isEmpty()) {
+            stringRedisTemplate.delete(keys);
+        }
     }
 }

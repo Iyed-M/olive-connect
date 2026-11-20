@@ -208,7 +208,7 @@ flowchart LR
 - **Frontend (silent refresh)**: refresh on app boot and after any 401 (one refresh at a time, then the call is retried once). If the refresh gets 401 `SESSION_EXPIRED` (cookie present but refused, on boot or after an API 401), it is retried once after about 1 s because another tab may have just rotated the shared cookie.
 - Passwords hashed with **BCrypt** (strength 12). Password policy: 8+ characters. The forced change of a temporary password is deferred to M9 (no `mustChangePassword` field in M1).
 - JWT claims: `sub` = userId, `roles` (mapped to `ROLE_*` authorities), `millId` (for mill managers, from M7), `exp`. The secret comes from the `JWT_SECRET` environment variable (at least 32 characters, the API refuses to start otherwise) and is never committed. The seeded Admin comes from `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
-- Login rate limiting through Redis (5 failures in 15 min → 429).
+- **Login rate limiting** through Redis, key `ratelimit:login:{email}:{ip}`: every failed login (unknown email, wrong password, disabled User) adds 1; the 15 min window starts at the first failure. With 5 failures, every attempt gets 429 `TOO_MANY_ATTEMPTS` with `Retry-After` and `retryAfterSeconds`, even with the right password. A success clears the counter. The client IP comes from Nginx's `X-Forwarded-For` (`server.forward-headers-strategy: native`).
 - **SSE authentication**: `EventSource` cannot send headers, so the client first calls `POST /api/events/ticket`. That returns a one-time ticket stored in Redis for 30 s, which is then passed as `?ticket=`.
 
 ### 4.2 Authorisation: three levels

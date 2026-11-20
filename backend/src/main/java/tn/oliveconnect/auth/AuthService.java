@@ -15,21 +15,30 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RefreshTokenStore refreshTokenStore;
+    private final LoginRateLimiter loginRateLimiter;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService,
-            RefreshTokenStore refreshTokenStore) {
+            RefreshTokenStore refreshTokenStore, LoginRateLimiter loginRateLimiter) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.refreshTokenStore = refreshTokenStore;
+        this.loginRateLimiter = loginRateLimiter;
     }
 
-    public Session login(String email, String password) {
+    public Session login(String email, String password, String ip) {
+        String normalizedEmail = email.trim().toLowerCase();
+        loginRateLimiter.checkAllowed(normalizedEmail, ip);
         // every failure throws the same exception: the caller cannot tell which check failed
-        User user = userRepository.findByEmail(email.trim().toLowerCase())
+        User user = userRepository.findByEmail(normalizedEmail)
                 .filter(User::isEnabled)
                 .filter(u -> passwordEncoder.matches(password, u.getPasswordHash()))
-                .orElseThrow(InvalidCredentialsException::new);
+                .orElse(null);
+        if (user == null) {
+            loginRateLimiter.recordFailure(normalizedEmail, ip);
+            throw new InvalidCredentialsException();
+        }
+        loginRateLimiter.reset(normalizedEmail, ip);
         return newSession(user);
     }
 
