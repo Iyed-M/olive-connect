@@ -20,6 +20,7 @@ Base URL: `/api`. Format: JSON, dates in ISO-8601 UTC, GeoJSON for positions. AP
 |---|---|---|---|
 | `VALIDATION_FAILED` | 400 | Bean Validation failed, `errors[]` lists `{field, message}` | M1a |
 | `UNAUTHENTICATED` | 401 | missing, expired or invalid access token | M1a |
+| `SESSION_EXPIRED` | 401 | `/auth/refresh` received a refresh cookie that is unknown, already used, revoked, or belongs to a disabled User (the frontend retries once after about 1 s) | M1a |
 | `INVALID_CREDENTIALS` | 401 | unknown email, wrong password or disabled User (same generic message) | M1a |
 | `FORBIDDEN` | 403 | authenticated but the role is not allowed | M1a |
 | `NOT_FOUND` | 404 | resource missing (or not visible to the caller) | M1a |
@@ -41,9 +42,9 @@ Roles: **PUB** public, **F** farmer, **CM** collection manager, **TL** team lead
 ### Auth & accounts
 | Method | Path | Roles | Description | FR |
 |---|---|---|---|---|
-| POST | `/auth/login` | PUB | body `{email, password}` → `200 {accessToken, expiresIn, user}` (M1a ticket 4: no refresh cookie yet), 400 `VALIDATION_FAILED`, 401 `INVALID_CREDENTIALS` | — |
-| POST | `/auth/refresh` | PUB (cookie) | rotate refresh token | — |
-| POST | `/auth/logout` | any | revoke refresh token | — |
+| POST | `/auth/login` | PUB | body `{email, password}` → `200 {accessToken, expiresIn, user}` + `refresh_token` cookie, 400 `VALIDATION_FAILED`, 401 `INVALID_CREDENTIALS` | — |
+| POST | `/auth/refresh` | PUB (cookie) | rotate the refresh token → `200` same body as login + new cookie; 401 `UNAUTHENTICATED` (cookie missing) or `SESSION_EXPIRED` (cookie unknown or already used, User disabled → all their sessions revoked); the cookie is cleared on 401 | — |
+| POST | `/auth/logout` | PUB (cookie) | revoke this session only (identified by the cookie, works with an expired access token), clear the cookie → `204`, idempotent | — |
 | GET | `/me` | any | `MeDto {id, email, firstName, lastName, roles, onboardingDone}`, 401 `UNAUTHENTICATED` without a valid token | — |
 | PATCH | `/me` | any | update phone, password, onboardingDone | NFR-3 |
 | POST | `/registrations` | PUB | visitor registration request | FR-6.1 |
@@ -202,6 +203,9 @@ flowchart LR
     ROT --> AT
 ```
 
+- **Refresh cookie**: `refresh_token`, `HttpOnly; Secure; SameSite=Strict; Path=/api/auth; Max-Age=604800`. Spring CSRF protection is disabled: SameSite=Strict plus the Bearer access token make it safe.
+- **Rotation without reuse detection**: every refresh deletes the old id and issues a new one. An old id presented again gets 401, nothing more. Refresh re-reads the User from MongoDB: a disabled User gets 401 and all their sessions are revoked, otherwise the new access token carries the User's current roles.
+- **Frontend (silent refresh)**: refresh on app boot and after any 401 (one refresh at a time, then the call is retried once). If the refresh gets 401 `SESSION_EXPIRED` (cookie present but refused, on boot or after an API 401), it is retried once after about 1 s because another tab may have just rotated the shared cookie.
 - Passwords hashed with **BCrypt** (strength 12). Password policy: 8+ characters. The forced change of a temporary password is deferred to M9 (no `mustChangePassword` field in M1).
 - JWT claims: `sub` = userId, `roles` (mapped to `ROLE_*` authorities), `millId` (for mill managers, from M7), `exp`. The secret comes from the `JWT_SECRET` environment variable (at least 32 characters, the API refuses to start otherwise) and is never committed. The seeded Admin comes from `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
 - Login rate limiting through Redis (5 failures in 15 min → 429).

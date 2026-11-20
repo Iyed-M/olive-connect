@@ -419,13 +419,45 @@ sequenceDiagram
             AC-->>FE: 401 (generic message)
         else valid
             AS->>JS: accessToken(user, roles) TTL 15 min
-            AS->>RT: store refreshToken (TTL 7 days)
+            AS->>RT: create(userId) (TTL 7 days)
             AS-->>AC: tokens + profile
             AC-->>FE: 200 {accessToken} + HttpOnly cookie refresh
             FE-->>U: redirect to role home (+ guided tour if first login)
         end
     end
+
+    Note over FE,AC: Refresh: on app boot and after any 401 (access token expired)
+    FE->>AC: POST /api/auth/refresh (cookie)
+    AC->>AS: refresh(refreshToken)
+    AS->>RT: consume(tokenId) (read + delete: rotation)
+    alt cookie missing (nobody logged in)
+        AC-->>FE: 401 UNAUTHENTICATED + clear cookie
+        Note over FE: logged out, no retry, no delay
+    else cookie unknown or already used
+        AC-->>FE: 401 SESSION_EXPIRED + clear cookie
+        Note over FE: wait about 1 s and retry once (another tab may have<br/>just rotated the shared cookie), then a second 401 = logged out
+    else known session
+        AS->>UR: findById(userId) (re-read the User)
+        alt User missing or disabled
+            AS->>RT: revokeAll(userId)
+            AC-->>FE: 401 SESSION_EXPIRED + clear cookie
+        else enabled
+            AS->>JS: accessToken(user) with the CURRENT roles
+            AS->>RT: create(userId) (new tokenId)
+            AC-->>FE: 200 {accessToken, expiresIn, user} + new cookie
+        end
+    end
+
+    Note over FE,AC: Logout: public, identified by the cookie only
+    U->>FE: click Log out
+    FE->>AC: POST /api/auth/logout (cookie)
+    AC->>AS: logout(refreshToken)
+    AS->>RT: revoke(tokenId) (this session only, no error if unknown)
+    AC-->>FE: 204 + clear cookie
+    FE-->>U: redirect to /login
 ```
+
+Rotation has **no reuse detection**: presenting an old id again only returns 401, it does not revoke the other sessions of the User.
 
 ### SD-2 Declare a harvest request (F1)
 

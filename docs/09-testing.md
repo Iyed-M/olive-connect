@@ -35,9 +35,14 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | ID | Use case | Scenario | Type | Level | Expected |
 |---|---|---|---|---|---|
 | T-SYS-1 | System status | `GET /api/system/status` with MongoDB and Redis running | Nominal | API | 200, `api`, `mongo`, `redis` = `UP`, `version` (`SystemStatusControllerTest`) |
-| T-AUTH-1 | Login | valid credentials (seeded Admin) | Nominal | API | 200, access token, `user.roles` contains `ADMIN` (refresh cookie: later M1a ticket) (`AuthControllerTest`) |
+| T-AUTH-1 | Login | valid credentials (seeded Admin) | Nominal | API | 200, access token, `user.roles` contains `ADMIN`, `refresh_token` cookie is `HttpOnly; Secure; SameSite=Strict; Path=/api/auth` (`AuthControllerTest`, `RefreshTokenTest`) |
 | T-AUTH-2 | Login | wrong password ×6 | Alternative | API | 401 ×5 then 429 |
 | T-AUTH-3 | Login | disabled account (also wrong password, unknown email) | Alternative | API | 401 `INVALID_CREDENTIALS`, same message for all three (`AuthControllerTest`) |
+| T-AUTH-4 | Refresh | refresh with the cookie, then again with the old cookie | Alternative | API | 200 with a new access token and a new cookie value; the old cookie gets 401 `SESSION_EXPIRED` (`RefreshTokenTest`) |
+| T-AUTH-5 | Logout | logout, then refresh with that cookie, then logout again | Alternative | API | 204 (cookie cleared), refresh 401, second logout 204 (`RefreshTokenTest`) |
+| T-AUTH-9 | Refresh | no cookie | Alternative | API | 401 `UNAUTHENTICATED` (`RefreshTokenTest`) |
+| T-AUTH-10 | Refresh | User disabled in the database after login | Alternative | API | 401 and the Redis set `user:{id}:refresh` is gone (`RefreshTokenTest`) |
+| T-AUTH-11 | Refresh | roles changed in the database after login | Nominal | API | `user.roles` in the response are the current ones (`RefreshTokenTest`) |
 | T-AUTH-7 | Login | blank email | Alternative | API | 400 `VALIDATION_FAILED` with `errors[]` (`AuthControllerTest`) |
 | T-AUTH-8 | Startup | seeding run twice | Alternative | API | one Admin, `createdBy` = `system`; the `users` indexes exist (`AdminSeederTest`) |
 | T-SEC-5 | Any | `GET /api/me` without a token (or with a garbage token) | Alternative | API | 401 `UNAUTHENTICATED`; with a valid token 200 `MeDto` (`AuthControllerTest`) |

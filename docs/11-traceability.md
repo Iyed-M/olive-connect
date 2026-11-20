@@ -39,7 +39,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | Requirement | Use case / SD | Endpoints | Tests |
 |---|---|---|---|
 | (M0, no FR) | System status / walking skeleton | `GET /system/status` | T-SYS-1 |
-| FR-6.2 (M1a) | Log in / SD-1 | `POST /auth/login`, `GET /me` | T-AUTH-1, T-AUTH-3, T-AUTH-7, T-SEC-5 |
+| FR-6.2 (M1a) | Log in / SD-1 | `POST /auth/login`, `/auth/refresh`, `/auth/logout`, `GET /me` | T-AUTH-1, T-AUTH-3..5, T-AUTH-7, T-AUTH-9..11, T-SEC-5 |
 | FR-1.1 | Manage orchards | `/orchards` | T-SEC-1 |
 | FR-1.2 | Declare harvest request / SD-2 | `POST /harvest-requests` | T-HR-1..3 |
 | FR-1.3 | Modify / cancel / SD-4 | `PUT /harvest-requests/{id}`, `/cancel` | T-HR-4..6 |

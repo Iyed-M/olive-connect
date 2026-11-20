@@ -492,7 +492,7 @@ db.weather_readings.aggregate([
 | `cache:varieties::all` | string (JSON) | none (evict on update) | reference data |
 | `cache:mapLayer::{filterHash}:{z}:{x}:{y}` | string (GeoJSON) | 60 s | public map tiles (bbox snapped to a tile grid so the cache gets hits) |
 | `cache:kpi::{name}:{filterHash}` | string (JSON) | 300 s | dashboard |
-| `refresh:{tokenId}` | hash `{userId, exp, ua}` | 7 days | refresh tokens (deletion = logout / revocation) |
+| `refresh:{tokenId}` | hash `{userId, exp}` | 7 days | refresh tokens (deletion = logout / revocation) |
 | `user:{userId}:refresh` | set of tokenIds | 7 days | revoke all sessions of a user |
 | `ratelimit:login:{email}:{ip}` | counter | 15 min | brute-force protection |
 | `lock:resource:{resourceId}` | string (NX) | 5 s | serialise concurrent bookings |

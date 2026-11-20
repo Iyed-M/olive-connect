@@ -1,12 +1,12 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useMemo, useSyncExternalStore, type ReactNode } from 'react'
 import { api } from '@/lib/api'
-import { getUser, setSession } from './session'
+import { getUser, setSession, subscribe } from './session'
 import type { LoginResponse, Me } from './types'
 
 export interface AuthContextValue {
   user: Me | null
   login: (email: string, password: string) => Promise<Me>
-  logout: () => void
+  logout: () => Promise<void>
   // Reads the session directly (not React state), so router guards are never one render late.
   isAuthenticated: () => boolean
 }
@@ -14,8 +14,8 @@ export interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // The state only triggers re-renders; the source of truth is session.ts.
-  const [user, setUser] = useState<Me | null>(getUser())
+  // session.ts is the source of truth; this re-renders when it changes (login, refresh, logout).
+  const user = useSyncExternalStore(subscribe, getUser)
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await api<LoginResponse>('/auth/login', {
@@ -23,13 +23,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ email, password }),
     })
     setSession(res.accessToken, res.user)
-    setUser(res.user)
     return res.user
   }, [])
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    // Ends the session on the server too; if that fails we still log out locally.
+    await api('/auth/logout', { method: 'POST' }).catch(() => undefined)
     setSession(null, null)
-    setUser(null)
   }, [])
 
   const value = useMemo<AuthContextValue>(
