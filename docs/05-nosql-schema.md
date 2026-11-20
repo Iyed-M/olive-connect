@@ -190,6 +190,7 @@ flowchart TD
   "roles": ["FARMER"],
   "enabled": true,
   "onboardingDone": false,
+  "mustChangePassword": false,
   "farmerProfile": { "memberNumber": "ADH-0421", "cin": "01234567", "address": "Route de Gremda km 7", "delegation": "SAKIET_EZZIT" },
   "assignedMillId": null,
   "createdAt": ISODate("2026-11-20T08:00:00Z"), "createdBy": "665e...",
@@ -413,7 +414,7 @@ The latest maturity value is also copied onto `orchards.currentMaturityIndex` (R
 
 - `notifications`: `{ recipientId: 1, read: 1, createdAt: -1 }`, plus a **TTL** index `{ createdAt: 1 }, expireAfterSeconds: 7776000` (90 days).
 - `import_jobs`: `{ checksum: 1 }` unique (idempotency), `{ startedAt: -1 }`, `{ dataset: 1, status: 1 }`. `errors[]` holds at most 500 entries and `errorCount` keeps the total (R2 bounded).
-- `registration_requests`: `{ status: 1, createdAt: -1 }`, `{ email: 1 }`.
+- `registration_requests`: `{ status: 1, createdAt: -1 }`, `{ email: 1 }`. Document: `{ firstName, lastName, email, phone, cin, message, status: PENDING|APPROVED|REJECTED, createdAt, processedById, createdUserId }`. `processedById` and `createdUserId` are set on approval; `processedById` alone on rejection. `users.mustChangePassword` is `true` for an account created by an approval until the Farmer changes the temporary password.
 - `system_settings`: a single document with `_id: "global"`.
 
 ## 5. Partitioning (sharding) strategy

@@ -25,9 +25,11 @@ Base URL: `/api`. Format: JSON, dates in ISO-8601 UTC, GeoJSON for positions. AP
 | `FORBIDDEN` | 403 | authenticated but the role is not allowed | M1a |
 | `NOT_FOUND` | 404 | resource missing (or not visible to the caller) | M1a |
 | `INTERNAL_ERROR` | 500 | unexpected error (details only in the logs) | M1a |
-| `EMAIL_TAKEN`, `MEMBER_NUMBER_TAKEN` | 409 | duplicate email or member number | M1b |
+| `EMAIL_TAKEN`, `MEMBER_NUMBER_TAKEN` | 409 | duplicate email or member number (also on registration submit and approve) | M1b |
 | `CIN_TAKEN`, `CODE_TAKEN` | 409 | duplicate worker `cin` or equipment `code` | M4 |
 | `EQUIPMENT_TYPE_IMMUTABLE` | 422 | `PUT /equipment/{id}` with a `type` different from the stored one | M4 |
+| `REGISTRATION_ALREADY_PROCESSED` | 409 | approve or reject a registration request that is not `PENDING` | M9 |
+| `WRONG_PASSWORD` | 422 | `PATCH /me/password` with a wrong `currentPassword` | M9 |
 | `SELF_LOCKOUT` | 422 | an Admin disables themselves or removes their own ADMIN role | M1b |
 | `TOO_MANY_ATTEMPTS` | 429 | 5 failed logins in 15 min, with `Retry-After` | M1a |
 | `STALE_VERSION` | 409 | optimistic locking conflict (stale `version`) | M1b |
@@ -47,12 +49,13 @@ Roles: **PUB** public, **F** farmer, **CM** collection manager, **TL** team lead
 | POST | `/auth/login` | PUB | body `{email, password}` → `200 {accessToken, expiresIn, user}` + `refresh_token` cookie, 400 `VALIDATION_FAILED`, 401 `INVALID_CREDENTIALS`, 429 `TOO_MANY_ATTEMPTS` (`Retry-After` header and `retryAfterSeconds`) | — |
 | POST | `/auth/refresh` | PUB (cookie) | rotate the refresh token → `200` same body as login + new cookie; 401 `UNAUTHENTICATED` (cookie missing) or `SESSION_EXPIRED` (cookie unknown or already used, User disabled → all their sessions revoked); the cookie is cleared on 401 | — |
 | POST | `/auth/logout` | PUB (cookie) | revoke this session only (identified by the cookie, works with an expired access token), clear the cookie → `204`, idempotent | — |
-| GET | `/me` | any | `MeDto {id, email, firstName, lastName, roles, onboardingDone}`, 401 `UNAUTHENTICATED` without a valid token | — |
-| PATCH | `/me` | any | update phone, password, onboardingDone | NFR-3 |
-| POST | `/registrations` | PUB | visitor registration request | FR-6.1 |
-| GET | `/registrations` | AD | list, query `status` (for example `PENDING`) | FR-6.1 |
-| POST | `/registrations/{id}/approve` | AD | approve → creates FARMER | FR-6.1 |
-| POST | `/registrations/{id}/reject` | AD | reject | FR-6.1 |
+| GET | `/me` | any | `MeDto {id, email, firstName, lastName, roles, onboardingDone, mustChangePassword}`, 401 `UNAUTHENTICATED` without a valid token | — |
+| PATCH | `/me` | any | update phone, onboardingDone (planned) | NFR-3 |
+| PATCH | `/me/password` | any | body `{currentPassword, newPassword}` (8 to 72 characters) → `204`, clears `mustChangePassword`; 400 `VALIDATION_FAILED`, 422 `WRONG_PASSWORD` | FR-6.1 |
+| POST | `/registrations` | PUB | body `{firstName, lastName, email, phone?, cin, message?}` → `201` + `Location` and `RegistrationDto {id, firstName, lastName, email, phone, cin, message, status, createdAt, processedById}`; 400 `VALIDATION_FAILED`, 409 `EMAIL_TAKEN` (a User or a pending request already has this email) | FR-6.1 |
+| GET | `/registrations` | AD | list `RegistrationDto[]`, newest first, optional query `status` (`PENDING`, `APPROVED`, `REJECTED`) | FR-6.1 |
+| POST | `/registrations/{id}/approve` | AD | body `{memberNumber, delegation}` → `200 {registration, userId, temporaryPassword}`: creates a FARMER (12-character generated password, `mustChangePassword=true`); the password is returned only here. 404, 409 `REGISTRATION_ALREADY_PROCESSED` / `EMAIL_TAKEN` / `MEMBER_NUMBER_TAKEN` | FR-6.1 |
+| POST | `/registrations/{id}/reject` | AD | → `200 RegistrationDto` (`REJECTED`); 404, 409 `REGISTRATION_ALREADY_PROCESSED` | FR-6.1 |
 | GET | `/users` | AD | list Users, query `role`, `enabled`, `page`, `size`; sorted by `lastName` → `PageResponse<UserDto>` | FR-6.2 |
 | POST | `/users` | AD | create User (details, roles, Farmer profile, password) → 201 + `Location`, 400 `VALIDATION_FAILED`, 409 `EMAIL_TAKEN` / `MEMBER_NUMBER_TAKEN` | FR-6.2 |
 | GET | `/users/{id}` | AD | detail → `UserDto`, 404 `NOT_FOUND` | FR-6.2 |
@@ -250,7 +253,7 @@ flowchart LR
 - **Refresh cookie**: `refresh_token`, `HttpOnly; Secure; SameSite=Strict; Path=/api/auth; Max-Age=604800`. Spring CSRF protection is disabled: SameSite=Strict plus the Bearer access token make it safe.
 - **Rotation without reuse detection**: every refresh deletes the old id and issues a new one. An old id presented again gets 401, nothing more. Refresh re-reads the User from MongoDB: a disabled User gets 401 and all their sessions are revoked, otherwise the new access token carries the User's current roles.
 - **Frontend (silent refresh)**: refresh on app boot and after any 401 (one refresh at a time, then the call is retried once). If the refresh gets 401 `SESSION_EXPIRED` (cookie present but refused, on boot or after an API 401), it is retried once after about 1 s because another tab may have just rotated the shared cookie.
-- Passwords hashed with **BCrypt** (strength 12). Password policy: 8 to 72 characters (on create and on reset). The forced change of a temporary password is deferred to M9 (no `mustChangePassword` field in M1).
+- Passwords hashed with **BCrypt** (strength 12). Password policy: 8 to 72 characters (on create and on reset). An account created by approving a registration has `mustChangePassword=true` (also in `MeDto` and the login response `user`); `PATCH /me/password` clears it. The API does not block other calls meanwhile, the frontend forces the change screen.
 - JWT claims: `sub` = userId, `roles` (mapped to `ROLE_*` authorities), `millId` (for mill managers, from M7), `exp`. The secret comes from the `JWT_SECRET` environment variable (at least 32 characters, the API refuses to start otherwise) and is never committed. The seeded Admin comes from `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
 - **Login rate limiting** through Redis, key `ratelimit:login:{email}:{ip}`: every failed login (unknown email, wrong password, disabled User) adds 1; the 15 min window starts at the first failure. With 5 failures, every attempt gets 429 `TOO_MANY_ATTEMPTS` with `Retry-After` and `retryAfterSeconds`, even with the right password. A success clears the counter. The client IP comes from Nginx's `X-Forwarded-For` (`server.forward-headers-strategy: native`).
 - **SSE authentication**: `EventSource` cannot send headers, so the client first calls `POST /api/events/ticket`. That returns a one-time ticket stored in Redis for 30 s, which is then passed as `?ticket=`.
