@@ -32,14 +32,14 @@ function ChangePasswordPage() {
   const onSubmit = handleSubmit(async ({ currentPassword, newPassword }) => {
     setBanner(null)
     try {
-      await api<void>('/me/password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) })
+      await api<void>('/me/password', { method: 'PATCH', body: JSON.stringify({ currentPassword, newPassword }) })
       const user = getUser()
       if (user) setSession(getAccessToken(), { ...user, mustChangePassword: false })
       await navigate({ to: currentHome() })
     } catch (err) {
       const error = err instanceof ApiError ? err : new ApiError(0, 'NETWORK', 'Cannot reach the server.')
       if (error.code === 'VALIDATION_FAILED' && error.errors.length > 0) setServerErrors(error.errors, setError)
-      else if (error.code === 'INVALID_CREDENTIALS') setError('currentPassword', { message: 'Wrong current password' })
+      else if (error.code === 'WRONG_PASSWORD') setError('currentPassword', { message: 'Wrong current password' })
       else setBanner(error.detail)
     }
   })

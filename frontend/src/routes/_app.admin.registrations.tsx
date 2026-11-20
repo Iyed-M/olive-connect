@@ -4,11 +4,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   STATUS_LABEL,
   approveRegistration,
+  type ApproveInput,
   listRegistrations,
   rejectRegistration,
   type Registration,
   type RegistrationStatus,
 } from '@/admin/registrations'
+import { DELEGATION_LABEL, type Delegation } from '@/admin/users'
 import { RequireRole } from '@/components/RequireRole'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -36,8 +38,8 @@ function Registrations() {
   const query = useQuery({ queryKey: ['registrations', status], queryFn: () => listRegistrations(status) })
 
   const approve = useMutation({
-    mutationFn: approveRegistration,
-    onSuccess: (res) => setApproved({ email: res.email, password: res.temporaryPassword }),
+    mutationFn: ({ id, input }: { id: string; input: ApproveInput }) => approveRegistration(id, input),
+    onSuccess: (res) => setApproved({ email: res.registration.email, password: res.temporaryPassword }),
   })
   const reject = useMutation({ mutationFn: rejectRegistration })
 
@@ -108,7 +110,7 @@ function Registrations() {
             key={r.id}
             r={r}
             busy={busy}
-            onApprove={() => act(() => approve.mutateAsync(r.id))}
+            onApprove={(input) => act(() => approve.mutateAsync({ id: r.id, input }))}
             onReject={() => act(() => reject.mutateAsync(r.id))}
           />
         ))}
@@ -125,9 +127,12 @@ function RegistrationCard({
 }: {
   r: Registration
   busy: boolean
-  onApprove: () => void
+  onApprove: (input: ApproveInput) => void
   onReject: () => void
 }) {
+  // The admin gives the member number and delegation when approving.
+  const [memberNumber, setMemberNumber] = useState('')
+  const [delegation, setDelegation] = useState<Delegation>('SFAX_VILLE')
   return (
     <li>
       <Card>
@@ -144,8 +149,31 @@ function RegistrationCard({
           </span>
           {r.message && <p className="text-sm">{r.message}</p>}
           {r.status === 'PENDING' && (
-            <div className="flex gap-2">
-              <Button className="h-11" disabled={busy} onClick={onApprove}>
+            <div className="flex flex-wrap gap-2">
+              <input
+                aria-label="Member number"
+                placeholder="Member number"
+                className="h-11 rounded-lg border border-input bg-background px-2 text-sm"
+                value={memberNumber}
+                onChange={(e) => setMemberNumber(e.target.value)}
+              />
+              <select
+                aria-label="Delegation"
+                className="h-11 rounded-lg border border-input bg-background px-2 text-sm"
+                value={delegation}
+                onChange={(e) => setDelegation(e.target.value as Delegation)}
+              >
+                {(Object.keys(DELEGATION_LABEL) as Delegation[]).map((d) => (
+                  <option key={d} value={d}>
+                    {DELEGATION_LABEL[d]}
+                  </option>
+                ))}
+              </select>
+              <Button
+                className="h-11"
+                disabled={busy || memberNumber.trim() === ''}
+                onClick={() => onApprove({ memberNumber: memberNumber.trim(), delegation })}
+              >
                 Approve
               </Button>
               <Button variant="outline" className="h-11" disabled={busy} onClick={onReject}>

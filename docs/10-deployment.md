@@ -266,6 +266,7 @@ In M13, `mongo/init/01-init.js` creates the application user with the `readWrite
 Copied into the `web` image as `/etc/nginx/conf.d/default.conf`. Comments omitted.
 
 ```nginx
+proxy_cache_path /var/cache/nginx/map levels=1:2 keys_zone=mapcache:10m max_size=50m inactive=10m;
 server {
     listen 80;
     root /usr/share/nginx/html;
@@ -275,6 +276,16 @@ server {
 
     location /assets/ {
         add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    # Anonymous public map: micro-cache for 30 s (the API also caches it in Redis).
+    location /api/map/public {
+        proxy_pass http://api:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache mapcache;
+        proxy_cache_valid 200 30s;
     }
 
     location /api/ {
