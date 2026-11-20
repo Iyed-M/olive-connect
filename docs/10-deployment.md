@@ -6,7 +6,7 @@ Target: a Linux VPS (Ubuntu Server 24.04 LTS, 2 vCPU / 4 GB RAM / 40 GB SSD is e
 
 | Status | Content |
 |---|---|
-| **Built (M0)** | `.github/workflows/ci.yml` (backend verify, frontend lint + build, Docker build), `.github/workflows/docs.yml` (Mermaid render), `backend/Dockerfile`, `frontend/Dockerfile`, `frontend/nginx.conf`, `deploy/docker-compose.yml` (production-like stack on port 80, runs locally), `deploy/docker-compose.dev.yml` (MongoDB + Redis only, for development). CI copies `deploy/.env.example` to `deploy/.env` before the build, because compose rejects the file without the secrets even for `build`. In M0, "done" means CI is green and the production compose stack works on a developer machine |
+| **Built (M0)** | `.github/workflows/ci.yml` (backend verify, frontend lint + test + build, Docker build), `.github/workflows/docs.yml` (Mermaid render), `backend/Dockerfile`, `frontend/Dockerfile`, `frontend/nginx.conf`, `deploy/docker-compose.yml` (production-like stack on port 80, runs locally), `deploy/docker-compose.dev.yml` (MongoDB + Redis only, for development). CI copies `deploy/.env.example` to `deploy/.env` before the build, because compose rejects the file without the secrets even for `build`. In M0, "done" means CI is green and the production compose stack works on a developer machine |
 | **Planned (M10)** | Data simulator and the import inbox volume |
 | **Planned (M13)** | VPS, TLS, rate limiting, monitoring stack (Prometheus, Grafana, Loki, exporters, Uptime Kuma), MongoDB authentication + keyfile, Redis password, `.env` secrets, backups, automatic deployment |
 
@@ -71,7 +71,7 @@ flowchart LR
     A["git push / pull request"] --> CI
     subgraph CI["ci.yml (3 parallel jobs)"]
         B["backend<br/>./mvnw -B verify<br/>(tests with Testcontainers)"]
-        C["frontend<br/>pnpm install --frozen-lockfile<br/>pnpm lint, pnpm build"]
+        C["frontend<br/>pnpm install --frozen-lockfile<br/>pnpm lint, pnpm test, pnpm build"]
         D["docker<br/>cp deploy/.env.example deploy/.env<br/>docker compose -f deploy/docker-compose.yml build"]
     end
     A --> DOC["docs.yml<br/>scripts/check-diagrams.sh"]

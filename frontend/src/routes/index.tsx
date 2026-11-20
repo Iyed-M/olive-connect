@@ -1,5 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
+import { useAuth } from '@/auth/AuthContext'
+import { ROLE_HOME } from '@/auth/roles'
+import { PublicPage } from '@/components/PublicPage'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,16 +29,24 @@ function StatusPage() {
     { label: 'Redis', status: isPending ? 'LOADING' : isError ? 'DOWN' : data.redis },
   ]
 
+  const { activeRole } = useAuth()
+
   return (
-    <>
+    <PublicPage>
       <header>
         <h1 className="text-4xl font-bold tracking-tight text-primary">OliveConnect</h1>
         <p className="mt-2 text-muted-foreground">
           Smart olive collection for the cooperative, from farm to mill.
         </p>
-        <Link to="/login" className={buttonVariants({ className: 'mt-4' })}>
-          Log in
-        </Link>
+        {activeRole ? (
+          <Link to={ROLE_HOME[activeRole]} className={buttonVariants({ className: 'mt-4' })}>
+            Go to my home
+          </Link>
+        ) : (
+          <Link to="/login" className={buttonVariants({ className: 'mt-4' })}>
+            Log in
+          </Link>
+        )}
       </header>
 
       <Card>
@@ -70,6 +81,6 @@ function StatusPage() {
           )}
         </CardContent>
       </Card>
-    </>
+    </PublicPage>
   )
 }

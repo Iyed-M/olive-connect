@@ -67,5 +67,5 @@ The subject states that **consistency between the class model, the NoSQL schema,
 - [ ] (M13) Nginx `location` blocks cover every API path prefix of section 1 (`/api/` catch-all, plus specific rules for `/api/events`, `/api/map/public` and `/api/auth/login`).
 - [ ] The indexes created by the production migration are exactly the ones listed in [05](05-nosql-schema.md) §4 (an automated test compares `getIndexInfo()` with the expected list).
 - [ ] Roles in `SecurityConfig` and `@PreAuthorize` match the [role matrix](06-api-security.md#43-role--resource-matrix).
-- [ ] The frontend route guards (`RequireRole`) use the same `Role` enum (generated from OpenAPI).
+- [ ] The frontend route guards (`RequireRole`) use the same values as the Java `Role` enum (hand-written union in `frontend/src/auth/`).
 - [ ] (M13) The Actuator metrics used by the Grafana dashboards exist (dashboard provisioning is tested on staging).

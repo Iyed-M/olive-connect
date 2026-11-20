@@ -29,7 +29,7 @@ jobs:
       - run: ./mvnw -B verify
 
   frontend:
-    name: Frontend (lint and build)
+    name: Frontend (lint, test and build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -47,6 +47,7 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile   # fails if the lockfile is out of date
       - run: pnpm lint
+      - run: pnpm test
       - run: pnpm build
 
   docker:
