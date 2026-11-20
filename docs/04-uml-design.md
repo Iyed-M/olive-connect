@@ -20,6 +20,7 @@ classDiagram
         +Set~Role~ roles
         +boolean enabled
         +boolean onboardingDone
+        +boolean mustChangePassword
         +FarmerProfile farmerProfile
         +String assignedMillId
         +Instant createdAt
@@ -45,6 +46,13 @@ classDiagram
         +RegistrationStatus status
         +Instant createdAt
         +String processedById
+        +String createdUserId
+    }
+    class RegistrationStatus {
+        <<enumeration>>
+        PENDING
+        APPROVED
+        REJECTED
     }
     class Role {
         <<enumeration>>

@@ -303,7 +303,7 @@ IDs are reused in the [traceability matrix](11-traceability.md) and the [tests](
 ### Administration & data
 | ID | Requirement | Priority |
 |---|---|---|
-| FR-6.1 | A visitor submits a registration request; an admin approves it, which creates a `FARMER` account and emails/displays a temporary password | Must |
+| FR-6.1 | A visitor submits a registration request; an admin approves it, which creates a `FARMER` account and displays a temporary password once to the admin (no email); the Farmer must change it at first login (`mustChangePassword`) | Must |
 | FR-6.2 | The admin creates staff accounts, assigns one or more roles, activates/deactivates accounts | Must |
 | FR-6.3 | Reference data (orchards, plots, varieties, resources, mills) is loaded from CSV/JSON files daily; dynamic data (weather, maturity, mill capacity) every 15 min | Must |
 | FR-6.4 | Every imported record is checked for conformity; rejected rows are logged with the reason; a journal per import run is kept | Must |
