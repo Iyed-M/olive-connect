@@ -30,9 +30,9 @@ frontend/
 │   ├── routes/                # TanStack Router file-based routes: __root.tsx, index.tsx (status page), login.tsx, _app.tsx (pathless layout with the login guard, adds no URL segment) and one _app.*.tsx file per Role home (M1a): _app.farmer.tsx, _app.collection.requests.tsx, _app.rounds.mine.tsx, _app.logistics.workers.tsx, _app.mill.incoming.tsx; the Admin's Users pages (M1b): _app.admin.users.index.tsx (list), _app.admin.users.new.tsx, _app.admin.users.$id.tsx; the Logistics pages (M4): _app.logistics.workers.index.tsx (replaces the placeholder), _app.logistics.workers.new.tsx, _app.logistics.workers.$id.tsx, _app.logistics.equipment.index.tsx, _app.logistics.equipment.new.tsx, _app.logistics.equipment.$id.tsx
 │   ├── lib/                   # (M0) api.ts (fetch wrapper under /api + typed calls, JWT and refresh added with M1), utils.ts (cn helper)
 │   ├── auth/                  # (M1a) AuthContext, session (in memory), refresh, roles (Role labels, ROLE_PRIORITY, ROLE_HOME, priorityRole, activeRole), activeRole (localStorage), nav (NAV per Active role), redirect (safeRedirect), types (hand-written Role union); unit tests *.test.ts (Vitest)
-│   ├── admin/                 # (M1b) users.ts (API calls, Delegation labels, server field errors mapped to the form, banner messages), UserForm.tsx (one form for new and edit, Farmer profile section, Enable / Disable); unit tests users.test.ts (Vitest). Planned: Registrations
-│   ├── logistics/             # (M4) resources.ts (all Worker / Equipment / Unavailability API types and calls, enum labels, small pure helpers), WorkerForm.tsx and EquipmentForm.tsx (one form for new and edit, the equipment fields follow the type), UnavailabilityPanel.tsx (list + add form), Field.tsx, Pager.tsx; unit tests resources.test.ts (Vitest)
-│   ├── components/            # (M1a) AppLayout (header, side nav, bottom nav), RequireRole, RoleHome, PublicPage. Planned: HelpDrawer, MapView, StatusBadge, Timeline, ConfirmDialog
+│   ├── admin/                 # (M1b) users.ts (API calls, Delegation labels, `setServerErrors` puts the server field errors on the form fields, banner messages), UserForm.tsx (React Hook Form; one form for new and edit, Farmer profile section, Enable / Disable); unit tests users.test.ts (Vitest). Planned: Registrations
+│   ├── logistics/             # (M4) resources.ts (all Worker / Equipment / Unavailability API types and calls, enum labels, small pure helpers), WorkerForm.tsx and EquipmentForm.tsx (React Hook Form; one form for new and edit, the equipment fields follow the type with `useWatch`), UnavailabilityPanel.tsx (list + add form, the end must be after the start via `validate`), Pager.tsx; unit tests resources.test.ts (Vitest)
+│   ├── components/            # (M1a) AppLayout (header, side nav, bottom nav), RequireRole, RoleHome, PublicPage, Field (labelled input with its error, used with `register`) (M4). Planned: HelpDrawer, MapView, StatusBadge, Timeline, ConfirmDialog
 │   │   └── ui/                # (M0) shadcn/ui components: badge, button, card, input, label (more are added with the CLI when needed)
 │   ├── features/
 │   │   ├── public/            # PublicMapPage, RegistrationPage, AboutPage
@@ -49,6 +49,17 @@ frontend/
 │   └── types/                 # DTO types (generated from OpenAPI with openapi-typescript)
 └── tests/                     # Testing Library component tests; e2e/ Playwright
 ```
+
+### Forms
+
+All forms use **React Hook Form** (`react-hook-form`). There is no schema library (no Zod): keep it plain.
+
+- Fields are wired with `register('name', rules)`. Client rules use the built-in options (`required`, `validate`); the server stays the source of truth, so most forms only declare the rules that are cheap and clear (for example "the end must be after the start").
+- **One form component for "new" and "edit"**: it takes an optional entity and fills `defaultValues` from it.
+- Inputs hold text; the request body is built in the `useMutation` function (`parseNumber`, `parseSkills`, `trim() || null`).
+- Server field errors (400 `errors[]`) are put on the matching fields with `setError` (`setServerErrors` in `admin/users.ts`, the `farmerProfile.` prefix is removed). 409 and 422 stay a banner above the buttons (`errorBanner`); login keeps its own messages for 401 and 429.
+- Fields that depend on another one (equipment type, FARMER role) read it with `useWatch`.
+- Accessibility: each input has a `<Label htmlFor>` and `aria-invalid` when it has an error; the layout stays one column at 360 px.
 
 Unit tests of pure functions (Vitest, `pnpm test`) sit next to the code in `src/auth/*.test.ts`.
 

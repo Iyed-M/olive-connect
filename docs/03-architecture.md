@@ -162,7 +162,7 @@ tn.oliveconnect
 | Tests | JUnit 5, Mockito, AssertJ, Spring Boot Test, MockMvc, Testcontainers (MongoDB, Redis) | — |
 | DB | MongoDB | 7.0 / 8.0 |
 | Cache | Redis | 7.x |
-| Frontend | React 19, Vite, TypeScript, pnpm, Tailwind CSS v4, shadcn/ui (custom olive theme), TanStack Router (file-based), TanStack Query, react-leaflet + Leaflet.markercluster, Recharts (shadcn chart), React Hook Form + Zod, React Joyride, Vitest + Testing Library, Playwright | — |
+| Frontend | React 19, Vite, TypeScript, pnpm, Tailwind CSS v4, shadcn/ui (custom olive theme), TanStack Router (file-based), TanStack Query, react-leaflet + Leaflet.markercluster, Recharts (shadcn chart), React Hook Form, React Joyride, Vitest + Testing Library, Playwright | — |
 | Server | Nginx | 1.27 |
 | Monitoring | Prometheus, Grafana, Loki/Promtail, node-exporter, cAdvisor, Uptime Kuma | — |
 | Load test | k6 (or JMeter) | — |
