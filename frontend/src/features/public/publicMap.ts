@@ -24,10 +24,10 @@ export interface PublicFeature {
   geometry: { type: 'Point'; coordinates: [number, number] }
   properties: {
     id?: string
-    name?: string
-    mainVarietyCode?: string
+    varietyCode?: string
     harvestStatus?: HarvestStatus
-    currentMaturityIndex?: number
+    maturityIndex?: number
+    cluster?: boolean
     count?: number
   }
 }
@@ -49,13 +49,14 @@ export const NO_FILTERS: MapFilters = { variety: '', status: '', maturityMin: ''
 // bbox = [west, south, east, north]
 export type Bbox = [number, number, number, number]
 
-export function buildMapQuery(bbox: Bbox, filters: MapFilters): string {
+export function buildMapQuery(bbox: Bbox, filters: MapFilters, zoom?: number): string {
   const params = new URLSearchParams({ bbox: bbox.join(',') })
+  if (zoom !== undefined) params.set('zoom', String(zoom))
   for (const [key, value] of Object.entries(filters)) {
     if (value !== '') params.set(key, value)
   }
   return params.toString()
 }
 
-export const getPublicMap = (bbox: Bbox, filters: MapFilters) =>
-  api<PublicFeatureCollection>(`/map/public?${buildMapQuery(bbox, filters)}`)
+export const getPublicMap = (bbox: Bbox, filters: MapFilters, zoom?: number) =>
+  api<PublicFeatureCollection>(`/map/public?${buildMapQuery(bbox, filters, zoom)}`)

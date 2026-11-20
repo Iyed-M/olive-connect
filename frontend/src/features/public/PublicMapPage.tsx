@@ -28,18 +28,21 @@ function readBbox(map: LeafletMap): Bbox {
   return [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]
 }
 
+type MapView = { bbox: Bbox; zoom: number }
+const readView = (map: LeafletMap): MapView => ({ bbox: readBbox(map), zoom: map.getZoom() })
+
 // Reports the visible bbox on load and after each move, debounced (docs/08 §5).
-function BboxWatcher({ onChange }: { onChange: (bbox: Bbox) => void }) {
+function BboxWatcher({ onChange }: { onChange: (view: MapView) => void }) {
   const map = useMap()
   const timer = useRef<number | undefined>(undefined)
   useEffect(() => {
-    onChange(readBbox(map))
+    onChange(readView(map))
     return () => window.clearTimeout(timer.current)
   }, [map, onChange])
   useMapEvents({
     moveend() {
       window.clearTimeout(timer.current)
-      timer.current = window.setTimeout(() => onChange(readBbox(map)), DEBOUNCE_MS)
+      timer.current = window.setTimeout(() => onChange(readView(map)), DEBOUNCE_MS)
     },
   })
   return null
@@ -62,20 +65,18 @@ function ClusterMarker({ feature }: { feature: PublicFeature }) {
 
 function OrchardMarker({ feature }: { feature: PublicFeature }) {
   const [lng, lat] = feature.geometry.coordinates
-  const { name, mainVarietyCode, harvestStatus, currentMaturityIndex } = feature.properties
+  const { varietyCode, harvestStatus, maturityIndex } = feature.properties
   const color = (harvestStatus && STATUS_COLOR[harvestStatus]) || STATUS_COLOR.NOT_HARVESTED
   // Maturity (0-7 scale) is shown by the fill opacity.
-  const opacity = 0.3 + 0.7 * Math.min(Math.max((currentMaturityIndex ?? 0) / 7, 0), 1)
+  const opacity = 0.3 + 0.7 * Math.min(Math.max((maturityIndex ?? 0) / 7, 0), 1)
   return (
     <CircleMarker center={[lat, lng]} radius={9} pathOptions={{ color, fillColor: color, fillOpacity: opacity, weight: 3 }}>
       <Popup>
-        <strong>{name}</strong>
-        <br />
-        Variety: {mainVarietyCode}
+        Variety: {varietyCode}
         <br />
         Status: {harvestStatus ? STATUS_LABEL[harvestStatus] : '-'}
         <br />
-        Maturity: {currentMaturityIndex}
+        Maturity: {maturityIndex}
       </Popup>
     </CircleMarker>
   )
@@ -86,15 +87,15 @@ const STATUSES = Object.keys(STATUS_LABEL) as HarvestStatus[]
 
 export function PublicMapPage() {
   const { activeRole } = useAuth()
-  const [bbox, setBbox] = useState<Bbox | null>(null)
+  const [view, setView] = useState<MapView | null>(null)
   const [filters, setFilters] = useState<MapFilters>(NO_FILTERS)
   const set = (key: keyof MapFilters) => (value: string) => setFilters((f) => ({ ...f, [key]: value }))
 
   const varieties = useQuery({ queryKey: ['varieties'], queryFn: listVarieties, staleTime: Infinity })
   const map = useQuery({
-    queryKey: ['map-public', bbox, filters],
-    queryFn: () => getPublicMap(bbox!, filters),
-    enabled: bbox !== null,
+    queryKey: ['map-public', view, filters],
+    queryFn: () => getPublicMap(view!.bbox, filters, view!.zoom),
+    enabled: view !== null,
     placeholderData: keepPreviousData,
   })
 
@@ -164,7 +165,7 @@ export function PublicMapPage() {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <BboxWatcher onChange={setBbox} />
+          <BboxWatcher onChange={setView} />
           {(map.data?.features ?? []).map((feature, index) =>
             feature.properties.count !== undefined ? (
               <ClusterMarker key={`c-${index}`} feature={feature} />
