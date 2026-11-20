@@ -99,7 +99,7 @@ list of roles. All forms use React Hook Form with field-level server errors and 
 
 ```mermaid
 flowchart TB
-    START(["/"]) --> PUB[Public map /map]
+    START(["/"]) --> PUB[Public map /]
     START --> LOGIN["/login"]
     PUB --> REG["/register"]
     PRIV["any page of the layout, logged out"] -- "redirect=path" --> LOGIN
@@ -174,9 +174,9 @@ flowchart TB
 
 ## 5. Map (F4)
 
-- **react-leaflet** with OpenStreetMap tiles and **Leaflet.markercluster**.
-- Marker colour = `harvestStatus` (grey not harvested, blue scheduled, orange in progress, green harvested). A ring or opacity shows the maturity level. The icon differs per variety.
-- The visible bbox is sent to `/api/map/public` on `moveend` (debounced). The response is GeoJSON. Zoom < 11 returns server-side clusters (aggregation by grid cell) to keep payloads small.
+- **react-leaflet** with OpenStreetMap tiles. Clustering is done by the server (grid cells with a `count`), which the page draws as numbered markers; Leaflet.markercluster is not used, to avoid clustering twice.
+- Marker colour = `harvestStatus` (grey not harvested, blue scheduled, orange in progress, green harvested). A ring or opacity shows the maturity level. The variety is shown in the marker popup.
+- The page is the public home `/` (`PublicMapPage`, no login, no role navigation), centred on Sfax. The visible bbox is sent to `/api/map/public` on `moveend` (debounced 300 ms) with the filters `variety` (from `GET /varieties`), `status`, `maturityMin` and `maturityMax`. The response is GeoJSON; features with a `count` property are clusters, the others are single orchards (`id`, `name`, `mainVarietyCode`, `harvestStatus`, `currentMaturityIndex`; no owner). Zoom < 11 returns server-side clusters (aggregation by grid cell) to keep payloads small. The page has links to `/login` (or the Role home) and to `/register`.
 - Private layers (manager): open alerts (red pins, pulsing when NEW), today's rounds (polyline through the stops, ordered).
 
 ## 6. Real-time
