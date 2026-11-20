@@ -50,7 +50,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | FR-1.4 | Validate / reject | `/validate`, `/reject` | T-HR-7 |
 | FR-1.5 | Plan round / SD-3 | `POST /rounds`, `/planning/suggestions` | T-RD-1..5 |
 | FR-1.6 | Notifications | `/notifications` (M3), `/events` (M8) | T-HR-1, T-RD-1, T-ML-1 |
-| FR-1.7 | Update round / SD-6 | `/rounds/{id}/start`, `/stops/{order}`, `/complete` | T-RD-6..8 |
+| FR-1.7 | Update round / SD-6 | `/rounds/{id}/start`, `/stops/{order}`, `/complete` | T-RD-6..8 (`CollectionRoundExecutionControllerTest`) |
 | FR-2.x | Report & handle alert / SD-5 | `/alerts/**` | T-AL-1..4 |
 | FR-3.x | Resources | `/workers`, `/equipment`, `/resources/*`, `/supply-orders` | T-RS-1..2, T-RD-2 |
 | FR-4.x | Map | `/map/public`, `/map/private` | T-SEC-3, T-MAP-1..3, T-PERF-1 |

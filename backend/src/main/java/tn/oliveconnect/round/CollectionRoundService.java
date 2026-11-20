@@ -16,11 +16,14 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.oliveconnect.common.BusinessRuleException;
 import tn.oliveconnect.common.ConflictException;
+import tn.oliveconnect.common.FieldValidationException;
 import tn.oliveconnect.common.NotFoundException;
 import tn.oliveconnect.common.StatusChange;
 import tn.oliveconnect.harvest.HarvestRequest;
@@ -30,6 +33,9 @@ import tn.oliveconnect.mill.Mill;
 import tn.oliveconnect.mill.MillRepository;
 import tn.oliveconnect.notification.NotificationService;
 import tn.oliveconnect.notification.NotificationType;
+import tn.oliveconnect.orchard.HarvestStatus;
+import tn.oliveconnect.orchard.Orchard;
+import tn.oliveconnect.orchard.OrchardRepository;
 import tn.oliveconnect.resource.BookingService;
 import tn.oliveconnect.user.Role;
 import tn.oliveconnect.user.User;
@@ -48,10 +54,12 @@ public class CollectionRoundService {
     private final BookingService bookingService;
     private final NotificationService notificationService;
     private final MongoTemplate mongoTemplate;
+    private final OrchardRepository orchardRepository;
 
     public CollectionRoundService(CollectionRoundRepository roundRepository, HarvestRequestRepository requestRepository,
                                   UserRepository userRepository, MillRepository millRepository, BookingService bookingService,
-                                  NotificationService notificationService, MongoTemplate mongoTemplate) {
+                                  NotificationService notificationService, MongoTemplate mongoTemplate,
+                                  OrchardRepository orchardRepository) {
         this.roundRepository = roundRepository;
         this.requestRepository = requestRepository;
         this.userRepository = userRepository;
@@ -59,6 +67,7 @@ public class CollectionRoundService {
         this.bookingService = bookingService;
         this.notificationService = notificationService;
         this.mongoTemplate = mongoTemplate;
+        this.orchardRepository = orchardRepository;
     }
 
     public CollectionRoundDto plan(CollectionRoundCreateDto dto, Authentication authentication) {
@@ -197,6 +206,177 @@ public class CollectionRoundService {
         round.getStops().stream().map(RoundStop::getFarmerId).distinct()
                 .forEach(farmerId -> notificationService.notifyUser(farmerId, NotificationType.ROUND_CANCELLED,
                         "Round cancelled", "Your collection round has been cancelled", "/rounds/" + round.getId()));
+    }
+
+    public CollectionRoundDto start(String id, Authentication authentication) {
+        CollectionRound round = findRound(id);
+        requireAssignedTeamLeader(round, authentication);
+        if (round.getStatus() != RoundStatus.PLANNED) {
+            throw new ConflictException("ROUND_NOT_PLANNED", "Only a PLANNED round can be started");
+        }
+        if (!LocalDate.now(ZoneOffset.UTC).equals(round.getDate())) {
+            throw new ConflictException("ROUND_NOT_TODAY", "A round can only be started on its date");
+        }
+
+        List<HarvestRequest> requests = requestsForStops(round);
+        for (HarvestRequest request : requests) {
+            if (request.getStatus() != HarvestRequestStatus.SCHEDULED
+                    || !Objects.equals(round.getId(), request.getRoundId())) {
+                throw new ConflictException("INVALID_TRANSITION",
+                        "Request " + request.getId() + " is not scheduled in this round");
+            }
+        }
+
+        round.start(authentication.getName());
+        for (int i = 0; i < round.getStops().size(); i++) {
+            RoundStop stop = round.getStops().get(i);
+            HarvestRequest request = requests.get(i);
+            request.transitionTo(HarvestRequestStatus.IN_PROGRESS, authentication.getName(), round.getCode());
+            requestRepository.save(request);
+            setOrchardStatus(stop.getOrchardId(), HarvestStatus.IN_PROGRESS);
+        }
+        roundRepository.save(round);
+        notifyFarmers(round, NotificationType.ROUND_STARTED, "Collection round started",
+                "The collection team started " + round.getCode());
+        return CollectionRoundDto.from(round, List.of());
+    }
+
+    public CollectionRoundDto updateStop(String id, int order, RoundStopUpdateDto dto,
+                                         Authentication authentication) {
+        CollectionRound round = findRound(id);
+        requireAssignedTeamLeader(round, authentication);
+        if (round.getStatus() != RoundStatus.IN_PROGRESS) {
+            throw new ConflictException("ROUND_NOT_IN_PROGRESS", "Only an IN_PROGRESS round can update stops");
+        }
+        assertVersion(round, dto.version());
+        RoundStop stop = round.getStops().stream().filter(candidate -> candidate.getOrder() == order).findFirst()
+                .orElseThrow(() -> new NotFoundException("Round stop not found"));
+        validateStopUpdate(stop, dto);
+
+        Query stopQuery = Query.query(Criteria.where("_id").is(id)
+                .and("stops.order").is(order));
+        if (round.getVersion() != null) {
+            stopQuery.addCriteria(Criteria.where("version").is(round.getVersion()));
+        }
+        Update stopUpdate = new Update()
+                .filterArray(Criteria.where("s.order").is(order))
+                .set("stops.$[s].status", dto.status())
+                .inc("version", 1);
+        if (dto.comment() != null) {
+            stopUpdate.set("stops.$[s].comment", dto.comment().trim());
+        }
+        if (dto.status() == StopStatus.DONE) {
+            stopUpdate.set("stops.$[s].harvestedKg", dto.harvestedKg())
+                    .set("stops.$[s].crateCount", dto.crateCount());
+        } else if (dto.status() == StopStatus.SKIPPED) {
+            stopUpdate.unset("stops.$[s].harvestedKg")
+                    .unset("stops.$[s].crateCount");
+        }
+        if (mongoTemplate.updateFirst(stopQuery, stopUpdate, CollectionRound.class).getMatchedCount() == 0) {
+            throw new ConflictException("STALE_VERSION", "This round was changed by someone else, reload it");
+        }
+        if (dto.status() == StopStatus.DONE) {
+            setOrchardStatus(stop.getOrchardId(), HarvestStatus.HARVESTED);
+        } else if (dto.status() == StopStatus.SKIPPED) {
+            setOrchardStatus(stop.getOrchardId(), HarvestStatus.NOT_HARVESTED);
+        } else if (dto.status() == StopStatus.IN_PROGRESS) {
+            setOrchardStatus(stop.getOrchardId(), HarvestStatus.IN_PROGRESS);
+        }
+        return CollectionRoundDto.from(findRound(id), List.of());
+    }
+
+    public CollectionRoundDto complete(String id, Authentication authentication) {
+        CollectionRound round = findRound(id);
+        requireAssignedTeamLeader(round, authentication);
+        if (round.getStatus() != RoundStatus.IN_PROGRESS) {
+            throw new ConflictException("ROUND_NOT_IN_PROGRESS", "Only an IN_PROGRESS round can be completed");
+        }
+        List<Integer> pendingOrders = round.getStops().stream()
+                .filter(stop -> stop.getStatus() == StopStatus.PENDING || stop.getStatus() == StopStatus.IN_PROGRESS)
+                .map(RoundStop::getOrder)
+                .toList();
+        if (!pendingOrders.isEmpty()) {
+            throw new BusinessRuleException("STOPS_PENDING", "Stops " + pendingOrders.stream()
+                    .map(String::valueOf).collect(java.util.stream.Collectors.joining(", ")) + " not updated");
+        }
+
+        List<HarvestRequest> requests = requestsForStops(round);
+        for (HarvestRequest request : requests) {
+            if (request.getStatus() != HarvestRequestStatus.IN_PROGRESS) {
+                throw new ConflictException("INVALID_TRANSITION",
+                        "Request " + request.getId() + " is not in progress");
+            }
+        }
+
+        round.complete(authentication.getName());
+        for (int i = 0; i < round.getStops().size(); i++) {
+            RoundStop stop = round.getStops().get(i);
+            HarvestRequest request = requests.get(i);
+            if (stop.getStatus() == StopStatus.DONE) {
+                request.transitionTo(HarvestRequestStatus.COMPLETED, authentication.getName(), round.getCode());
+                setOrchardStatus(stop.getOrchardId(), HarvestStatus.HARVESTED);
+            } else {
+                request.transitionTo(HarvestRequestStatus.VALIDATED, authentication.getName(), stop.getComment());
+                request.setRoundId(null);
+                setOrchardStatus(stop.getOrchardId(), HarvestStatus.NOT_HARVESTED);
+            }
+            requestRepository.save(request);
+        }
+        roundRepository.save(round);
+        notifyFarmers(round, NotificationType.ROUND_COMPLETED, "Collection round completed",
+                "The collection team completed " + round.getCode());
+        return CollectionRoundDto.from(round, List.of());
+    }
+
+    private void requireAssignedTeamLeader(CollectionRound round, Authentication authentication) {
+        if (!hasRole(authentication, Role.TEAM_LEADER)
+                || !Objects.equals(round.getTeamLeaderId(), authentication.getName())) {
+            throw new AccessDeniedException("The round belongs to another team leader");
+        }
+    }
+
+    private List<HarvestRequest> requestsForStops(CollectionRound round) {
+        List<HarvestRequest> requests = new ArrayList<>();
+        for (RoundStop stop : round.getStops()) {
+            requests.add(requestRepository.findById(stop.getHarvestRequestId())
+                    .orElseThrow(() -> new NotFoundException("Harvest request not found")));
+        }
+        return requests;
+    }
+
+    private void validateStopUpdate(RoundStop stop, RoundStopUpdateDto dto) {
+        if (dto.status() == null) {
+            throw new FieldValidationException("status", "must be provided");
+        }
+        if (!stop.canTransitionTo(dto.status())) {
+            String current = stop.getStatus() == null ? "<new>" : stop.getStatus().name();
+            throw new ConflictException("INVALID_TRANSITION",
+                    "Cannot transition round stop from " + current + " to " + dto.status());
+        }
+        if (dto.status() == StopStatus.DONE) {
+            if (dto.harvestedKg() == null || !Double.isFinite(dto.harvestedKg()) || dto.harvestedKg() <= 0) {
+                throw new FieldValidationException("harvestedKg", "must be greater than 0 when a stop is DONE");
+            }
+            if (dto.crateCount() == null || dto.crateCount() <= 0) {
+                throw new FieldValidationException("crateCount", "must be greater than 0 when a stop is DONE");
+            }
+        }
+        if (dto.status() == StopStatus.SKIPPED && (dto.comment() == null || dto.comment().isBlank())) {
+            throw new FieldValidationException("comment", "must provide a reason when a stop is SKIPPED");
+        }
+    }
+
+    private void setOrchardStatus(String orchardId, HarvestStatus status) {
+        Orchard orchard = orchardRepository.findById(orchardId)
+                .orElseThrow(() -> new NotFoundException("Orchard not found"));
+        orchard.setHarvestStatus(status);
+        orchardRepository.save(orchard);
+    }
+
+    private void notifyFarmers(CollectionRound round, NotificationType type, String title, String message) {
+        round.getStops().stream().map(RoundStop::getFarmerId).filter(Objects::nonNull).distinct()
+                .forEach(farmerId -> notificationService.notifyUser(farmerId, type, title, message,
+                        "/farmer/requests"));
     }
 
     private CollectionRound buildRound(LocalDate date, LocalTime startTime, LocalTime endTime, String plannedById,

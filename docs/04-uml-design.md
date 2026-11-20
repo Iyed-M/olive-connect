@@ -397,6 +397,8 @@ classDiagram
         ROUND_ASSIGNED
         ROUND_UPDATED
         ROUND_CANCELLED
+        ROUND_STARTED
+        ROUND_COMPLETED
     }
     class ImportJob {
         +String id
@@ -880,22 +882,32 @@ sequenceDiagram
         S->>NS: notify farmers (ROUND_STARTED)
     end
     loop each stop
-        TL->>FE: enter harvested kg, crates, status DONE/SKIPPED
-        FE->>C: PATCH /api/rounds/{id}/stops/{order}
+        TL->>FE: Tap arrival at the orchard
+        FE->>C: PATCH /api/rounds/{id}/stops/{order} {status: IN_PROGRESS}
         C->>S: updateStop(...)
-        S->>RR: updateFirst(stops.$ positional update, version check)
-        S->>OR: harvestStatus = IN_PROGRESS / HARVESTED
+        S->>RR: updateFirst(stops.$[s], filterArray(s.order), version check)
+        S->>OR: harvestStatus = IN_PROGRESS
+        TL->>FE: enter harvested kg, crates, status DONE/SKIPPED
+        FE->>C: PATCH /api/rounds/{id}/stops/{order} {status: DONE or SKIPPED}
+        C->>S: updateStop(...)
+        S->>RR: updateFirst(stops.$[s], filterArray(s.order), version check)
+        alt stop DONE
+            S->>OR: harvestStatus = HARVESTED
+        else stop SKIPPED
+            S->>OR: harvestStatus = NOT_HARVESTED
+        end
         alt network lost
             FE->>FE: keep draft in IndexedDB, retry later
         end
     end
     TL->>FE: Close round
     FE->>C: POST /api/rounds/{id}/complete
-    alt some stops still PENDING
+    alt some stops still PENDING or IN_PROGRESS
         C-->>FE: 422 "Stops 3, 5 not updated"
     else all DONE/SKIPPED
         S->>RR: COMPLETED, totalHarvestedKg
         S->>HR: DONE stops → COMPLETED, SKIPPED → VALIDATED (to re-plan)
+        S->>NS: notify farmers (ROUND_COMPLETED)
     end
 ```
 

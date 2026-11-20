@@ -37,6 +37,7 @@ import { Route as AppLogisticsEquipmentNewRouteImport } from './routes/_app.logi
 import { Route as AppLogisticsWorkersIndexRouteImport } from './routes/_app.logistics.workers.index'
 import { Route as AppLogisticsWorkersIdRouteImport } from './routes/_app.logistics.workers.$id'
 import { Route as AppLogisticsWorkersNewRouteImport } from './routes/_app.logistics.workers.new'
+import { Route as AppRoundsIdRunRouteImport } from './routes/_app.rounds.$id.run'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -180,6 +181,11 @@ const AppLogisticsWorkersNewRoute = AppLogisticsWorkersNewRouteImport.update({
   path: '/logistics/workers/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRoundsIdRunRoute = AppRoundsIdRunRouteImport.update({
+  id: '/rounds/$id/run',
+  path: '/rounds/$id/run',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -204,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/logistics/equipment/new': typeof AppLogisticsEquipmentNewRoute
   '/logistics/workers/$id': typeof AppLogisticsWorkersIdRoute
   '/logistics/workers/new': typeof AppLogisticsWorkersNewRoute
+  '/rounds/$id/run': typeof AppRoundsIdRunRoute
   '/admin/users/': typeof AppAdminUsersIndexRoute
   '/farmer/orchards/': typeof AppFarmerOrchardsIndexRoute
   '/farmer/requests/': typeof AppFarmerRequestsIndexRoute
@@ -232,6 +239,7 @@ export interface FileRoutesByTo {
   '/logistics/equipment/new': typeof AppLogisticsEquipmentNewRoute
   '/logistics/workers/$id': typeof AppLogisticsWorkersIdRoute
   '/logistics/workers/new': typeof AppLogisticsWorkersNewRoute
+  '/rounds/$id/run': typeof AppRoundsIdRunRoute
   '/admin/users': typeof AppAdminUsersIndexRoute
   '/farmer/orchards': typeof AppFarmerOrchardsIndexRoute
   '/farmer/requests': typeof AppFarmerRequestsIndexRoute
@@ -263,6 +271,7 @@ export interface FileRoutesById {
   '/_app/logistics/equipment/new': typeof AppLogisticsEquipmentNewRoute
   '/_app/logistics/workers/$id': typeof AppLogisticsWorkersIdRoute
   '/_app/logistics/workers/new': typeof AppLogisticsWorkersNewRoute
+  '/_app/rounds/$id/run': typeof AppRoundsIdRunRoute
   '/_app/admin/users/': typeof AppAdminUsersIndexRoute
   '/_app/farmer/orchards/': typeof AppFarmerOrchardsIndexRoute
   '/_app/farmer/requests/': typeof AppFarmerRequestsIndexRoute
@@ -294,6 +303,7 @@ export interface FileRouteTypes {
     | '/logistics/equipment/new'
     | '/logistics/workers/$id'
     | '/logistics/workers/new'
+    | '/rounds/$id/run'
     | '/admin/users/'
     | '/farmer/orchards/'
     | '/farmer/requests/'
@@ -322,6 +332,7 @@ export interface FileRouteTypes {
     | '/logistics/equipment/new'
     | '/logistics/workers/$id'
     | '/logistics/workers/new'
+    | '/rounds/$id/run'
     | '/admin/users'
     | '/farmer/orchards'
     | '/farmer/requests'
@@ -352,6 +363,7 @@ export interface FileRouteTypes {
     | '/_app/logistics/equipment/new'
     | '/_app/logistics/workers/$id'
     | '/_app/logistics/workers/new'
+    | '/_app/rounds/$id/run'
     | '/_app/admin/users/'
     | '/_app/farmer/orchards/'
     | '/_app/farmer/requests/'
@@ -564,6 +576,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLogisticsWorkersNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/rounds/$id/run': {
+      id: '/_app/rounds/$id/run'
+      path: '/rounds/$id/run'
+      fullPath: '/rounds/$id/run'
+      preLoaderRoute: typeof AppRoundsIdRunRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -606,6 +625,7 @@ interface AppRouteChildren {
   AppLogisticsEquipmentNewRoute: typeof AppLogisticsEquipmentNewRoute
   AppLogisticsWorkersIdRoute: typeof AppLogisticsWorkersIdRoute
   AppLogisticsWorkersNewRoute: typeof AppLogisticsWorkersNewRoute
+  AppRoundsIdRunRoute: typeof AppRoundsIdRunRoute
   AppAdminUsersIndexRoute: typeof AppAdminUsersIndexRoute
   AppLogisticsEquipmentIndexRoute: typeof AppLogisticsEquipmentIndexRoute
   AppLogisticsWorkersIndexRoute: typeof AppLogisticsWorkersIndexRoute
@@ -626,6 +646,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppLogisticsEquipmentNewRoute: AppLogisticsEquipmentNewRoute,
   AppLogisticsWorkersIdRoute: AppLogisticsWorkersIdRoute,
   AppLogisticsWorkersNewRoute: AppLogisticsWorkersNewRoute,
+  AppRoundsIdRunRoute: AppRoundsIdRunRoute,
   AppAdminUsersIndexRoute: AppAdminUsersIndexRoute,
   AppLogisticsEquipmentIndexRoute: AppLogisticsEquipmentIndexRoute,
   AppLogisticsWorkersIndexRoute: AppLogisticsWorkersIndexRoute,

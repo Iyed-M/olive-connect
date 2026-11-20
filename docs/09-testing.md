@@ -96,9 +96,9 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-RD-15 | Resources | availability includes busy and free resources | Nominal | API | 200 with `available`/`reason` flags (`CollectionRoundControllerTest`) |
 | T-RD-16 | Modify request | scheduled request on planned round | Nominal | API | request returns to VALIDATED, stop is removed, and the empty round is cancelled (`HarvestRequestControllerTest`) |
 | T-RD-17 | Modify/cancel request | scheduled request on started round | Alternative | API | 409 ROUND_STARTED (`HarvestRequestControllerTest`) |
-| T-RD-6 | Run round | start by another team leader | Alternative | API | 403 |
-| T-RD-7 | Run round | complete with pending stops | Alternative | API | 422 |
-| T-RD-8 | Run round | full run: start → stops → complete | Nominal | API + E2E | statuses cascade to requests & orchards |
+| T-RD-6 | Run round | start by another team leader | Alternative | API | 403 (`CollectionRoundExecutionControllerTest`) |
+| T-RD-7 | Run round | complete with pending stops | Alternative | API | 422 `STOPS_PENDING` (`CollectionRoundExecutionControllerTest`) |
+| T-RD-8 | Run round | full run: start → stops → complete | Nominal | API | statuses cascade to requests & orchards (`CollectionRoundExecutionControllerTest`) |
 | T-AL-1 | Report alert | with GPS near orchard | Nominal | API | 201, SSE event received by manager |
 | T-AL-2 | Report alert | GPS 5 km away | Alternative | Unit | `locationMismatch=true` |
 | T-AL-3 | Report alert | photo too large / wrong type | Alternative | Web | 400 |
