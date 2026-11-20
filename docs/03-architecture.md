@@ -123,7 +123,9 @@ tn.oliveconnect
 ├── common/            (M1a–M3) GlobalExceptionHandler, NotFoundException, ConflictException,
 │                      BusinessRuleException, FieldValidationException, PageResponse, StatusChange
 ├── user/              (M1a) User, FarmerProfile, Role, Delegation, MeDto, UserRepository, AdminSeeder.
-│                      Planned: RegistrationRequest, UserService, UserController (admin), RegistrationController
+│                      RegistrationRequest, RegistrationStatus, RegistrationRequestRepository, RegistrationService,
+│                      RegistrationController and their DTOs (M9).
+│                      Planned: UserService, UserController (admin)
 ├── orchard/           Orchard, Plot, GeoPoint, OliveVariety, HarvestStatus, DTOs, repositories,
 │                      OrchardService, OrchardController, OliveVarietyController, OliveVarietySeeder,
 │                      MapController (public + private layers, future)

@@ -210,6 +210,7 @@ flowchart TD
   "roles": ["FARMER"],
   "enabled": true,
   "onboardingDone": false,
+  "mustChangePassword": false,
   "farmerProfile": { "memberNumber": "ADH-0421", "cin": "01234567", "address": "Route de Gremda km 7", "delegation": "SAKIET_EZZIT" },
   "assignedMillId": null,
   "createdAt": ISODate("2026-11-20T08:00:00Z"), "createdBy": "665e...",
@@ -437,7 +438,7 @@ The latest maturity value is also copied onto `orchards.currentMaturityIndex` (R
   M3 uses `NEW_REQUEST`, `REQUEST_VALIDATED` and `REQUEST_REJECTED`; real-time fan-out is deferred to M8.
   Indexes are `{ recipientId: 1, read: 1, createdAt: -1 }`, plus a **TTL** index `{ createdAt: 1 }, expireAfterSeconds: 7776000` (90 days).
 - `import_jobs`: `{ checksum: 1 }` unique (idempotency), `{ startedAt: -1 }`, `{ dataset: 1, status: 1 }`. `errors[]` holds at most 500 entries and `errorCount` keeps the total (R2 bounded).
-- `registration_requests`: `{ status: 1, createdAt: -1 }`, `{ email: 1 }`.
+- `registration_requests`: `{ status: 1, createdAt: -1 }`, `{ email: 1 }`. Document: `{ firstName, lastName, email, phone, cin, message, status: PENDING|APPROVED|REJECTED, createdAt, processedById, createdUserId }`. `processedById` and `createdUserId` are set on approval; `processedById` alone on rejection. `users.mustChangePassword` is `true` for an account created by an approval until the Farmer changes the temporary password.
 - `system_settings`: a single document with `_id: "global"`.
 
 ## 5. Partitioning (sharding) strategy
@@ -469,7 +470,7 @@ flowchart LR
 
 | Query | MongoDB | Index used | Target |
 |---|---|---|---|
-| Public map, visible area | `orchards.find({location: {$geoWithin: {$box: [[w,s],[e,n]]}}, harvestStatus: {$in: [...]}}, {projection: name, location, mainVarietyCode, harvestStatus, currentMaturityIndex})` | `location_2dsphere` | < 300 ms (then cached in Redis per tile/zoom + filter) |
+| Public map, visible area | `orchards.find({location: {$geoWithin: {$box: [[w,s],[e,n]]}}, harvestStatus: {$in: [...]}}, {projection: name, location, mainVarietyCode, harvestStatus, currentMaturityIndex})` | `location_2dsphere` | < 300 ms (then cached in Redis per bbox/zoom + filter). The polygon is a GeoJSON `$geometry` (not the legacy `$box`) so MongoDB uses the 2dsphere index. Cells with several orchards are grouped by `MapService` at zoom < 13 |
 | Manager queue | `harvest_requests.find({status: "VALIDATED"}).sort({priorityScore: -1}).limit(50)` | `status_1_priorityScore_-1` | < 50 ms |
 | Nearby requests (grouping) | `$geoNear` on `orchard.location`, `maxDistance 10 000`, `query {status: VALIDATED}` | `orchard.location_2dsphere_status_1` | < 100 ms |
 | Booking conflicts | `resource_bookings.find({resourceId: {$in: ids}, start: {$lt: e}, end: {$gt: s}, status: "ACTIVE"})` | `resourceId_1_start_1_end_1` | < 20 ms |
@@ -530,7 +531,7 @@ db.weather_readings.aggregate([
 | Key pattern | Type | TTL | Usage |
 |---|---|---|---|
 | `cache:varieties::all` | string (JSON) | none (evict on update) | reference data |
-| `cache:mapLayer::{filterHash}:{z}:{x}:{y}` | string (GeoJSON) | 60 s | public map tiles (bbox snapped to a tile grid so the cache gets hits) |
+| `cache:mapPublic::{w},{s},{e},{n}:{zoom}:{variety}:{status}:{delegation}:{maturityMin}:{maturityMax}` | string (GeoJSON) | 60 s | public map response, one key per distinct normalised request (M9) |
 | `cache:kpi::{name}:{filterHash}` | string (JSON) | 300 s | dashboard |
 | `refresh:{tokenId}` | hash `{userId, exp}` | 7 days | refresh tokens (deletion = logout / revocation) |
 | `user:{userId}:refresh` | set of tokenIds | 7 days | revoke all sessions of a user (on disable, password reset, email change) |

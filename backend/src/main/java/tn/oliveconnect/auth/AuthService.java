@@ -3,6 +3,7 @@ package tn.oliveconnect.auth;
 import java.util.Optional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import tn.oliveconnect.common.BusinessRuleException;
 import tn.oliveconnect.user.MeDto;
 import tn.oliveconnect.user.User;
 import tn.oliveconnect.user.UserRepository;
@@ -70,5 +71,17 @@ public class AuthService {
         return userRepository.findById(userId)
                 .map(MeDto::from)
                 .orElseThrow(() -> new UnauthenticatedException("Your session is no longer valid"));
+    }
+
+    /** Changes the User's own password and clears mustChangePassword. */
+    public void changePassword(String userId, String currentPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UnauthenticatedException("Your session is no longer valid"));
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new BusinessRuleException("WRONG_PASSWORD", "The current password is incorrect");
+        }
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setMustChangePassword(false);
+        userRepository.save(user);
     }
 }

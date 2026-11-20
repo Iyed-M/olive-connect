@@ -28,6 +28,7 @@ public class User {
     private Set<Role> roles = EnumSet.noneOf(Role.class);
     private boolean enabled = true;
     private boolean onboardingDone = false;
+    private boolean mustChangePassword = false;   // true after an admin approves a registration (temporary password)
     private FarmerProfile farmerProfile;   // only meaningful when roles contains FARMER
     private String assignedMillId;         // stays null until M7
 
@@ -60,6 +61,8 @@ public class User {
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
     public boolean isOnboardingDone() { return onboardingDone; }
     public void setOnboardingDone(boolean onboardingDone) { this.onboardingDone = onboardingDone; }
+    public boolean isMustChangePassword() { return mustChangePassword; }
+    public void setMustChangePassword(boolean mustChangePassword) { this.mustChangePassword = mustChangePassword; }
     public FarmerProfile getFarmerProfile() { return farmerProfile; }
     public void setFarmerProfile(FarmerProfile farmerProfile) { this.farmerProfile = farmerProfile; }
     public String getAssignedMillId() { return assignedMillId; }
