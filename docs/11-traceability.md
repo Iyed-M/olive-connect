@@ -20,9 +20,9 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | StatusChange | R2 | `*.statusHistory[]` | `common.StatusChange` (embedded) | — | each owning service | in detail DTOs | `components/Timeline` |
 | CollectionRound | R1, R5, R14 | `collection_rounds` | `round.CollectionRound` | `CollectionRoundRepository` | `CollectionRoundService`, `PlanningService` | `CollectionRoundController /rounds`, `/planning` | `collection/PlanningBoard`, `teamleader/RoundRunner` |
 | RoundStop | R2 | `collection_rounds.stops[]` | `round.RoundStop` (embedded) | — | `CollectionRoundService` | `/rounds/{id}/stops/{order}` | `teamleader/RoundRunner` |
-| Worker | R1, R2 | `workers` | `resource.Worker` | `WorkerRepository` | `ResourceService` | `/workers` | `logistics/Workers` |
-| Equipment / Tractor / Bin / Tool | R1, R8 | `equipment` (`type`, `_class`) | `resource.Equipment` + subclasses | `EquipmentRepository` | `ResourceService` | `/equipment` | `logistics/Equipment` |
-| Unavailability | R2 | `workers/equipment.unavailabilities[]` | `resource.Unavailability` | — | `ResourceService` | `/…/{id}/unavailabilities` | `logistics/ResourceCalendar` |
+| Worker | R1, R2 | `workers` | `resource.Worker` | `WorkerRepository` | `ResourceService` | `/workers` | `logistics/WorkerForm`, `routes/_app.logistics.workers.*` |
+| Equipment / Tractor / Bin / Tool | R1, R8 | `equipment` (`type`, `_class`) | `resource.Equipment` + subclasses | `EquipmentRepository` | `ResourceService` | `/equipment` | `logistics/EquipmentForm`, `routes/_app.logistics.equipment.*` |
+| Unavailability | R2 | `workers/equipment.unavailabilities[]` | `resource.Unavailability` | — | `ResourceService` | `/…/{id}/unavailabilities` | `logistics/UnavailabilityPanel`, `logistics/ResourceCalendar` |
 | ResourceBooking | R6 | `resource_bookings` | `resource.ResourceBooking` | `ResourceBookingRepository` | `BookingService` | `/resources/calendar`, `/resources/availability` | `logistics/ResourceCalendar` |
 | SupplyOrder | R1, R3 | `supply_orders` | `resource.SupplyOrder` | `SupplyOrderRepository` | `SupplyService` | `/supply-orders` | `logistics/SupplyOrders` |
 | Mill | R1, R10 | `mills` | `mill.Mill` | `MillRepository` | `MillService` | `MillController /mills` | `mill/CapacityPage` |

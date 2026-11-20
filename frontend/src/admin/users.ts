@@ -1,3 +1,4 @@
+import type { FieldValues, Path, UseFormSetError } from 'react-hook-form'
 import { api, type ApiError, type FieldError } from '@/lib/api'
 import type { Role } from '@/auth/types'
 
@@ -97,6 +98,13 @@ export function fieldMessages(errors: FieldError[]): Record<string, string> {
     out[name] ??= message
   }
   return out
+}
+
+// Puts the server field errors (400) on the matching fields of a React Hook Form.
+export function setServerErrors<T extends FieldValues>(errors: FieldError[], setError: UseFormSetError<T>) {
+  for (const [name, message] of Object.entries(fieldMessages(errors))) {
+    setError(name as Path<T>, { type: 'server', message })
+  }
 }
 
 // The message shown above the form for errors that are not tied to a field.

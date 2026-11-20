@@ -15,7 +15,6 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppFarmerRouteImport } from './routes/_app.farmer'
 import { Route as AppCollectionRequestsRouteImport } from './routes/_app.collection.requests'
 import { Route as AppFarmerIndexRouteImport } from './routes/_app.farmer.index'
-import { Route as AppLogisticsWorkersRouteImport } from './routes/_app.logistics.workers'
 import { Route as AppMillIncomingRouteImport } from './routes/_app.mill.incoming'
 import { Route as AppRoundsMineRouteImport } from './routes/_app.rounds.mine'
 import { Route as AppAdminUsersIndexRouteImport } from './routes/_app.admin.users.index'
@@ -24,6 +23,12 @@ import { Route as AppAdminUsersNewRouteImport } from './routes/_app.admin.users.
 import { Route as AppFarmerOrchardsIndexRouteImport } from './routes/_app.farmer.orchards.index'
 import { Route as AppFarmerOrchardsIdRouteImport } from './routes/_app.farmer.orchards.$id'
 import { Route as AppFarmerOrchardsNewRouteImport } from './routes/_app.farmer.orchards.new'
+import { Route as AppLogisticsEquipmentIndexRouteImport } from './routes/_app.logistics.equipment.index'
+import { Route as AppLogisticsEquipmentIdRouteImport } from './routes/_app.logistics.equipment.$id'
+import { Route as AppLogisticsEquipmentNewRouteImport } from './routes/_app.logistics.equipment.new'
+import { Route as AppLogisticsWorkersIndexRouteImport } from './routes/_app.logistics.workers.index'
+import { Route as AppLogisticsWorkersIdRouteImport } from './routes/_app.logistics.workers.$id'
+import { Route as AppLogisticsWorkersNewRouteImport } from './routes/_app.logistics.workers.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -53,11 +58,6 @@ const AppFarmerIndexRoute = AppFarmerIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppFarmerRoute,
-} as any)
-const AppLogisticsWorkersRoute = AppLogisticsWorkersRouteImport.update({
-  id: '/logistics/workers',
-  path: '/logistics/workers',
-  getParentRoute: () => AppRoute,
 } as any)
 const AppMillIncomingRoute = AppMillIncomingRouteImport.update({
   id: '/mill/incoming',
@@ -99,13 +99,45 @@ const AppFarmerOrchardsNewRoute = AppFarmerOrchardsNewRouteImport.update({
   path: '/orchards/new',
   getParentRoute: () => AppFarmerRoute,
 } as any)
+const AppLogisticsEquipmentIndexRoute =
+  AppLogisticsEquipmentIndexRouteImport.update({
+    id: '/logistics/equipment/',
+    path: '/logistics/equipment/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppLogisticsEquipmentIdRoute = AppLogisticsEquipmentIdRouteImport.update({
+  id: '/logistics/equipment/$id',
+  path: '/logistics/equipment/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLogisticsEquipmentNewRoute =
+  AppLogisticsEquipmentNewRouteImport.update({
+    id: '/logistics/equipment/new',
+    path: '/logistics/equipment/new',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppLogisticsWorkersIndexRoute =
+  AppLogisticsWorkersIndexRouteImport.update({
+    id: '/logistics/workers/',
+    path: '/logistics/workers/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppLogisticsWorkersIdRoute = AppLogisticsWorkersIdRouteImport.update({
+  id: '/logistics/workers/$id',
+  path: '/logistics/workers/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLogisticsWorkersNewRoute = AppLogisticsWorkersNewRouteImport.update({
+  id: '/logistics/workers/new',
+  path: '/logistics/workers/new',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/farmer': typeof AppFarmerRouteWithChildren
   '/collection/requests': typeof AppCollectionRequestsRoute
-  '/logistics/workers': typeof AppLogisticsWorkersRoute
   '/mill/incoming': typeof AppMillIncomingRoute
   '/rounds/mine': typeof AppRoundsMineRoute
   '/farmer/': typeof AppFarmerIndexRoute
@@ -113,14 +145,19 @@ export interface FileRoutesByFullPath {
   '/admin/users/new': typeof AppAdminUsersNewRoute
   '/farmer/orchards/$id': typeof AppFarmerOrchardsIdRoute
   '/farmer/orchards/new': typeof AppFarmerOrchardsNewRoute
+  '/logistics/equipment/$id': typeof AppLogisticsEquipmentIdRoute
+  '/logistics/equipment/new': typeof AppLogisticsEquipmentNewRoute
+  '/logistics/workers/$id': typeof AppLogisticsWorkersIdRoute
+  '/logistics/workers/new': typeof AppLogisticsWorkersNewRoute
   '/admin/users/': typeof AppAdminUsersIndexRoute
   '/farmer/orchards/': typeof AppFarmerOrchardsIndexRoute
+  '/logistics/equipment/': typeof AppLogisticsEquipmentIndexRoute
+  '/logistics/workers/': typeof AppLogisticsWorkersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/collection/requests': typeof AppCollectionRequestsRoute
-  '/logistics/workers': typeof AppLogisticsWorkersRoute
   '/mill/incoming': typeof AppMillIncomingRoute
   '/rounds/mine': typeof AppRoundsMineRoute
   '/farmer': typeof AppFarmerIndexRoute
@@ -128,8 +165,14 @@ export interface FileRoutesByTo {
   '/admin/users/new': typeof AppAdminUsersNewRoute
   '/farmer/orchards/$id': typeof AppFarmerOrchardsIdRoute
   '/farmer/orchards/new': typeof AppFarmerOrchardsNewRoute
+  '/logistics/equipment/$id': typeof AppLogisticsEquipmentIdRoute
+  '/logistics/equipment/new': typeof AppLogisticsEquipmentNewRoute
+  '/logistics/workers/$id': typeof AppLogisticsWorkersIdRoute
+  '/logistics/workers/new': typeof AppLogisticsWorkersNewRoute
   '/admin/users': typeof AppAdminUsersIndexRoute
   '/farmer/orchards': typeof AppFarmerOrchardsIndexRoute
+  '/logistics/equipment': typeof AppLogisticsEquipmentIndexRoute
+  '/logistics/workers': typeof AppLogisticsWorkersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -138,7 +181,6 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_app/farmer': typeof AppFarmerRouteWithChildren
   '/_app/collection/requests': typeof AppCollectionRequestsRoute
-  '/_app/logistics/workers': typeof AppLogisticsWorkersRoute
   '/_app/mill/incoming': typeof AppMillIncomingRoute
   '/_app/rounds/mine': typeof AppRoundsMineRoute
   '/_app/farmer/': typeof AppFarmerIndexRoute
@@ -146,8 +188,14 @@ export interface FileRoutesById {
   '/_app/admin/users/new': typeof AppAdminUsersNewRoute
   '/_app/farmer/orchards/$id': typeof AppFarmerOrchardsIdRoute
   '/_app/farmer/orchards/new': typeof AppFarmerOrchardsNewRoute
+  '/_app/logistics/equipment/$id': typeof AppLogisticsEquipmentIdRoute
+  '/_app/logistics/equipment/new': typeof AppLogisticsEquipmentNewRoute
+  '/_app/logistics/workers/$id': typeof AppLogisticsWorkersIdRoute
+  '/_app/logistics/workers/new': typeof AppLogisticsWorkersNewRoute
   '/_app/admin/users/': typeof AppAdminUsersIndexRoute
   '/_app/farmer/orchards/': typeof AppFarmerOrchardsIndexRoute
+  '/_app/logistics/equipment/': typeof AppLogisticsEquipmentIndexRoute
+  '/_app/logistics/workers/': typeof AppLogisticsWorkersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -156,7 +204,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/farmer'
     | '/collection/requests'
-    | '/logistics/workers'
     | '/mill/incoming'
     | '/rounds/mine'
     | '/farmer/'
@@ -164,14 +211,19 @@ export interface FileRouteTypes {
     | '/admin/users/new'
     | '/farmer/orchards/$id'
     | '/farmer/orchards/new'
+    | '/logistics/equipment/$id'
+    | '/logistics/equipment/new'
+    | '/logistics/workers/$id'
+    | '/logistics/workers/new'
     | '/admin/users/'
     | '/farmer/orchards/'
+    | '/logistics/equipment/'
+    | '/logistics/workers/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/collection/requests'
-    | '/logistics/workers'
     | '/mill/incoming'
     | '/rounds/mine'
     | '/farmer'
@@ -179,8 +231,14 @@ export interface FileRouteTypes {
     | '/admin/users/new'
     | '/farmer/orchards/$id'
     | '/farmer/orchards/new'
+    | '/logistics/equipment/$id'
+    | '/logistics/equipment/new'
+    | '/logistics/workers/$id'
+    | '/logistics/workers/new'
     | '/admin/users'
     | '/farmer/orchards'
+    | '/logistics/equipment'
+    | '/logistics/workers'
   id:
     | '__root__'
     | '/'
@@ -188,7 +246,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/_app/farmer'
     | '/_app/collection/requests'
-    | '/_app/logistics/workers'
     | '/_app/mill/incoming'
     | '/_app/rounds/mine'
     | '/_app/farmer/'
@@ -196,8 +253,14 @@ export interface FileRouteTypes {
     | '/_app/admin/users/new'
     | '/_app/farmer/orchards/$id'
     | '/_app/farmer/orchards/new'
+    | '/_app/logistics/equipment/$id'
+    | '/_app/logistics/equipment/new'
+    | '/_app/logistics/workers/$id'
+    | '/_app/logistics/workers/new'
     | '/_app/admin/users/'
     | '/_app/farmer/orchards/'
+    | '/_app/logistics/equipment/'
+    | '/_app/logistics/workers/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -249,13 +312,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/farmer/'
       preLoaderRoute: typeof AppFarmerIndexRouteImport
       parentRoute: typeof AppFarmerRoute
-    }
-    '/_app/logistics/workers': {
-      id: '/_app/logistics/workers'
-      path: '/logistics/workers'
-      fullPath: '/logistics/workers'
-      preLoaderRoute: typeof AppLogisticsWorkersRouteImport
-      parentRoute: typeof AppRoute
     }
     '/_app/mill/incoming': {
       id: '/_app/mill/incoming'
@@ -313,6 +369,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFarmerOrchardsNewRouteImport
       parentRoute: typeof AppFarmerRoute
     }
+    '/_app/logistics/equipment/': {
+      id: '/_app/logistics/equipment/'
+      path: '/logistics/equipment'
+      fullPath: '/logistics/equipment/'
+      preLoaderRoute: typeof AppLogisticsEquipmentIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/logistics/equipment/$id': {
+      id: '/_app/logistics/equipment/$id'
+      path: '/logistics/equipment/$id'
+      fullPath: '/logistics/equipment/$id'
+      preLoaderRoute: typeof AppLogisticsEquipmentIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/logistics/equipment/new': {
+      id: '/_app/logistics/equipment/new'
+      path: '/logistics/equipment/new'
+      fullPath: '/logistics/equipment/new'
+      preLoaderRoute: typeof AppLogisticsEquipmentNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/logistics/workers/': {
+      id: '/_app/logistics/workers/'
+      path: '/logistics/workers'
+      fullPath: '/logistics/workers/'
+      preLoaderRoute: typeof AppLogisticsWorkersIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/logistics/workers/$id': {
+      id: '/_app/logistics/workers/$id'
+      path: '/logistics/workers/$id'
+      fullPath: '/logistics/workers/$id'
+      preLoaderRoute: typeof AppLogisticsWorkersIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/logistics/workers/new': {
+      id: '/_app/logistics/workers/new'
+      path: '/logistics/workers/new'
+      fullPath: '/logistics/workers/new'
+      preLoaderRoute: typeof AppLogisticsWorkersNewRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -337,23 +435,33 @@ const AppFarmerRouteWithChildren = AppFarmerRoute._addFileChildren(
 interface AppRouteChildren {
   AppFarmerRoute: typeof AppFarmerRouteWithChildren
   AppCollectionRequestsRoute: typeof AppCollectionRequestsRoute
-  AppLogisticsWorkersRoute: typeof AppLogisticsWorkersRoute
   AppMillIncomingRoute: typeof AppMillIncomingRoute
   AppRoundsMineRoute: typeof AppRoundsMineRoute
   AppAdminUsersIdRoute: typeof AppAdminUsersIdRoute
   AppAdminUsersNewRoute: typeof AppAdminUsersNewRoute
+  AppLogisticsEquipmentIdRoute: typeof AppLogisticsEquipmentIdRoute
+  AppLogisticsEquipmentNewRoute: typeof AppLogisticsEquipmentNewRoute
+  AppLogisticsWorkersIdRoute: typeof AppLogisticsWorkersIdRoute
+  AppLogisticsWorkersNewRoute: typeof AppLogisticsWorkersNewRoute
   AppAdminUsersIndexRoute: typeof AppAdminUsersIndexRoute
+  AppLogisticsEquipmentIndexRoute: typeof AppLogisticsEquipmentIndexRoute
+  AppLogisticsWorkersIndexRoute: typeof AppLogisticsWorkersIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppFarmerRoute: AppFarmerRouteWithChildren,
   AppCollectionRequestsRoute: AppCollectionRequestsRoute,
-  AppLogisticsWorkersRoute: AppLogisticsWorkersRoute,
   AppMillIncomingRoute: AppMillIncomingRoute,
   AppRoundsMineRoute: AppRoundsMineRoute,
   AppAdminUsersIdRoute: AppAdminUsersIdRoute,
   AppAdminUsersNewRoute: AppAdminUsersNewRoute,
+  AppLogisticsEquipmentIdRoute: AppLogisticsEquipmentIdRoute,
+  AppLogisticsEquipmentNewRoute: AppLogisticsEquipmentNewRoute,
+  AppLogisticsWorkersIdRoute: AppLogisticsWorkersIdRoute,
+  AppLogisticsWorkersNewRoute: AppLogisticsWorkersNewRoute,
   AppAdminUsersIndexRoute: AppAdminUsersIndexRoute,
+  AppLogisticsEquipmentIndexRoute: AppLogisticsEquipmentIndexRoute,
+  AppLogisticsWorkersIndexRoute: AppLogisticsWorkersIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

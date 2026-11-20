@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { useNavigate } from '@tanstack/react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ROLE_LABEL, ROLE_PRIORITY } from '@/auth/roles'
@@ -6,13 +7,13 @@ import type { Role } from '@/auth/types'
 import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { Field, selectClass } from '@/components/Field'
 import { Label } from '@/components/ui/label'
 import {
   DELEGATION_LABEL,
   createUser,
   errorBanner,
-  fieldMessages,
+  setServerErrors,
   setUserEnabled,
   updateUser,
   type Delegation,
@@ -20,37 +21,68 @@ import {
   type UserWriteBody,
 } from './users'
 
+// The values of the inputs. The farmer profile fields are only sent when the FARMER role is checked.
+interface UserValues {
+  email: string
+  firstName: string
+  lastName: string
+  phone: string
+  password: string
+  roles: Role[]
+  memberNumber: string
+  cin: string
+  delegation: Delegation | ''
+  address: string
+}
+
 // One form for "new" (no `user`) and "edit".
 export function UserForm({ user }: { user?: UserDto }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [email, setEmail] = useState(user?.email ?? '')
-  const [firstName, setFirstName] = useState(user?.firstName ?? '')
-  const [lastName, setLastName] = useState(user?.lastName ?? '')
-  const [phone, setPhone] = useState(user?.phone ?? '')
-  const [password, setPassword] = useState('')
-  const [roles, setRoles] = useState<Role[]>(user?.roles ?? [])
-  const [memberNumber, setMemberNumber] = useState(user?.farmerProfile?.memberNumber ?? '')
-  const [cin, setCin] = useState(user?.farmerProfile?.cin ?? '')
-  const [delegation, setDelegation] = useState<Delegation | null>(user?.farmerProfile?.delegation ?? null)
-  const [address, setAddress] = useState(user?.farmerProfile?.address ?? '')
+  const {
+    register,
+    control,
+    handleSubmit,
+    setError,
+    clearErrors,
+    resetField,
+    formState: { errors },
+  } = useForm<UserValues>({
+    defaultValues: {
+      email: user?.email ?? '',
+      firstName: user?.firstName ?? '',
+      lastName: user?.lastName ?? '',
+      phone: user?.phone ?? '',
+      password: '',
+      roles: user?.roles ?? [],
+      memberNumber: user?.farmerProfile?.memberNumber ?? '',
+      cin: user?.farmerProfile?.cin ?? '',
+      delegation: user?.farmerProfile?.delegation ?? '',
+      address: user?.farmerProfile?.address ?? '',
+    },
+  })
   const [confirmDisable, setConfirmDisable] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  const isFarmer = roles.includes('FARMER')
+  const isFarmer = useWatch({ control, name: 'roles' }).includes('FARMER')
 
   const save = useMutation({
-    mutationFn: () => {
+    mutationFn: (v: UserValues) => {
       const body: UserWriteBody = {
-        email,
-        firstName,
-        lastName,
-        phone: phone.trim() || null,
-        roles,
+        email: v.email,
+        firstName: v.firstName,
+        lastName: v.lastName,
+        phone: v.phone.trim() || null,
+        roles: v.roles,
         // empty password on edit = keep the current one
-        ...(password ? { password } : {}),
-        farmerProfile: isFarmer
-          ? { memberNumber, cin, delegation, address: address.trim() || null }
+        ...(v.password ? { password: v.password } : {}),
+        farmerProfile: v.roles.includes('FARMER')
+          ? {
+              memberNumber: v.memberNumber,
+              cin: v.cin,
+              delegation: v.delegation || null,
+              address: v.address.trim() || null,
+            }
           : null,
       }
       return user ? updateUser(user.id, body) : createUser(body)
@@ -59,11 +91,15 @@ export function UserForm({ user }: { user?: UserDto }) {
       await queryClient.invalidateQueries({ queryKey: ['users'] })
       if (user) {
         await queryClient.invalidateQueries({ queryKey: ['user', user.id] })
-        setPassword('')
+        resetField('password', { defaultValue: '' })
         setSaved(true)
       } else {
         await navigate({ to: '/admin/users' })
       }
+    },
+    // 400: each message goes on its field. 409 and 422: the banner below.
+    onError: (err) => {
+      if (err instanceof ApiError) setServerErrors(err.errors, setError)
     },
   })
 
@@ -76,44 +112,15 @@ export function UserForm({ user }: { user?: UserDto }) {
     },
   })
 
-  function onSubmit(e: FormEvent) {
-    e.preventDefault()
+  const onSubmit = handleSubmit((values) => {
     setSaved(false)
-    save.mutate()
-  }
-
-  function toggleRole(role: Role, on: boolean) {
-    setRoles(on ? [...roles, role] : roles.filter((r) => r !== role))
-  }
+    clearErrors()
+    save.mutate(values)
+  })
 
   const error = save.error instanceof ApiError ? save.error : null
   const toggleError = toggle.error instanceof ApiError ? toggle.error : null
-  const fields = error ? fieldMessages(error.errors) : {}
   const banner = save.error ? (error ? errorBanner(error) : 'Cannot reach the server.') : null
-
-  function text(
-    id: string,
-    label: string,
-    value: string,
-    set: (v: string) => void,
-    props: { type?: string; autoComplete?: string; hint?: string } = {},
-  ) {
-    return (
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={id}>{label}</Label>
-        <Input
-          id={id}
-          type={props.type}
-          autoComplete={props.autoComplete ?? 'off'}
-          value={value}
-          onChange={(e) => set(e.target.value)}
-          aria-invalid={!!fields[id]}
-        />
-        {props.hint && !fields[id] && <p className="text-sm text-muted-foreground">{props.hint}</p>}
-        {fields[id] && <p className="text-sm text-destructive">{fields[id]}</p>}
-      </div>
-    )
-  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -161,15 +168,19 @@ export function UserForm({ user }: { user?: UserDto }) {
             <CardTitle>Details</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            {text('email', 'Email', email, setEmail, { type: 'email' })}
-            {text('firstName', 'First name', firstName, setFirstName)}
-            {text('lastName', 'Last name', lastName, setLastName)}
-            {text('phone', 'Phone (optional)', phone, setPhone, { type: 'tel', hint: '+216 followed by 8 digits' })}
-            {text('password', user ? 'New password (optional)' : 'Password', password, setPassword, {
-              type: 'password',
-              autoComplete: 'new-password',
-              hint: user ? 'Leave empty to keep the current one. A reset closes all sessions.' : '8 to 72 characters',
-            })}
+            <Field id="email" label="Email" type="email" error={errors.email?.message} {...register('email')} />
+            <Field id="firstName" label="First name" error={errors.firstName?.message} {...register('firstName')} />
+            <Field id="lastName" label="Last name" error={errors.lastName?.message} {...register('lastName')} />
+            <Field id="phone" label="Phone (optional)" type="tel" hint="+216 followed by 8 digits" error={errors.phone?.message} {...register('phone')} />
+            <Field
+              id="password"
+              label={user ? 'New password (optional)' : 'Password'}
+              type="password"
+              autoComplete="new-password"
+              hint={user ? 'Leave empty to keep the current one. A reset closes all sessions.' : '8 to 72 characters'}
+              error={errors.password?.message}
+              {...register('password')}
+            />
           </CardContent>
         </Card>
 
@@ -183,13 +194,13 @@ export function UserForm({ user }: { user?: UserDto }) {
                 <input
                   type="checkbox"
                   className="size-5"
-                  checked={roles.includes(role)}
-                  onChange={(e) => toggleRole(role, e.target.checked)}
+                  value={role}
+                  {...register('roles')}
                 />
                 {ROLE_LABEL[role]}
               </label>
             ))}
-            {fields.roles && <p className="text-sm text-destructive">{fields.roles}</p>}
+            {errors.roles && <p className="text-sm text-destructive">{errors.roles.message}</p>}
           </CardContent>
         </Card>
 
@@ -199,16 +210,15 @@ export function UserForm({ user }: { user?: UserDto }) {
               <CardTitle>Farmer profile</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              {text('memberNumber', 'Member number', memberNumber, setMemberNumber)}
-              {text('cin', 'CIN', cin, setCin, { hint: '8 digits' })}
+              <Field id="memberNumber" label="Member number" error={errors.memberNumber?.message} {...register('memberNumber')} />
+              <Field id="cin" label="CIN" hint="8 digits" error={errors.cin?.message} {...register('cin')} />
               <div className="flex flex-col gap-2">
                 <Label htmlFor="delegation">Delegation</Label>
                 <select
                   id="delegation"
-                  value={delegation ?? ''}
-                  onChange={(e) => setDelegation((e.target.value || null) as Delegation | null)}
-                  aria-invalid={!!fields.delegation}
-                  className="h-11 w-full rounded-lg border border-input bg-background px-2 text-base md:text-sm"
+                  aria-invalid={!!errors.delegation}
+                  className={selectClass}
+                  {...register('delegation')}
                 >
                   <option value="">Choose...</option>
                   {(Object.keys(DELEGATION_LABEL) as Delegation[]).map((d) => (
@@ -217,9 +227,9 @@ export function UserForm({ user }: { user?: UserDto }) {
                     </option>
                   ))}
                 </select>
-                {fields.delegation && <p className="text-sm text-destructive">{fields.delegation}</p>}
+                {errors.delegation && <p className="text-sm text-destructive">{errors.delegation.message}</p>}
               </div>
-              {text('address', 'Address (optional)', address, setAddress)}
+              <Field id="address" label="Address (optional)" error={errors.address?.message} {...register('address')} />
             </CardContent>
           </Card>
         )}

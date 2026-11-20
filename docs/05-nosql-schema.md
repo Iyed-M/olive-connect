@@ -338,7 +338,13 @@ Overlap check and insert happen **in the same transaction** as the round creatio
   "status": "AVAILABLE", "plateNumber": "123 TU 4567", "powerHp": 90, "unavailabilities": [] }
 { "_id": ObjectId("..."), "_class": "tn.oliveconnect.resource.Tool", "type": "SHAKER", "code": "VIB-STOCK",
   "status": "AVAILABLE", "toolType": "SHAKER", "stockQuantity": 12, "unavailabilities": [] }
+
+// workers
+{ "_id": ObjectId("..."), "firstName": "Sami", "lastName": "Trabelsi", "cin": "12345678", "phone": "+21620123456",
+  "skills": ["HARVEST", "TRACTOR"], "dailyRate": 45.0, "active": true,
+  "unavailabilities": [ { "from": ISODate("..."), "to": ISODate("..."), "reason": "Leave" } ] }
 ```
+`type` always equals `toolType` for a `Tool` (`NET` or `SHAKER`). `unavailabilities` is append-only in M4 and does not change `status`. Deletion is a hard delete until the bookings of M5 exist.
 Indexes: `{ type: 1, status: 1 }`, `{ code: 1 }` unique. Workers: `{ active: 1, skills: 1 }`, `{ cin: 1 }` unique.
 
 ### 4.8 `mills`, `mill_receptions` (R1, R2 quality, R3, R11 computed, R13 denormalised)

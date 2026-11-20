@@ -201,6 +201,7 @@ classDiagram
         +Set~String~ skills
         +double dailyRate
         +boolean active
+        +List~Unavailability~ unavailabilities
     }
     class Equipment {
         <<abstract>>
@@ -208,6 +209,7 @@ classDiagram
         +String code
         +EquipmentType type
         +EquipmentStatus status
+        +List~Unavailability~ unavailabilities
     }
     class Tractor {
         +String plateNumber
@@ -225,6 +227,24 @@ classDiagram
         +Instant from
         +Instant to
         +String reason
+    }
+    class EquipmentType {
+        <<enumeration>>
+        TRACTOR
+        BIN
+        NET
+        SHAKER
+    }
+    class EquipmentStatus {
+        <<enumeration>>
+        AVAILABLE
+        MAINTENANCE
+        OUT_OF_ORDER
+    }
+    class ToolType {
+        <<enumeration>>
+        NET
+        SHAKER
     }
     class ResourceBooking {
         +String id
