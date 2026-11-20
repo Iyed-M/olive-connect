@@ -28,7 +28,7 @@ Base URL: `/api`. Format: JSON, dates in ISO-8601 UTC, GeoJSON for positions. AP
 | `EMAIL_TAKEN`, `MEMBER_NUMBER_TAKEN` | 409 | duplicate email or member number | M1b |
 | `SELF_LOCKOUT` | 422 | an Admin disables themselves or removes their own ADMIN role | M1b |
 | `TOO_MANY_ATTEMPTS` | 429 | 5 failed logins in 15 min, with `Retry-After` | M1a |
-| `STALE_VERSION` | 409 | optimistic locking conflict | later |
+| `STALE_VERSION` | 409 | optimistic locking conflict (stale `version`) | M1b |
 
 ## 2. Endpoint catalogue
 
@@ -51,12 +51,12 @@ Roles: **PUB** public, **F** farmer, **CM** collection manager, **TL** team lead
 | GET | `/registrations` | AD | list, query `status` (for example `PENDING`) | FR-6.1 |
 | POST | `/registrations/{id}/approve` | AD | approve → creates FARMER | FR-6.1 |
 | POST | `/registrations/{id}/reject` | AD | reject | FR-6.1 |
-| GET | `/users` | AD | list accounts, query `role`, `enabled`, `page`, `size`; sorted by `lastName` → `PageResponse<UserDto>` | FR-6.2 |
-| POST | `/users` | AD | create account (details, roles, Farmer profile, password) → 201 + `Location`, 400 `VALIDATION_FAILED`, 409 `EMAIL_TAKEN` / `MEMBER_NUMBER_TAKEN` | FR-6.2 |
+| GET | `/users` | AD | list Users, query `role`, `enabled`, `page`, `size`; sorted by `lastName` → `PageResponse<UserDto>` | FR-6.2 |
+| POST | `/users` | AD | create User (details, roles, Farmer profile, password) → 201 + `Location`, 400 `VALIDATION_FAILED`, 409 `EMAIL_TAKEN` / `MEMBER_NUMBER_TAKEN` | FR-6.2 |
 | GET | `/users/{id}` | AD | detail → `UserDto`, 404 `NOT_FOUND` | FR-6.2 |
-| PUT | `/users/{id}` | AD | edit account: details, roles and Farmer profile in one call; optional `password` resets it; a new email or a password reset revokes all sessions. 400, 404, 409 `EMAIL_TAKEN` / `MEMBER_NUMBER_TAKEN`, 422 `SELF_LOCKOUT` (removing own ADMIN role) | FR-6.2 |
-| POST | `/users/{id}/enable` | AD | enable account → 204, 404 | FR-6.2 |
-| POST | `/users/{id}/disable` | AD | disable account + revoke sessions → 204, 404, 422 `SELF_LOCKOUT` (own account) | FR-6.2 |
+| PUT | `/users/{id}` | AD | edit User: details, roles and Farmer profile in one call; optional `password` resets it; a new email or a password reset revokes all sessions. 400, 404, 409 `EMAIL_TAKEN` / `MEMBER_NUMBER_TAKEN`, 422 `SELF_LOCKOUT` (removing own ADMIN role) | FR-6.2 |
+| POST | `/users/{id}/enable` | AD | enable User → 204, 404 | FR-6.2 |
+| POST | `/users/{id}/disable` | AD | disable User + revoke sessions → 204, 404, 422 `SELF_LOCKOUT` (own User) | FR-6.2 |
 
 Users are never deleted: disabling replaces deletion, so there is no `DELETE /users/{id}`.
 

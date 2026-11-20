@@ -26,7 +26,7 @@ export type Delegation = keyof typeof DELEGATION_LABEL
 export interface FarmerProfile {
   memberNumber: string
   cin: string
-  delegation: Delegation | ''
+  delegation: Delegation | null
   address: string | null
 }
 

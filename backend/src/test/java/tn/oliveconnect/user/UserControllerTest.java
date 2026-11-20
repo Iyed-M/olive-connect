@@ -93,6 +93,35 @@ class UserControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("T-USR-5 email is trimmed and lowercased before validation")
+    void emailIsNormalizedBeforeValidation() throws Exception {
+        mockMvc.perform(post("/api/users").header("Authorization", adminToken())
+                .contentType(MediaType.APPLICATION_JSON).content(FARMER_JSON.formatted("  Ali@Example.TN ", "M-001")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value("ali@example.tn"));
+    }
+
+    @Test
+    @DisplayName("T-USR-6 blank phone is stored as no phone")
+    void blankPhoneIsTreatedAsNull() throws Exception {
+        mockMvc.perform(post("/api/users").header("Authorization", adminToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(FARMER_JSON.replace("+21612345678", "  ").formatted("ali@example.tn", "M-001")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.phone").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("T-USR-7 missing delegation is reported on farmerProfile.delegation")
+    void nullDelegationIsReportedOnItsField() throws Exception {
+        mockMvc.perform(post("/api/users").header("Authorization", adminToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(FARMER_JSON.replace("\"SFAX_VILLE\"", "null").formatted("ali@example.tn", "M-001")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("farmerProfile.delegation"));
+    }
+
+    @Test
     @DisplayName("T-USR-2 duplicate email returns 409 EMAIL_TAKEN")
     void duplicateEmailIsRejected() throws Exception {
         createFarmer("ali@example.tn", "M-001");
