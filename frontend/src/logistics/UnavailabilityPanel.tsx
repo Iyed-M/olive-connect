@@ -1,12 +1,19 @@
-import { useState, type FormEvent } from 'react'
+import { useForm } from 'react-hook-form'
 import { useMutation } from '@tanstack/react-query'
 import { ApiError } from '@/lib/api'
-import { errorBanner, fieldMessages } from '@/admin/users'
+import { errorBanner, setServerErrors } from '@/admin/users'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toInstant, unavailabilityError, type Unavailability, type UnavailabilityBody } from './resources'
+
+// The values of the inputs: `datetime-local` texts, converted to instants on submit.
+interface UnavailabilityValues {
+  from: string
+  to: string
+  reason: string
+}
 
 const fmt = (iso: string) => new Date(iso).toLocaleString()
 
@@ -21,30 +28,34 @@ export function UnavailabilityPanel({
   add: (body: UnavailabilityBody) => Promise<unknown>
   onAdded: () => Promise<unknown>
 }) {
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
-  const [reason, setReason] = useState('')
-  const [localError, setLocalError] = useState<string | null>(null)
+  const {
+    register,
+    handleSubmit,
+    setError,
+    clearErrors,
+    reset,
+    formState: { errors },
+  } = useForm<UnavailabilityValues>({ defaultValues: { from: '', to: '', reason: '' } })
 
   const save = useMutation({
-    mutationFn: () => add({ from: toInstant(from)!, to: toInstant(to)!, reason: reason.trim() || null }),
+    mutationFn: (v: UnavailabilityValues) =>
+      add({ from: toInstant(v.from)!, to: toInstant(v.to)!, reason: v.reason.trim() || null }),
     onSuccess: async () => {
-      setFrom('')
-      setTo('')
-      setReason('')
+      reset()
       await onAdded()
+    },
+    // 400: each message goes on its field. 422: the banner below.
+    onError: (err) => {
+      if (err instanceof ApiError) setServerErrors(err.errors, setError)
     },
   })
 
-  function onSubmit(e: FormEvent) {
-    e.preventDefault()
-    const error = unavailabilityError(from, to)
-    setLocalError(error)
-    if (!error) save.mutate()
-  }
+  const onSubmit = handleSubmit((values) => {
+    clearErrors()
+    save.mutate(values)
+  })
 
   const apiError = save.error instanceof ApiError ? save.error : null
-  const fields = apiError ? fieldMessages(apiError.errors) : {}
   const banner = save.error ? (apiError ? errorBanner(apiError) : 'Cannot reach the server.') : null
 
   return (
@@ -66,22 +77,36 @@ export function UnavailabilityPanel({
         <form onSubmit={onSubmit} className="flex flex-col gap-3" noValidate>
           <div className="flex flex-col gap-2">
             <Label htmlFor="from">From</Label>
-            <Input id="from" type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} aria-invalid={!!fields.from} />
-            {fields.from && <p className="text-sm text-destructive">{fields.from}</p>}
+            <Input
+              id="from"
+              type="datetime-local"
+              aria-invalid={!!errors.from}
+              {...register('from', { required: 'Choose a start.' })}
+            />
+            {errors.from && <p className="text-sm text-destructive">{errors.from.message}</p>}
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="to">To</Label>
-            <Input id="to" type="datetime-local" value={to} onChange={(e) => setTo(e.target.value)} aria-invalid={!!fields.to} />
-            {fields.to && <p className="text-sm text-destructive">{fields.to}</p>}
+            <Input
+              id="to"
+              type="datetime-local"
+              aria-invalid={!!errors.to}
+              {...register('to', {
+                required: 'Choose an end.',
+                // the end must be after the start (the server checks again, 422)
+                validate: (to, { from }) => (from && unavailabilityError(from, to)) || true,
+              })}
+            />
+            {errors.to && <p className="text-sm text-destructive">{errors.to.message}</p>}
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="reason">Reason (optional)</Label>
-            <Input id="reason" value={reason} onChange={(e) => setReason(e.target.value)} />
-            {fields.reason && <p className="text-sm text-destructive">{fields.reason}</p>}
+            <Input id="reason" aria-invalid={!!errors.reason} {...register('reason')} />
+            {errors.reason && <p className="text-sm text-destructive">{errors.reason.message}</p>}
           </div>
-          {(localError || banner) && (
+          {banner && (
             <p role="alert" className="text-sm text-destructive">
-              {localError ?? banner}
+              {banner}
             </p>
           )}
           <Button type="submit" className="h-11 w-fit" disabled={save.isPending}>

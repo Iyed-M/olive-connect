@@ -1,12 +1,13 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { useNavigate } from '@tanstack/react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '@/lib/api'
-import { errorBanner, fieldMessages } from '@/admin/users'
+import { errorBanner, setServerErrors } from '@/admin/users'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Field, selectClass } from './Field'
+import { Field, selectClass } from '@/components/Field'
 import {
   EQUIPMENT_STATUS_LABEL,
   EQUIPMENT_TYPE_LABEL,
@@ -20,35 +21,63 @@ import {
   type EquipmentWriteBody,
 } from './resources'
 
+// The values of the inputs. Numbers stay text until the request body is built.
+interface EquipmentValues {
+  type: EquipmentType
+  code: string
+  status: EquipmentStatus
+  plateNumber: string
+  powerHp: string
+  serialNumber: string
+  capacityKg: string
+  stockQuantity: string
+}
+
+const numberText = (n: number | null | undefined) => (n != null ? String(n) : '')
+
 // One form for "new" (no `equipment`) and "edit". The kind-specific fields follow the type.
 // The type cannot change on an existing equipment (the server answers 422), so it is read-only on edit.
 export function EquipmentForm({ equipment }: { equipment?: EquipmentDto }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [type, setType] = useState<EquipmentType>(equipment?.type ?? 'TRACTOR')
-  const [code, setCode] = useState(equipment?.code ?? '')
-  const [status, setStatus] = useState<EquipmentStatus>(equipment?.status ?? 'AVAILABLE')
-  const [plateNumber, setPlateNumber] = useState(equipment?.plateNumber ?? '')
-  const [powerHp, setPowerHp] = useState(equipment?.powerHp != null ? String(equipment.powerHp) : '')
-  const [serialNumber, setSerialNumber] = useState(equipment?.serialNumber ?? '')
-  const [capacityKg, setCapacityKg] = useState(equipment?.capacityKg != null ? String(equipment.capacityKg) : '')
-  const [stockQuantity, setStockQuantity] = useState(equipment?.stockQuantity != null ? String(equipment.stockQuantity) : '')
+  const {
+    register,
+    control,
+    handleSubmit,
+    setError,
+    clearErrors,
+    formState: { errors },
+  } = useForm<EquipmentValues>({
+    defaultValues: {
+      type: equipment?.type ?? 'TRACTOR',
+      code: equipment?.code ?? '',
+      status: equipment?.status ?? 'AVAILABLE',
+      plateNumber: equipment?.plateNumber ?? '',
+      powerHp: numberText(equipment?.powerHp),
+      serialNumber: equipment?.serialNumber ?? '',
+      capacityKg: numberText(equipment?.capacityKg),
+      stockQuantity: numberText(equipment?.stockQuantity),
+    },
+  })
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  const type = useWatch({ control, name: 'type' })
   const isTool = type === 'NET' || type === 'SHAKER'
 
   const save = useMutation({
-    mutationFn: () => {
+    mutationFn: (v: EquipmentValues) => {
+      // A disabled select gives no value: on edit the type is the one of the equipment.
+      const kind = equipment?.type ?? v.type
       const body: EquipmentWriteBody = {
-        code,
-        type,
-        status,
-        plateNumber: type === 'TRACTOR' ? plateNumber : null,
-        powerHp: type === 'TRACTOR' ? parseNumber(powerHp) : null,
-        serialNumber: type === 'BIN' ? serialNumber : null,
-        capacityKg: type === 'BIN' ? parseNumber(capacityKg) : null,
-        stockQuantity: isTool ? parseNumber(stockQuantity) : null,
+        code: v.code,
+        type: kind,
+        status: v.status,
+        plateNumber: kind === 'TRACTOR' ? v.plateNumber : null,
+        powerHp: kind === 'TRACTOR' ? parseNumber(v.powerHp) : null,
+        serialNumber: kind === 'BIN' ? v.serialNumber : null,
+        capacityKg: kind === 'BIN' ? parseNumber(v.capacityKg) : null,
+        stockQuantity: kind === 'NET' || kind === 'SHAKER' ? parseNumber(v.stockQuantity) : null,
       }
       return equipment ? updateEquipment(equipment.id, body) : createEquipment(body)
     },
@@ -61,6 +90,10 @@ export function EquipmentForm({ equipment }: { equipment?: EquipmentDto }) {
         await navigate({ to: '/logistics/equipment' })
       }
     },
+    // 400: each message goes on its field. 409 and 422: the banner below.
+    onError: (err) => {
+      if (err instanceof ApiError) setServerErrors(err.errors, setError)
+    },
   })
 
   const remove = useMutation({
@@ -71,15 +104,14 @@ export function EquipmentForm({ equipment }: { equipment?: EquipmentDto }) {
     },
   })
 
-  function onSubmit(e: FormEvent) {
-    e.preventDefault()
+  const onSubmit = handleSubmit((values) => {
     setSaved(false)
-    save.mutate()
-  }
+    clearErrors()
+    save.mutate(values)
+  })
 
   const error = save.error instanceof ApiError ? save.error : null
   const removeError = remove.error instanceof ApiError ? remove.error : null
-  const fields = error ? fieldMessages(error.errors) : {}
   const banner = save.error ? (error ? errorBanner(error) : 'Cannot reach the server.') : null
 
   return (
@@ -90,10 +122,10 @@ export function EquipmentForm({ equipment }: { equipment?: EquipmentDto }) {
             <Label htmlFor="type">Type</Label>
             <select
               id="type"
-              value={type}
               disabled={!!equipment}
-              onChange={(e) => setType(e.target.value as EquipmentType)}
+              aria-invalid={!!errors.type}
               className={selectClass}
+              {...register('type')}
             >
               {(Object.keys(EQUIPMENT_TYPE_LABEL) as EquipmentType[]).map((t) => (
                 <option key={t} value={t}>
@@ -101,37 +133,37 @@ export function EquipmentForm({ equipment }: { equipment?: EquipmentDto }) {
                 </option>
               ))}
             </select>
-            {fields.type && <p className="text-sm text-destructive">{fields.type}</p>}
+            {errors.type && <p className="text-sm text-destructive">{errors.type.message}</p>}
           </div>
-          <Field id="code" label="Code" value={code} onChange={setCode} error={fields.code} />
+          <Field id="code" label="Code" error={errors.code?.message} {...register('code')} />
           <div className="flex flex-col gap-2">
             <Label htmlFor="status">Status</Label>
-            <select id="status" value={status} onChange={(e) => setStatus(e.target.value as EquipmentStatus)} className={selectClass}>
+            <select id="status" aria-invalid={!!errors.status} className={selectClass} {...register('status')}>
               {(Object.keys(EQUIPMENT_STATUS_LABEL) as EquipmentStatus[]).map((s) => (
                 <option key={s} value={s}>
                   {EQUIPMENT_STATUS_LABEL[s]}
                 </option>
               ))}
             </select>
-            {fields.status && <p className="text-sm text-destructive">{fields.status}</p>}
+            {errors.status && <p className="text-sm text-destructive">{errors.status.message}</p>}
           </div>
 
           {type === 'TRACTOR' && (
             <>
-              <Field id="plateNumber" label="Plate number" value={plateNumber} onChange={setPlateNumber} error={fields.plateNumber} />
-              <Field id="powerHp" label="Power (hp)" type="number" value={powerHp} onChange={setPowerHp} error={fields.powerHp} />
+              <Field id="plateNumber" label="Plate number" error={errors.plateNumber?.message} {...register('plateNumber')} />
+              <Field id="powerHp" label="Power (hp)" type="number" error={errors.powerHp?.message} {...register('powerHp')} />
             </>
           )}
           {type === 'BIN' && (
             <>
-              <Field id="serialNumber" label="Serial number" value={serialNumber} onChange={setSerialNumber} error={fields.serialNumber} />
-              <Field id="capacityKg" label="Capacity (kg)" type="number" value={capacityKg} onChange={setCapacityKg} error={fields.capacityKg} />
+              <Field id="serialNumber" label="Serial number" error={errors.serialNumber?.message} {...register('serialNumber')} />
+              <Field id="capacityKg" label="Capacity (kg)" type="number" error={errors.capacityKg?.message} {...register('capacityKg')} />
             </>
           )}
           {isTool && (
             <>
               <p className="text-sm text-muted-foreground">Tool type: {EQUIPMENT_TYPE_LABEL[type]}</p>
-              <Field id="stockQuantity" label="Stock quantity" type="number" value={stockQuantity} onChange={setStockQuantity} error={fields.stockQuantity} />
+              <Field id="stockQuantity" label="Stock quantity" type="number" error={errors.stockQuantity?.message} {...register('stockQuantity')} />
             </>
           )}
         </CardContent>

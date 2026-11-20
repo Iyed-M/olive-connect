@@ -6,7 +6,7 @@ import { RequireRole } from '@/components/RequireRole'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { selectClass } from '@/logistics/Field'
+import { selectClass } from '@/components/Field'
 import { Pager } from '@/logistics/Pager'
 import { listWorkers, type WorkerFilters } from '@/logistics/resources'
 

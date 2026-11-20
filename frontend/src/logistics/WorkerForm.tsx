@@ -1,11 +1,12 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { useNavigate } from '@tanstack/react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '@/lib/api'
-import { errorBanner, fieldMessages } from '@/admin/users'
+import { errorBanner, setServerErrors } from '@/admin/users'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Field } from './Field'
+import { Field } from '@/components/Field'
 import {
   createWorker,
   deleteWorker,
@@ -16,30 +17,51 @@ import {
   type WorkerWriteBody,
 } from './resources'
 
+// The values of the inputs. Numbers and skills stay text until the request body is built.
+interface WorkerValues {
+  firstName: string
+  lastName: string
+  cin: string
+  phone: string
+  skills: string
+  dailyRate: string
+  active: boolean
+}
+
 // One form for "new" (no `worker`) and "edit".
 export function WorkerForm({ worker }: { worker?: WorkerDto }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [firstName, setFirstName] = useState(worker?.firstName ?? '')
-  const [lastName, setLastName] = useState(worker?.lastName ?? '')
-  const [cin, setCin] = useState(worker?.cin ?? '')
-  const [phone, setPhone] = useState(worker?.phone ?? '')
-  const [skills, setSkills] = useState(worker?.skills.join(', ') ?? '')
-  const [dailyRate, setDailyRate] = useState(worker ? String(worker.dailyRate) : '')
-  const [active, setActive] = useState(worker?.active ?? true)
+  const {
+    register,
+    handleSubmit,
+    setError,
+    clearErrors,
+    formState: { errors },
+  } = useForm<WorkerValues>({
+    defaultValues: {
+      firstName: worker?.firstName ?? '',
+      lastName: worker?.lastName ?? '',
+      cin: worker?.cin ?? '',
+      phone: worker?.phone ?? '',
+      skills: worker?.skills.join(', ') ?? '',
+      dailyRate: worker ? String(worker.dailyRate) : '',
+      active: worker?.active ?? true,
+    },
+  })
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [saved, setSaved] = useState(false)
 
   const save = useMutation({
-    mutationFn: () => {
+    mutationFn: (v: WorkerValues) => {
       const body: WorkerWriteBody = {
-        firstName,
-        lastName,
-        cin,
-        phone: phone.trim() || null,
-        skills: parseSkills(skills),
-        dailyRate: parseNumber(dailyRate),
-        active,
+        firstName: v.firstName,
+        lastName: v.lastName,
+        cin: v.cin,
+        phone: v.phone.trim() || null,
+        skills: parseSkills(v.skills),
+        dailyRate: parseNumber(v.dailyRate),
+        active: v.active,
       }
       return worker ? updateWorker(worker.id, body) : createWorker(body)
     },
@@ -52,6 +74,10 @@ export function WorkerForm({ worker }: { worker?: WorkerDto }) {
         await navigate({ to: '/logistics/workers' })
       }
     },
+    // 400: each message goes on its field. 409 and 422: the banner below.
+    onError: (err) => {
+      if (err instanceof ApiError) setServerErrors(err.errors, setError)
+    },
   })
 
   const remove = useMutation({
@@ -62,29 +88,28 @@ export function WorkerForm({ worker }: { worker?: WorkerDto }) {
     },
   })
 
-  function onSubmit(e: FormEvent) {
-    e.preventDefault()
+  const onSubmit = handleSubmit((values) => {
     setSaved(false)
-    save.mutate()
-  }
+    clearErrors()
+    save.mutate(values)
+  })
 
   const error = save.error instanceof ApiError ? save.error : null
   const removeError = remove.error instanceof ApiError ? remove.error : null
-  const fields = error ? fieldMessages(error.errors) : {}
   const banner = save.error ? (error ? errorBanner(error) : 'Cannot reach the server.') : null
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
       <Card>
         <CardContent className="flex flex-col gap-4">
-          <Field id="firstName" label="First name" value={firstName} onChange={setFirstName} error={fields.firstName} />
-          <Field id="lastName" label="Last name" value={lastName} onChange={setLastName} error={fields.lastName} />
-          <Field id="cin" label="CIN" value={cin} onChange={setCin} error={fields.cin} hint="8 digits" />
-          <Field id="phone" label="Phone (optional)" type="tel" value={phone} onChange={setPhone} error={fields.phone} hint="+216 followed by 8 digits" />
-          <Field id="skills" label="Skills" value={skills} onChange={setSkills} error={fields.skills} hint="Separated by commas, for example picking, driving" />
-          <Field id="dailyRate" label="Daily rate (TND)" type="number" value={dailyRate} onChange={setDailyRate} error={fields.dailyRate} />
+          <Field id="firstName" label="First name" error={errors.firstName?.message} {...register('firstName')} />
+          <Field id="lastName" label="Last name" error={errors.lastName?.message} {...register('lastName')} />
+          <Field id="cin" label="CIN" hint="8 digits" error={errors.cin?.message} {...register('cin')} />
+          <Field id="phone" label="Phone (optional)" type="tel" hint="+216 followed by 8 digits" error={errors.phone?.message} {...register('phone')} />
+          <Field id="skills" label="Skills" hint="Separated by commas, for example picking, driving" error={errors.skills?.message} {...register('skills')} />
+          <Field id="dailyRate" label="Daily rate (TND)" type="number" error={errors.dailyRate?.message} {...register('dailyRate')} />
           <label className="flex min-h-11 items-center gap-3 text-sm">
-            <input type="checkbox" className="size-5" checked={active} onChange={(e) => setActive(e.target.checked)} />
+            <input type="checkbox" className="size-5" {...register('active')} />
             Active
           </label>
         </CardContent>
