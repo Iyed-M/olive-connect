@@ -26,9 +26,10 @@ public class MapController {
             @RequestParam(required = false) Integer zoom,
             @RequestParam(required = false) String variety,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String delegation,
             @RequestParam(required = false) Double maturityMin,
             @RequestParam(required = false) Double maturityMax) {
-        String json = mapService.publicMap(bbox, zoom, variety, status, maturityMin, maturityMax);
+        String json = mapService.publicMap(bbox, zoom, variety, status, delegation, maturityMin, maturityMax);
         return ResponseEntity.ok().cacheControl(CacheControl.maxAge(Duration.ofSeconds(60)).cachePublic()).body(json);
     }
 }
