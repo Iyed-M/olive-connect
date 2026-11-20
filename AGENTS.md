@@ -14,6 +14,11 @@ The design docs (`docs/01–11`) and their Mermaid diagrams are graded deliverab
 
 ## Agent skills
 
+Shared skills live in `.agents/skills/` (read by Codex) and are symlinked into `.claude/skills/` (read by Claude Code). Edit them only in `.agents/skills/`.
+
+- `implement-spec <milestone>` (e.g. `implement-spec M2`): implements a whole milestone as one PR, using parallel `implement` subagents in git worktrees.
+- `implement`, `tdd`, `code-review`, `check-docs`, `resolving-merge-conflicts`, `diagnosing-bugs`, `domain-modeling`: used by `implement-spec`; they can also be run on their own.
+
 ### Issue tracker
 
 Issues live in the project's GitHub repo (via the `gh` CLI). See `docs/agents/issue-tracker.md`.

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Implement Spec"
+  short_description: "Implement a milestone (e.g. M2) as one PR with subagents"
+policy:
+  allow_implicit_invocation: false
