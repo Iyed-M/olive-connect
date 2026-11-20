@@ -36,7 +36,9 @@ Base URL: `/api`. Format: JSON, dates in ISO-8601 UTC, GeoJSON for positions. AP
 | `ACTIVE_REQUEST_EXISTS` | 409 | an orchard already has an active harvest request | M3 |
 | `INVALID_TRANSITION` | 409 | the requested HarvestRequest state transition is not allowed | M3 |
 | `BOOKING_CONFLICT` | 409 | a team leader, worker or equipment item is already booked for the requested slot | M5 |
-| `ROUND_NOT_PLANNED`, `ROUND_STARTED` | 409 | a planned round cannot be edited, or a started round cannot be cancelled | M5 |
+| `ROUND_NOT_PLANNED`, `ROUND_STARTED` | 409 | a round action requires `PLANNED`, or a started round cannot be cancelled | M5–M6 |
+| `ROUND_NOT_TODAY`, `ROUND_NOT_IN_PROGRESS` | 409 | a team leader can start only on the round date, or can update/complete only an in-progress round | M6 |
+| `STOPS_PENDING` | 422 | a round cannot be completed while a stop is still `PENDING` or `IN_PROGRESS` | M6 |
 | `REQUEST_OUTSIDE_WINDOW` | 422 | a round date is outside a selected request's desired harvest window | M5 |
 | `ROUND_EMPTY`, `ROUND_TOO_MANY_STOPS` | 422 | a round has no stops or exceeds the 15-stop bound | M5 |
 | `DUPLICATE_REQUEST`, `DUPLICATE_RESOURCE` | 422 | the same request or resource was selected more than once | M5 |
@@ -117,9 +119,9 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 | GET | `/rounds/{id}` | CM, TL own | detail | FR-1.5 |
 | PUT | `/rounds/{id}` | CM (PLANNED only) | modify stops/resources | FR-1.5 |
 | POST | `/rounds/{id}/cancel` | CM | cancel + release bookings | — |
-| POST | `/rounds/{id}/start` | TL own | start round | FR-1.7 |
-| POST | `/rounds/{id}/complete` | TL own | complete round | FR-1.7 |
-| PATCH | `/rounds/{id}/stops/{order}` | TL own | update stop (status, kg, crates) | FR-1.7 |
+| POST | `/rounds/{id}/start` | TL own | start on the round date; cascades requests/orchards to `IN_PROGRESS`, 403/409 `ROUND_NOT_TODAY` | FR-1.7 |
+| POST | `/rounds/{id}/complete` | TL own | complete when every stop is `DONE` or `SKIPPED`; 422 `STOPS_PENDING` otherwise | FR-1.7 |
+| PATCH | `/rounds/{id}/stops/{order}` | TL own | positional update of stop status, kg, crates and skip reason; optimistic `version` is optional | FR-1.7 |
 
 ### Resources (F3)
 | Method | Path | Roles | Description | FR |
@@ -209,6 +211,10 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
   "status": "PLANNED", "teamLeaderId": "665f…", "millId": "66a0…", "workerIds": ["6680…"],
   "equipmentIds": ["6690…"], "stops": [ … ], "estimatedTotalKg": 9000, "totalHarvestedKg": 0,
   "history": [ … ], "season": "2026-2027", "version": 0, "warnings": [] }
+
+// PATCH /api/rounds/{id}/stops/{order} — RoundStopUpdateDto
+{ "status": "DONE", "harvestedKg": 3200, "crateCount": 80, "version": 2 }
+// or: { "status": "SKIPPED", "comment": "Orchard inaccessible", "version": 2 }
 
 // PUT /api/rounds/{id} — same fields are optional; version is used for optimistic locking
 { "startTime": "07:30", "endTime": "15:30", "requestIds": ["6671…"], "version": 0 }

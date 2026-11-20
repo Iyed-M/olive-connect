@@ -113,6 +113,12 @@ low-capacity mill as a visible warning, while booking conflicts and stale edits 
 errors. Team leaders use `/rounds/mine` to inspect their assigned rounds and ordered stops; field
 execution controls remain reserved for M6.
 
+M6 makes `/rounds/:id/run` real for team leaders. The mobile runner starts the round on its
+scheduled date, opens turn-by-turn navigation for each stop, records harvested kilograms and
+crates, or records a skip reason, then closes the round. Stop drafts and failed mutations are kept
+in IndexedDB in FIFO order and retried when the browser reports that the network is back; the
+runner always shows the offline and pending-sync state at the 360 px baseline.
+
 ```mermaid
 flowchart TB
     START(["/"]) --> PUB[Public map /]
@@ -189,6 +195,9 @@ flowchart TB
 │ ○ Saved offline – will sync│
 └──────────────────────────┘
 ```
+
+The runner first records `IN_PROGRESS` when the team arrives, so the documented
+`PENDING → IN_PROGRESS → DONE` stop transition remains explicit. `SKIPPED` requires a reason.
 
 **Collection manager — planning board (desktop)**: left pane = validated requests sorted by priority (badges URGENT / maturity), centre = map with the selected requests and suggested groups, right pane = round form (date, team leader, resources with free/busy indicators, mill with available capacity).
 
