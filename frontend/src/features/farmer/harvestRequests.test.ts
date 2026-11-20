@@ -45,6 +45,7 @@ describe('dateRangeError', () => {
   it('rejects dates in the past and accepts a current range', () => {
     expect(dateRangeError('2026-11-19', '2026-11-21', '2026-11-20')).toMatch(/past/i)
     expect(dateRangeError('2026-11-24', '2026-11-27', '2026-11-20')).toBeNull()
+    expect(dateRangeError('2026-11-20', '2026-11-20', '2026-11-20')).toBeNull()
   })
 })
 
@@ -62,7 +63,7 @@ describe('requestErrorMessage', () => {
   })
 
   it('keeps the server detail for duplicate and general conflicts', () => {
-    expect(requestErrorMessage(new ApiError(409, 'DUPLICATE_ACTIVE_REQUEST', 'already open'))).toBe('already open')
+    expect(requestErrorMessage(new ApiError(409, 'ACTIVE_REQUEST_EXISTS', 'already open'))).toBe('already open')
     expect(requestErrorMessage(new ApiError(500, 'INTERNAL_ERROR', 'try later'))).toBe('try later')
   })
 })

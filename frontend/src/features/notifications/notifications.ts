@@ -40,6 +40,14 @@ export function unreadCount(notifications: Notification[]): number {
   return notifications.filter((notification) => !notification.read).length
 }
 
+/** Convert the API resource link into the role-aware page that can open it in the SPA. */
+export function notificationPath(notification: Pick<Notification, 'type' | 'link'>): string | null {
+  if (!notification.link) return null
+  const requestId = /^\/harvest-requests\/([^/]+)$/.exec(notification.link)?.[1]
+  if (!requestId) return notification.link
+  return notification.type === 'NEW_REQUEST' ? '/collection/requests' : `/farmer/requests/${requestId}`
+}
+
 export const NOTIFICATION_TYPE_LABEL: Record<NotificationType, string> = {
   NEW_REQUEST: 'New harvest request',
   REQUEST_VALIDATED: 'Request validated',

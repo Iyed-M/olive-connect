@@ -8,6 +8,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
   NOTIFICATION_TYPE_LABEL,
+  notificationPath,
   unreadCount,
   type Notification,
 } from './notifications'
@@ -60,6 +61,7 @@ function NotificationItem({ notification }: { notification: Notification }) {
     },
   })
   const typeLabel = NOTIFICATION_TYPE_LABEL[notification.type] ?? 'Notification'
+  const relatedPath = notificationPath(notification)
 
   return (
     <Card className={notification.read ? 'opacity-75' : 'ring-2 ring-primary/20'}>
@@ -71,7 +73,7 @@ function NotificationItem({ notification }: { notification: Notification }) {
             <h2 className="font-heading text-lg font-semibold">{notification.title}</h2>
             <p className="text-sm">{notification.message}</p>
             <time dateTime={notification.createdAt} className="text-xs text-muted-foreground">{formatDate(notification.createdAt)}</time>
-            {notification.link && <a href={notification.link} className="mt-2 block text-sm text-primary underline">Open related page</a>}
+            {relatedPath && <a href={relatedPath} className="mt-2 block text-sm text-primary underline">Open related page</a>}
           </div>
         </div>
         {!notification.read && <Button variant="outline" size="sm" onClick={() => read.mutate()} disabled={read.isPending}>{read.isPending ? 'Saving...' : 'Mark read'}</Button>}

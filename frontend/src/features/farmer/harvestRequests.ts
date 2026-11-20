@@ -129,7 +129,7 @@ export function estimateForOrchard(orchard: Pick<Orchard, 'areaHa' | 'lastSeason
 export function dateRangeError(from: string, to: string, today = localDate(new Date())): string | null {
   if (!from || !to) return 'Choose a start and an end date.'
   if (from < today) return 'Harvest dates cannot be in the past.'
-  if (to <= from) return 'The end date must be after the start date.'
+  if (to < from) return 'The end date must be after the start date.'
   return null
 }
 

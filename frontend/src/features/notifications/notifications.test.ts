@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { unreadCount, normalizeNotifications, type Notification } from './notifications'
+import { notificationPath, unreadCount, normalizeNotifications, type Notification } from './notifications'
 
 const notification = (id: string, read: boolean): Notification => ({
   id,
@@ -22,5 +22,13 @@ describe('normalizeNotifications', () => {
 describe('unreadCount', () => {
   it('counts only unread notifications', () => {
     expect(unreadCount([notification('1', false), notification('2', true), notification('3', false)])).toBe(2)
+  })
+})
+
+describe('notificationPath', () => {
+  it('maps API request links to the appropriate SPA page', () => {
+    expect(notificationPath({ type: 'NEW_REQUEST', link: '/harvest-requests/abc' })).toBe('/collection/requests')
+    expect(notificationPath({ type: 'REQUEST_VALIDATED', link: '/harvest-requests/abc' })).toBe('/farmer/requests/abc')
+    expect(notificationPath({ type: 'REQUEST_REJECTED', link: null })).toBeNull()
   })
 })
