@@ -1,6 +1,7 @@
 import { api } from '@/lib/api'
 
 export type NotificationType = 'NEW_REQUEST' | 'REQUEST_VALIDATED' | 'REQUEST_REJECTED'
+export const NOTIFICATION_POLL_INTERVAL_MS = 30_000
 
 export interface Notification {
   id: string
@@ -49,7 +50,7 @@ export function notificationPath(notification: Pick<Notification, 'type' | 'link
 }
 
 export const NOTIFICATION_TYPE_LABEL: Record<NotificationType, string> = {
-  NEW_REQUEST: 'New harvest request',
-  REQUEST_VALIDATED: 'Request validated',
-  REQUEST_REJECTED: 'Request rejected',
+  NEW_REQUEST: 'Nouvelle demande de récolte',
+  REQUEST_VALIDATED: 'Demande validée',
+  REQUEST_REJECTED: 'Demande refusée',
 }

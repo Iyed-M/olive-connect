@@ -21,17 +21,17 @@ export function CancelRequestButton({ request }: { request: HarvestRequest }) {
   if (confirming) {
     return (
       <div className="flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3">
-        <p className="text-sm">Cancel this harvest request?</p>
+        <p className="text-sm">Annuler cette demande de récolte ?</p>
         <div className="flex flex-wrap gap-2">
-          <Button variant="destructive" size="sm" disabled={mutation.isPending} onClick={() => mutation.mutate()}>
-            {mutation.isPending ? 'Cancelling...' : 'Yes, cancel'}
+          <Button variant="destructive" disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+            {mutation.isPending ? 'Annulation…' : 'Oui, annuler'}
           </Button>
-          <Button variant="outline" size="sm" disabled={mutation.isPending} onClick={() => setConfirming(false)}>Keep request</Button>
+          <Button variant="outline" disabled={mutation.isPending} onClick={() => setConfirming(false)}>Conserver la demande</Button>
         </div>
         {error && <p role="alert" className="text-sm text-destructive">{requestErrorMessage(error)}</p>}
       </div>
     )
   }
 
-  return <Button variant="destructive" size="sm" onClick={() => setConfirming(true)}>Cancel request</Button>
+  return <Button variant="destructive" onClick={() => setConfirming(true)}>Annuler la demande</Button>
 }

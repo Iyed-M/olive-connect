@@ -2,10 +2,10 @@ import type { StatusChange } from '@/features/farmer/harvestRequests'
 import { HARVEST_STATUS_LABEL } from './StatusBadge'
 
 export function Timeline({ history }: { history: StatusChange[] }) {
-  if (history.length === 0) return <p className="text-sm text-muted-foreground">No status history yet.</p>
+  if (history.length === 0) return <p className="text-sm text-muted-foreground">Aucun historique de statut pour le moment.</p>
 
   return (
-    <ol aria-label="Status timeline" className="flex flex-col gap-3 border-l-2 border-secondary pl-4">
+    <ol aria-label="Historique des statuts" className="flex flex-col gap-3 border-l-2 border-secondary pl-4">
       {history.map((change, index) => (
         <li key={`${change.at}-${change.to}-${index}`} className="relative flex flex-col gap-0.5">
           <span className="absolute -left-[1.4rem] top-1 size-2 rounded-full bg-primary" aria-hidden />

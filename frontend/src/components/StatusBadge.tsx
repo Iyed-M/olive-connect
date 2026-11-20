@@ -2,13 +2,13 @@ import { Badge } from '@/components/ui/badge'
 import type { HarvestRequestStatus } from '@/features/farmer/harvestRequests'
 
 export const HARVEST_STATUS_LABEL: Record<HarvestRequestStatus, string> = {
-  SUBMITTED: 'Submitted',
-  VALIDATED: 'Validated',
-  REJECTED: 'Rejected',
-  SCHEDULED: 'Scheduled',
-  IN_PROGRESS: 'In progress',
-  COMPLETED: 'Completed',
-  CANCELLED: 'Cancelled',
+  SUBMITTED: 'Soumise',
+  VALIDATED: 'Validée',
+  REJECTED: 'Refusée',
+  SCHEDULED: 'Planifiée',
+  IN_PROGRESS: 'En cours',
+  COMPLETED: 'Terminée',
+  CANCELLED: 'Annulée',
 }
 
 export function StatusBadge({ status }: { status: HarvestRequestStatus }) {

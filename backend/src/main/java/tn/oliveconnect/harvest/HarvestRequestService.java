@@ -2,22 +2,36 @@ package tn.oliveconnect.harvest;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import tn.oliveconnect.common.ConflictException;
 import tn.oliveconnect.common.FieldValidationException;
 import tn.oliveconnect.common.NotFoundException;
+import tn.oliveconnect.common.PageResponse;
 import tn.oliveconnect.notification.NotificationService;
 import tn.oliveconnect.notification.NotificationType;
 import tn.oliveconnect.orchard.GeoPoint;
+import tn.oliveconnect.orchard.OliveVariety;
+import tn.oliveconnect.orchard.OliveVarietyRepository;
 import tn.oliveconnect.orchard.Orchard;
 import tn.oliveconnect.orchard.OrchardRepository;
 import tn.oliveconnect.user.Role;
 
 @Service
+@Transactional
 public class HarvestRequestService {
 
     private static final Set<HarvestRequestStatus> ACTIVE_STATUSES = Set.of(
@@ -28,13 +42,18 @@ public class HarvestRequestService {
 
     private final HarvestRequestRepository harvestRequestRepository;
     private final OrchardRepository orchardRepository;
+    private final OliveVarietyRepository oliveVarietyRepository;
+    private final MongoTemplate mongoTemplate;
     private final NotificationService notificationService;
     private final PriorityCalculator priorityCalculator;
 
     public HarvestRequestService(HarvestRequestRepository harvestRequestRepository, OrchardRepository orchardRepository,
+                                 OliveVarietyRepository oliveVarietyRepository, MongoTemplate mongoTemplate,
                                  NotificationService notificationService, PriorityCalculator priorityCalculator) {
         this.harvestRequestRepository = harvestRequestRepository;
         this.orchardRepository = orchardRepository;
+        this.oliveVarietyRepository = oliveVarietyRepository;
+        this.mongoTemplate = mongoTemplate;
         this.notificationService = notificationService;
         this.priorityCalculator = priorityCalculator;
     }
@@ -58,35 +77,42 @@ public class HarvestRequestService {
         request.setEstimatedQuantityKg(dto.estimatedQuantityKg());
         request.setComment(dto.comment());
         request.setSeason(seasonFor(dto.desiredFrom()));
-        request.setPriorityScore(priorityCalculator.calculate(dto.type(), orchard.getCurrentMaturityIndex(),
-                dto.desiredFrom()));
+        request.setPriorityScore(priorityFor(dto.type(), orchard, null));
         request.transitionTo(HarvestRequestStatus.SUBMITTED, farmerId, null);
 
         HarvestRequest saved = harvestRequestRepository.save(request);
-        notificationService.notifyCollectionManagers(NotificationType.NEW_REQUEST, "New harvest request",
-                "A farmer submitted a new harvest request for " + orchard.getName(), linkFor(saved));
+        notificationService.notifyCollectionManagers(NotificationType.NEW_REQUEST, "Nouvelle demande de récolte",
+                "Un agriculteur a soumis une demande de récolte pour " + orchard.getName(), linkFor(saved));
         return toDto(saved, authentication);
     }
 
-    public List<HarvestRequestDto> list(Authentication authentication, HarvestRequestStatus status,
-                                        HarvestType type, Boolean mine) {
+    @Transactional(readOnly = true)
+    public PageResponse<HarvestRequestDto> list(Authentication authentication, HarvestRequestStatus status,
+                                                HarvestType type, Boolean mine, int page, int size) {
         boolean manager = hasRole(authentication, Role.COLLECTION_MANAGER);
         boolean own = !manager || Boolean.TRUE.equals(mine);
-        List<HarvestRequest> requests;
+        Sort sort = own
+                ? Sort.by(Sort.Direction.DESC, "createdAt")
+                : Sort.by(Sort.Direction.DESC, "priorityScore")
+                        .and(Sort.by(Sort.Direction.ASC, "createdAt"));
+        PageRequest pageable = PageRequest.of(page, size, sort);
+        Query filter = new Query();
         if (own) {
-            requests = harvestRequestRepository.findByFarmerIdOrderByCreatedAtDesc(authentication.getName());
-        } else if (status == null) {
-            requests = harvestRequestRepository.findAllByOrderByPriorityScoreDescCreatedAtAsc();
-        } else {
-            requests = harvestRequestRepository.findByStatusOrderByPriorityScoreDescCreatedAtAsc(status);
+            filter.addCriteria(Criteria.where("farmerId").is(authentication.getName()));
         }
-        return requests.stream()
-                .filter(request -> status == null || request.getStatus() == status)
-                .filter(request -> type == null || request.getType() == type)
-                .map(request -> toDto(request, authentication))
-                .toList();
+        if (status != null) {
+            filter.addCriteria(Criteria.where("status").is(status));
+        }
+        if (type != null) {
+            filter.addCriteria(Criteria.where("type").is(type));
+        }
+        List<HarvestRequest> requests = mongoTemplate.find(Query.of(filter).with(pageable), HarvestRequest.class);
+        Page<HarvestRequest> result = PageableExecutionUtils.getPage(requests, pageable,
+                () -> mongoTemplate.count(Query.of(filter).limit(-1).skip(-1), HarvestRequest.class));
+        return PageResponse.of(result, request -> toDto(request, authentication));
     }
 
+    @Transactional(readOnly = true)
     public HarvestRequestDto get(String id, Authentication authentication) {
         return toDto(findVisible(id, authentication), authentication);
     }
@@ -123,7 +149,7 @@ public class HarvestRequestService {
             request.setComment(dto.comment());
         }
         request.setSeason(seasonFor(desiredFrom));
-        request.setPriorityScore(priorityCalculator.calculate(type, orchard.getCurrentMaturityIndex(), desiredFrom));
+        request.setPriorityScore(priorityFor(type, orchard, request.getCreatedAt()));
         return toDto(harvestRequestRepository.save(request), authentication);
     }
 
@@ -152,7 +178,7 @@ public class HarvestRequestService {
         request.setValidatedAt(Instant.now());
         HarvestRequest saved = harvestRequestRepository.save(request);
         notificationService.notifyUser(saved.getFarmerId(), NotificationType.REQUEST_VALIDATED,
-                "Harvest request validated", "Your harvest request was validated", linkFor(saved));
+                "Demande validée", "Votre demande de récolte a été validée", linkFor(saved));
         return toDto(saved, authentication);
     }
 
@@ -170,7 +196,7 @@ public class HarvestRequestService {
         request.transitionTo(HarvestRequestStatus.REJECTED, authentication.getName(), dto.reason());
         HarvestRequest saved = harvestRequestRepository.save(request);
         notificationService.notifyUser(saved.getFarmerId(), NotificationType.REQUEST_REJECTED,
-                "Harvest request rejected", dto.reason(), linkFor(saved));
+                "Demande refusée", dto.reason(), linkFor(saved));
         return toDto(saved, authentication);
     }
 
@@ -268,6 +294,19 @@ public class HarvestRequestService {
 
     private String linkFor(HarvestRequest request) {
         return "/harvest-requests/" + request.getId();
+    }
+
+    private double priorityFor(HarvestType type, Orchard orchard, Instant createdAt) {
+        OliveVariety variety = orchard.getMainVarietyCode() == null ? null
+                : oliveVarietyRepository.findById(orchard.getMainVarietyCode()).orElse(null);
+        double optimalMin = variety == null ? 0.0 : variety.getOptimalMaturityMin();
+        double optimalMax = variety == null ? 0.0 : variety.getOptimalMaturityMax();
+        long waitingDays = createdAt == null ? 0
+                : Math.max(0, ChronoUnit.DAYS.between(createdAt.atZone(ZoneOffset.UTC).toLocalDate(),
+                        LocalDate.now(ZoneOffset.UTC)));
+        // M3 has no FieldAlert aggregate yet, so the alert term is deliberately false until M8.
+        return priorityCalculator.calculate(type, orchard.getCurrentMaturityIndex(), optimalMin, optimalMax,
+                waitingDays, false);
     }
 
     private boolean hasRole(Authentication authentication, Role role) {

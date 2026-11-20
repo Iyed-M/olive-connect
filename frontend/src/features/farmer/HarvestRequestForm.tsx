@@ -24,7 +24,7 @@ interface HarvestRequestFormValues {
   type: HarvestType
   desiredFrom: string
   desiredTo: string
-  estimatedQuantityKg: number | undefined
+  estimatedQuantityKg: string
   comment: string
 }
 
@@ -48,7 +48,7 @@ export function HarvestRequestForm({ request, onSaved }: { request?: HarvestRequ
       type: request?.type ?? 'PLANNED',
       desiredFrom: request?.desiredFrom ?? initialDates.from,
       desiredTo: request?.desiredTo ?? initialDates.to,
-      estimatedQuantityKg: request?.estimatedQuantityKg,
+      estimatedQuantityKg: request ? String(request.estimatedQuantityKg) : '',
       comment: request?.comment ?? '',
     },
   })
@@ -62,22 +62,23 @@ export function HarvestRequestForm({ request, onSaved }: { request?: HarvestRequ
     if (request || !orchards.data?.length || getValues('orchardId')) return
     const firstOrchard = orchards.data[0]
     setValue('orchardId', firstOrchard.id)
-    setValue('estimatedQuantityKg', estimateForOrchard(firstOrchard))
+    setValue('estimatedQuantityKg', String(estimateForOrchard(firstOrchard)))
   }, [getValues, orchards.data, request, setValue])
 
   useEffect(() => {
     if (request || !selectedOrchard) return
-    setValue('estimatedQuantityKg', estimateForOrchard(selectedOrchard), { shouldDirty: false })
+    setValue('estimatedQuantityKg', String(estimateForOrchard(selectedOrchard)), { shouldDirty: false })
   }, [request, selectedOrchard, setValue])
 
   const mutation = useMutation({
     mutationFn: (values: HarvestRequestFormValues) => {
+      const estimatedQuantityKg = parseEstimatedQuantity(values.estimatedQuantityKg)
       const body: HarvestRequestWriteBody = {
         orchardId: values.orchardId,
         type: values.type,
         desiredFrom: values.desiredFrom,
         desiredTo: values.desiredTo,
-        estimatedQuantityKg: values.estimatedQuantityKg ?? null,
+        estimatedQuantityKg,
         comment: values.comment.trim() || null,
         ...(request ? { version: request.version } : {}),
       }
@@ -111,76 +112,79 @@ export function HarvestRequestForm({ request, onSaved }: { request?: HarvestRequ
     <form onSubmit={handleSubmit(save)} className="flex flex-col gap-4" noValidate>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-primary">{request ? 'Edit harvest request' : 'Declare a harvest'}</h1>
-          <p className="text-sm text-muted-foreground">Give the collection team the dates and quantity to plan.</p>
+          <h1 className="font-heading text-2xl font-bold text-primary">{request ? 'Modifier la demande de récolte' : 'Déclarer une récolte'}</h1>
+          <p className="text-sm text-muted-foreground">Indiquez les dates et la quantité pour aider l’équipe de collecte à planifier.</p>
         </div>
-        <Link to="/farmer/requests" className="shrink-0 text-sm text-primary underline">Back</Link>
+        <Link to="/farmer/requests" className="inline-flex min-h-11 shrink-0 items-center text-sm text-primary underline">Retour</Link>
       </div>
 
       {banner && <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{banner}</p>}
-      {orchards.isError && !request && <p role="alert" className="text-sm text-destructive">Could not load your orchards. Try again before declaring a harvest.</p>}
+      {orchards.isError && !request && <p role="alert" className="text-sm text-destructive">Impossible de charger vos vergers. Réessayez avant de déclarer une récolte.</p>}
 
       <Card>
-        <CardHeader><CardTitle>Harvest details</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Détails de la récolte</CardTitle></CardHeader>
         <CardContent className="flex flex-col gap-4">
           {request ? (
             <div className="flex flex-col gap-2">
-              <Label>Orchard</Label>
+              <Label>Verger</Label>
               <p className="rounded-lg border bg-muted/40 px-3 py-2 text-sm">{request.orchard.name} · {displayDelegation(request.orchard.delegation)}</p>
-              <p className="text-xs text-muted-foreground">The orchard cannot be changed after a request is declared.</p>
+              <p className="text-xs text-muted-foreground">Le verger ne peut plus être changé après la déclaration.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              <Label htmlFor="orchardId">Orchard</Label>
+              <Label htmlFor="orchardId">Verger</Label>
               <select
                 id="orchardId"
                 className={selectClass}
                 disabled={orchards.isPending || !orchards.data?.length}
                 aria-invalid={!!errors.orchardId}
-                {...register('orchardId', { required: 'Choose an orchard.' })}
+                {...register('orchardId', { required: 'Choisissez un verger.' })}
               >
-                <option value="">{orchards.isPending ? 'Loading orchards...' : 'Choose an orchard'}</option>
+                <option value="">{orchards.isPending ? 'Chargement des vergers…' : 'Choisissez un verger'}</option>
                 {(orchards.data ?? []).map((orchard) => <option key={orchard.id} value={orchard.id}>{orchard.name}</option>)}
               </select>
               {errors.orchardId?.message && <p className="text-sm text-destructive">{errors.orchardId.message}</p>}
-              {orchards.data?.length === 0 && <p className="text-sm text-muted-foreground">Add an orchard before declaring a harvest.</p>}
+              {orchards.data?.length === 0 && <p className="text-sm text-muted-foreground">Ajoutez un verger avant de déclarer une récolte.</p>}
             </div>
           )}
 
           <fieldset className="flex flex-col gap-2">
-            <legend className="text-sm font-medium">Request type</legend>
+            <legend className="text-sm font-medium">Type de demande</legend>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <label className="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm">
-                <input type="radio" value="PLANNED" {...register('type', { required: true })} />
-                Planned
-              </label>
-              <label className="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm">
-                <input type="radio" value="URGENT" {...register('type', { required: true })} />
-                Urgent
-              </label>
+              <Label htmlFor="type-planned" className="min-h-11 rounded-lg border px-3 text-sm">
+                <input id="type-planned" type="radio" value="PLANNED" aria-invalid={!!errors.type}
+                  {...register('type', { required: 'Choisissez un type de demande.' })} />
+                Planifiée
+              </Label>
+              <Label htmlFor="type-urgent" className="min-h-11 rounded-lg border px-3 text-sm">
+                <input id="type-urgent" type="radio" value="URGENT" aria-invalid={!!errors.type}
+                  {...register('type', { required: 'Choisissez un type de demande.' })} />
+                Urgente
+              </Label>
             </div>
+            {errors.type?.message && <p className="text-sm text-destructive">{errors.type.message}</p>}
           </fieldset>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field
               id="desiredFrom"
-              label="Earliest date"
+              label="Date la plus proche"
               type="date"
               min={today}
               error={errors.desiredFrom?.message}
               {...register('desiredFrom', {
-                required: 'Choose the earliest date.',
+                required: 'Choisissez la date la plus proche.',
                 validate: (value) => dateRangeError(value, desiredTo, today) ?? true,
               })}
             />
             <Field
               id="desiredTo"
-              label="Latest date"
+              label="Date la plus tardive"
               type="date"
               min={today}
               error={errors.desiredTo?.message}
               {...register('desiredTo', {
-                required: 'Choose the latest date.',
+                required: 'Choisissez la date la plus tardive.',
                 validate: (value) => dateRangeError(desiredFrom, value, today) ?? true,
               })}
             />
@@ -189,21 +193,18 @@ export function HarvestRequestForm({ request, onSaved }: { request?: HarvestRequ
 
           <Field
             id="estimatedQuantityKg"
-            label="Estimated quantity (kg)"
-            type="number"
-            min="1"
-            step="1"
-            hint={selectedOrchard ? `Suggested from ${selectedOrchard.name}'s area and last season.` : 'Use the expected olive quantity in kilograms.'}
+            label="Quantité estimée (kg)"
+            type="text"
+            inputMode="decimal"
+            hint={selectedOrchard ? `Suggestion calculée à partir de la surface et de la dernière récolte de ${selectedOrchard.name}.` : 'Saisissez la quantité d’olives attendue en kilogrammes.'}
             error={errorText(errors.estimatedQuantityKg)}
             {...register('estimatedQuantityKg', {
-              valueAsNumber: true,
-              required: 'Enter an estimated quantity.',
-              min: { value: 1, message: 'Quantity must be greater than 0.' },
+              validate: (value) => parseEstimatedQuantity(value) !== null || 'La quantité doit être supérieure à 0.',
             })}
           />
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="comment">Comment <span className="font-normal text-muted-foreground">(optional)</span></Label>
+            <Label htmlFor="comment">Commentaire <span className="font-normal text-muted-foreground">(facultatif)</span></Label>
             <textarea
               id="comment"
               rows={3}
@@ -218,9 +219,9 @@ export function HarvestRequestForm({ request, onSaved }: { request?: HarvestRequ
       </Card>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-        <Link to="/farmer/requests" className="inline-flex h-11 items-center justify-center rounded-lg border px-4 text-sm">Cancel</Link>
+        <Link to="/farmer/requests" className="inline-flex h-11 items-center justify-center rounded-lg border px-4 text-sm">Annuler</Link>
         <Button type="submit" disabled={mutation.isPending || orchards.isPending}>
-          {mutation.isPending ? 'Saving...' : request ? 'Save changes' : 'Send request'}
+          {mutation.isPending ? 'Enregistrement…' : request ? 'Enregistrer les changements' : 'Envoyer la demande'}
         </Button>
       </div>
     </form>
@@ -240,6 +241,11 @@ function setServerErrors(
 
 function errorText(error: { message?: unknown } | undefined): string | undefined {
   return typeof error?.message === 'string' ? error.message : undefined
+}
+
+function parseEstimatedQuantity(value: string): number | null {
+  const parsed = Number(value.trim().replace(',', '.'))
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
 }
 
 function defaultDateRange() {

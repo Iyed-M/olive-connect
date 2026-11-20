@@ -78,6 +78,14 @@ class HarvestRequestControllerTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].type").value("NEW_REQUEST"))
                 .andExpect(jsonPath("$[0].read").value(false));
+
+        mockMvc.perform(get("/api/harvest-requests?page=0&size=1")
+                        .header("Authorization", token("ali@example.tn")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(1))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].status").value("SUBMITTED"));
     }
 
     @Test

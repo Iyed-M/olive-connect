@@ -7,20 +7,19 @@ import {
   listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
+  NOTIFICATION_POLL_INTERVAL_MS,
   NOTIFICATION_TYPE_LABEL,
   notificationPath,
   unreadCount,
   type Notification,
 } from './notifications'
 
-const POLL_INTERVAL_MS = 30_000
-
 export function NotificationsPage() {
   const queryClient = useQueryClient()
   const query = useQuery({
     queryKey: ['notifications'],
     queryFn: () => listNotifications(),
-    refetchInterval: POLL_INTERVAL_MS,
+    refetchInterval: NOTIFICATION_POLL_INTERVAL_MS,
     refetchIntervalInBackground: true,
   })
   const readAll = useMutation({
@@ -38,15 +37,15 @@ export function NotificationsPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-bold text-primary">Notifications</h1>
-          <p className="text-sm text-muted-foreground">Updates for your harvest requests. This inbox checks for new items every 30 seconds.</p>
+          <p className="text-sm text-muted-foreground">Les mises à jour de vos demandes de récolte. Cette boîte vérifie les nouveaux messages toutes les 30 secondes.</p>
         </div>
-        {unread > 0 && <Button variant="outline" onClick={() => readAll.mutate()} disabled={readAll.isPending}><CheckCheck aria-hidden /> Mark all read</Button>}
+        {unread > 0 && <Button variant="outline" onClick={() => readAll.mutate()} disabled={readAll.isPending}><CheckCheck aria-hidden /> Tout marquer comme lu</Button>}
       </div>
 
-      {readAll.isError && <p role="alert" className="text-sm text-destructive">Could not mark all notifications as read.</p>}
-      {query.isPending && <p className="text-muted-foreground">Loading notifications...</p>}
-      {query.isError && <p role="alert" className="text-sm text-destructive">{error?.detail ?? 'Could not load notifications.'}</p>}
-      {query.data && notifications.length === 0 && <Card><CardContent className="flex flex-col items-center gap-2 py-8 text-center"><Bell className="size-8 text-muted-foreground" aria-hidden /><p>No notifications yet.</p></CardContent></Card>}
+      {readAll.isError && <p role="alert" className="text-sm text-destructive">Impossible de marquer toutes les notifications comme lues.</p>}
+      {query.isPending && <p className="text-muted-foreground">Chargement des notifications…</p>}
+      {query.isError && <p role="alert" className="text-sm text-destructive">{error?.detail ?? 'Impossible de charger les notifications.'}</p>}
+      {query.data && notifications.length === 0 && <Card><CardContent className="flex flex-col items-center gap-2 py-8 text-center"><Bell className="size-8 text-muted-foreground" aria-hidden /><p>Aucune notification pour le moment.</p></CardContent></Card>}
       {notifications.map((notification) => <NotificationItem key={notification.id} notification={notification} />)}
     </div>
   )
@@ -73,11 +72,11 @@ function NotificationItem({ notification }: { notification: Notification }) {
             <h2 className="font-heading text-lg font-semibold">{notification.title}</h2>
             <p className="text-sm">{notification.message}</p>
             <time dateTime={notification.createdAt} className="text-xs text-muted-foreground">{formatDate(notification.createdAt)}</time>
-            {relatedPath && <a href={relatedPath} className="mt-2 block text-sm text-primary underline">Open related page</a>}
+            {relatedPath && <a href={relatedPath} className="mt-2 inline-flex min-h-11 items-center text-sm text-primary underline">Ouvrir la page associée</a>}
           </div>
         </div>
-        {!notification.read && <Button variant="outline" size="sm" onClick={() => read.mutate()} disabled={read.isPending}>{read.isPending ? 'Saving...' : 'Mark read'}</Button>}
-        {read.isError && <p role="alert" className="text-sm text-destructive">Could not mark as read.</p>}
+        {!notification.read && <Button variant="outline" onClick={() => read.mutate()} disabled={read.isPending}>{read.isPending ? 'Enregistrement…' : 'Marquer comme lue'}</Button>}
+        {read.isError && <p role="alert" className="text-sm text-destructive">Impossible de marquer la notification comme lue.</p>}
       </CardContent>
     </Card>
   )

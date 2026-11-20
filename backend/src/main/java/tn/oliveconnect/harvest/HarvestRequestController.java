@@ -1,8 +1,9 @@
 package tn.oliveconnect.harvest;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.net.URI;
-import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import tn.oliveconnect.common.PageResponse;
 
 @RestController
 @RequestMapping("/api/harvest-requests")
@@ -35,11 +37,13 @@ public class HarvestRequestController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('FARMER', 'COLLECTION_MANAGER')")
-    public List<HarvestRequestDto> list(@RequestParam(required = false) HarvestRequestStatus status,
+    public PageResponse<HarvestRequestDto> list(@RequestParam(required = false) HarvestRequestStatus status,
                                         @RequestParam(required = false) HarvestType type,
                                         @RequestParam(required = false) Boolean mine,
+                                        @RequestParam(defaultValue = "0") @Min(0) int page,
+                                        @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
                                         Authentication authentication) {
-        return harvestRequestService.list(authentication, status, type, mine);
+        return harvestRequestService.list(authentication, status, type, mine, page, size);
     }
 
     @GetMapping("/{id}")

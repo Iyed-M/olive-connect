@@ -25,25 +25,25 @@ function MyRequestsList() {
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-primary">My harvest requests</h1>
-          <p className="text-sm text-muted-foreground">Follow each request from declaration to collection.</p>
+          <h1 className="font-heading text-2xl font-bold text-primary">Mes demandes de récolte</h1>
+          <p className="text-sm text-muted-foreground">Suivez chaque demande de la déclaration à la collecte.</p>
         </div>
-        <Link to="/farmer/requests/new" className={buttonVariants({ className: 'h-11' })}><Plus aria-hidden /> New</Link>
+        <Link to="/farmer/requests/new" className={buttonVariants({ className: 'h-11' })}><Plus aria-hidden /> Nouvelle</Link>
       </div>
 
-      {query.isPending && <p className="text-muted-foreground">Loading requests...</p>}
-      {query.isError && <p role="alert" className="text-sm text-destructive">{error?.detail ?? 'Could not load your harvest requests.'}</p>}
+      {query.isPending && <p className="text-muted-foreground">Chargement des demandes…</p>}
+      {query.isError && <p role="alert" className="text-sm text-destructive">{error?.detail ?? 'Impossible de charger vos demandes de récolte.'}</p>}
       {query.data?.content.length === 0 && (
         <Card><CardContent className="flex flex-col items-start gap-3 py-6">
-          <p>No harvest requests yet. Declare one when your olives are ready.</p>
-          <Link to="/farmer/requests/new" className={buttonVariants()}>Declare a harvest</Link>
+          <p>Aucune demande de récolte pour le moment. Déclarez-en une lorsque vos olives sont prêtes.</p>
+          <Link to="/farmer/requests/new" className={buttonVariants()}>Déclarer une récolte</Link>
         </CardContent></Card>
       )}
       {query.data && query.data.content.length > 0 && (
         <div className="flex flex-col gap-3">
           {query.data.content.map((request) => <RequestCard key={request.id} request={request} />)}
           <Button variant="outline" className="w-fit" onClick={() => void query.refetch()} disabled={query.isFetching}>
-            {query.isFetching ? 'Refreshing...' : 'Refresh'}
+            {query.isFetching ? 'Actualisation…' : 'Actualiser'}
           </Button>
         </div>
       )}
@@ -66,17 +66,17 @@ function RequestCard({ request }: { request: HarvestRequest }) {
           <StatusBadge status={request.status} />
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="rounded-full bg-secondary px-2 py-1">{request.type === 'URGENT' ? 'Urgent' : 'Planned'}</span>
+          <span className="rounded-full bg-secondary px-2 py-1">{request.type === 'URGENT' ? 'Urgente' : 'Planifiée'}</span>
           <span>{request.estimatedQuantityKg.toLocaleString()} kg</span>
-          <span className="text-muted-foreground">Priority {request.priorityScore.toFixed(1)}</span>
+          <span className="text-muted-foreground">Priorité {request.priorityScore.toFixed(1)}</span>
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {request.rejectionReason && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">Reason: {request.rejectionReason}</p>}
+        {request.rejectionReason && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">Motif : {request.rejectionReason}</p>}
         <Timeline history={requestHistory(request)} />
         <div className="flex flex-wrap gap-2">
-          <Link to="/farmer/requests/$id" params={{ id: request.id }} className="inline-flex h-9 items-center rounded-lg border px-3 text-sm">View details</Link>
-          {canModify && <Link to="/farmer/requests/$id" params={{ id: request.id }} className="inline-flex h-9 items-center rounded-lg border px-3 text-sm">Modify</Link>}
+          <Link to="/farmer/requests/$id" params={{ id: request.id }} className="inline-flex h-11 items-center rounded-lg border px-3 text-sm">Voir les détails</Link>
+          {canModify && <Link to="/farmer/requests/$id" params={{ id: request.id }} className="inline-flex h-11 items-center rounded-lg border px-3 text-sm">Modifier</Link>}
           {canCancel && <CancelRequestButton request={request} />}
         </div>
       </CardContent>

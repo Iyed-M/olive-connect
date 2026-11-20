@@ -11,7 +11,7 @@ export type HarvestRequestStatus =
   | 'COMPLETED'
   | 'CANCELLED'
 
-export type HarvestRequestAction = 'MODIFY' | 'CANCEL'
+export type HarvestRequestAction = 'MODIFY' | 'CANCEL' | 'VALIDATE' | 'REJECT'
 
 export interface HarvestRequestOrchard {
   id: string
@@ -127,9 +127,9 @@ export function estimateForOrchard(orchard: Pick<Orchard, 'areaHa' | 'lastSeason
 }
 
 export function dateRangeError(from: string, to: string, today = localDate(new Date())): string | null {
-  if (!from || !to) return 'Choose a start and an end date.'
-  if (from < today) return 'Harvest dates cannot be in the past.'
-  if (to < from) return 'The end date must be after the start date.'
+  if (!from || !to) return 'Choisissez une date de début et une date de fin.'
+  if (from < today) return 'Les dates de récolte ne peuvent pas être dans le passé.'
+  if (to < from) return 'La date de fin doit être le même jour ou après la date de début.'
   return null
 }
 
@@ -143,11 +143,11 @@ function localDate(date: Date): string {
 export function requestErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.code === 'STALE_VERSION') {
-      return 'This request changed since it was loaded. Reload it before trying again.'
+      return 'Cette demande a été modifiée depuis son chargement. Rechargez-la avant de réessayer.'
     }
-    return error.detail || 'The request could not be saved.'
+    return error.detail || 'La demande n’a pas pu être enregistrée.'
   }
-  return 'The request could not be saved. Check your connection and try again.'
+  return 'La demande n’a pas pu être enregistrée. Vérifiez votre connexion et réessayez.'
 }
 
 export function sortRequestsByPriority(requests: HarvestRequest[]): HarvestRequest[] {
@@ -160,4 +160,11 @@ export function sortRequestsByPriority(requests: HarvestRequest[]): HarvestReque
 
 export function requestHistory(request: HarvestRequest): StatusChange[] {
   return request.history ?? []
+}
+
+export function hasAllowedAction(
+  request: Pick<HarvestRequest, 'allowedActions'>,
+  action: HarvestRequestAction,
+): boolean {
+  return request.allowedActions.includes(action)
 }

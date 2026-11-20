@@ -1,15 +1,13 @@
 import { Bell } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { listNotifications, unreadCount } from './notifications'
-
-const POLL_INTERVAL_MS = 30_000
+import { listNotifications, NOTIFICATION_POLL_INTERVAL_MS, unreadCount } from './notifications'
 
 export function NotificationBell() {
   const query = useQuery({
     queryKey: ['notifications', { unread: true }],
     queryFn: () => listNotifications(true),
-    refetchInterval: POLL_INTERVAL_MS,
+    refetchInterval: NOTIFICATION_POLL_INTERVAL_MS,
     refetchIntervalInBackground: true,
   })
   const count = query.data ? unreadCount(query.data) : 0
@@ -17,7 +15,7 @@ export function NotificationBell() {
   return (
     <Link
       to="/notifications"
-      aria-label={count > 0 ? `${count} unread notifications` : 'Notifications'}
+      aria-label={count > 0 ? `${count} notifications non lues` : 'Notifications'}
       className="relative inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-transparent text-primary hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       <Bell aria-hidden className="size-5" />

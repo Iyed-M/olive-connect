@@ -2,12 +2,14 @@ package tn.oliveconnect.notification;
 
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import tn.oliveconnect.common.NotFoundException;
 import tn.oliveconnect.user.Role;
 import tn.oliveconnect.user.User;
 import tn.oliveconnect.user.UserRepository;
 
 @Service
+@Transactional
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;

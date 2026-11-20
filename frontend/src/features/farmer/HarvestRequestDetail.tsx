@@ -20,8 +20,8 @@ function HarvestRequestDetail({ id }: { id: string }) {
   const query = useQuery({ queryKey: ['harvest-request', id], queryFn: () => getHarvestRequest(id) })
   const error = query.error instanceof ApiError ? query.error : null
 
-  if (query.isPending) return <p className="text-muted-foreground">Loading request...</p>
-  if (query.isError || !query.data) return <p role="alert" className="text-sm text-destructive">{error?.detail ?? 'Could not load this request.'}</p>
+  if (query.isPending) return <p className="text-muted-foreground">Chargement de la demande…</p>
+  if (query.isError || !query.data) return <p role="alert" className="text-sm text-destructive">{error?.detail ?? 'Impossible de charger cette demande.'}</p>
   if (editing) return <HarvestRequestForm request={query.data} onSaved={() => setEditing(false)} />
 
   return <RequestDetail request={query.data} onEdit={() => setEditing(true)} />
@@ -35,30 +35,30 @@ function RequestDetail({ request, onEdit }: { request: HarvestRequest; onEdit: (
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-primary">Harvest request</h1>
+          <h1 className="font-heading text-2xl font-bold text-primary">Demande de récolte</h1>
           <p className="text-sm text-muted-foreground">{request.orchard.name}</p>
         </div>
-        <Link to="/farmer/requests" className="shrink-0 text-sm text-primary underline">Back</Link>
+        <Link to="/farmer/requests" className="inline-flex min-h-11 shrink-0 items-center text-sm text-primary underline">Retour</Link>
       </div>
 
       <Card>
         <CardHeader className="gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle>{request.type === 'URGENT' ? 'Urgent harvest' : 'Planned harvest'}</CardTitle>
+            <CardTitle>{request.type === 'URGENT' ? 'Récolte urgente' : 'Récolte planifiée'}</CardTitle>
             <StatusBadge status={request.status} />
           </div>
           <p className="text-sm text-muted-foreground">{formatDateRange(request.desiredFrom, request.desiredTo)} · {request.estimatedQuantityKg.toLocaleString()} kg</p>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {request.comment && <p className="text-sm">{request.comment}</p>}
-          {request.rejectionReason && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">Reason: {request.rejectionReason}</p>}
+          {request.rejectionReason && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">Motif : {request.rejectionReason}</p>}
           <div>
-            <h2 className="mb-3 font-heading text-lg font-semibold">Status timeline</h2>
+            <h2 className="mb-3 font-heading text-lg font-semibold">Historique des statuts</h2>
             <Timeline history={requestHistory(request)} />
           </div>
           {(canModify || canCancel) && (
             <div className="flex flex-wrap gap-2 border-t pt-4">
-              {canModify && <Button variant="outline" onClick={onEdit}>Modify request</Button>}
+              {canModify && <Button variant="outline" onClick={onEdit}>Modifier la demande</Button>}
               {canCancel && <CancelRequestButton request={request} />}
             </div>
           )}

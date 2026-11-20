@@ -12,21 +12,21 @@ export interface NavItem {
 // later milestones add entries here.
 export const NAV: Record<Role, NavItem[]> = {
   FARMER: [
-    { to: '/farmer', label: 'Home', icon: Sprout },
-    { to: '/farmer/requests', label: 'Requests', icon: ClipboardList },
-    { to: '/farmer/orchards', label: 'Orchards', icon: Map },
+    { to: '/farmer', label: 'Accueil', icon: Sprout },
+    { to: '/farmer/requests', label: 'Demandes', icon: ClipboardList },
+    { to: '/farmer/orchards', label: 'Vergers', icon: Map },
   ],
-  COLLECTION_MANAGER: [{ to: '/collection/requests', label: 'Requests', icon: ClipboardList }],
-  TEAM_LEADER: [{ to: '/rounds/mine', label: 'My rounds', icon: Route }],
+  COLLECTION_MANAGER: [{ to: '/collection/requests', label: 'Demandes', icon: ClipboardList }],
+  TEAM_LEADER: [{ to: '/rounds/mine', label: 'Mes tournées', icon: Route }],
   LOGISTICS_MANAGER: [
-    { to: '/logistics/workers', label: 'Workers', icon: HardHat },
-    { to: '/logistics/equipment', label: 'Equipment', icon: Truck },
+    { to: '/logistics/workers', label: 'Ouvriers', icon: HardHat },
+    { to: '/logistics/equipment', label: 'Équipements', icon: Truck },
   ],
-  MILL_MANAGER: [{ to: '/mill/incoming', label: 'Incoming', icon: Factory }],
+  MILL_MANAGER: [{ to: '/mill/incoming', label: 'Réceptions', icon: Factory }],
   // The Admin has full access to Workers and Equipment too (same pages as the Logistics manager).
   ADMIN: [
-    { to: '/admin/users', label: 'Users', icon: Users },
-    { to: '/logistics/workers', label: 'Workers', icon: HardHat },
-    { to: '/logistics/equipment', label: 'Equipment', icon: Truck },
+    { to: '/admin/users', label: 'Utilisateurs', icon: Users },
+    { to: '/logistics/workers', label: 'Ouvriers', icon: HardHat },
+    { to: '/logistics/equipment', label: 'Équipements', icon: Truck },
   ],
 }

@@ -3,6 +3,7 @@ import { ApiError } from '@/lib/api'
 import {
   dateRangeError,
   estimateForOrchard,
+  hasAllowedAction,
   requestErrorMessage,
   sortRequestsByPriority,
   type HarvestRequest,
@@ -39,11 +40,11 @@ describe('estimateForOrchard', () => {
 
 describe('dateRangeError', () => {
   it('rejects an end date before the start date', () => {
-    expect(dateRangeError('2026-11-27', '2026-11-24', '2026-11-20')).toMatch(/after/i)
+    expect(dateRangeError('2026-11-27', '2026-11-24', '2026-11-20')).toMatch(/après/i)
   })
 
   it('rejects dates in the past and accepts a current range', () => {
-    expect(dateRangeError('2026-11-19', '2026-11-21', '2026-11-20')).toMatch(/past/i)
+    expect(dateRangeError('2026-11-19', '2026-11-21', '2026-11-20')).toMatch(/passé/i)
     expect(dateRangeError('2026-11-24', '2026-11-27', '2026-11-20')).toBeNull()
     expect(dateRangeError('2026-11-20', '2026-11-20', '2026-11-20')).toBeNull()
   })
@@ -57,9 +58,18 @@ describe('sortRequestsByPriority', () => {
   })
 })
 
+describe('hasAllowedAction', () => {
+  it('uses the server-provided manager actions', () => {
+    const managerRequest: Pick<HarvestRequest, 'allowedActions'> = { allowedActions: ['VALIDATE', 'REJECT'] }
+    expect(hasAllowedAction(managerRequest, 'VALIDATE')).toBe(true)
+    expect(hasAllowedAction(managerRequest, 'REJECT')).toBe(true)
+    expect(hasAllowedAction(managerRequest, 'CANCEL')).toBe(false)
+  })
+})
+
 describe('requestErrorMessage', () => {
   it('explains that a stale request must be reloaded', () => {
-    expect(requestErrorMessage(new ApiError(409, 'STALE_VERSION', 'stale'))).toMatch(/changed/i)
+    expect(requestErrorMessage(new ApiError(409, 'STALE_VERSION', 'stale'))).toMatch(/modifiée/i)
   })
 
   it('keeps the server detail for duplicate and general conflicts', () => {
