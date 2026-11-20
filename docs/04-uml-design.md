@@ -578,6 +578,7 @@ sequenceDiagram
     participant C as HarvestRequestController
     participant S as HarvestRequestService
     participant OR as OrchardRepository
+    participant OVR as OliveVarietyRepository
     participant HR as HarvestRequestRepository
     participant P as PriorityCalculator
     participant NS as NotificationService
@@ -599,7 +600,8 @@ sequenceDiagram
                 S-->>C: ConflictException
                 C-->>FE: 409 "A request is already open for this orchard"
             else none
-                S->>P: score(type, maturityIndex, desiredFrom)
+                S->>OVR: find variety optimal maturity range
+                S->>P: score(type, maturityIndex, optimal range, waitingDays, no open MATURITY alert)
                 S->>HR: save(request SUBMITTED + history)
                 S->>NS: notifyRole(COLLECTION_MANAGER, NEW_REQUEST)
                 S-->>C: HarvestRequest
@@ -1081,6 +1083,9 @@ The subject asks to plan "according to orchard maturity and resource availabilit
 1. **Priority score** of each validated request:
    `score = 40·[URGENT] + 30·maturityProximity + 20·min(waitingDays/7, 1) + 10·[open MATURITY alert]`
    where `maturityProximity = 1 − |index − optimalMid| / optimalHalfWidth` (clamped to 0..1, from `OliveVariety`).
+   M3 computes the score from the orchard snapshot and `OliveVariety`; the open-alert term is `0` until
+   the `FieldAlert` collection is implemented. Waiting days are measured from `createdAt` and the
+   score is stored on every create/update, so the manager queue can sort without recalculating it.
 2. **Grouping suggestion**: for a chosen date, take requests sorted by score. Seed a round with the top one, then add the nearest requests (`$geoNear` from the seed orchard, within 10 km) until the estimated kg reach the sum of the booked bin capacities.
 3. **Availability**: list the workers and equipment with no overlapping `ResourceBooking`, no `Unavailability`, and status `AVAILABLE`.
 4. **Mill choice**: pick the nearest mill whose `availableCapacityKg` covers the estimate, using a `$geoNear` query on `mills`.

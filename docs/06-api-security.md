@@ -89,7 +89,7 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 | Method | Path | Roles | Description | FR |
 |---|---|---|---|---|
 | POST | `/harvest-requests` | F | declare | FR-1.2 |
-| GET | `/harvest-requests` | F (own), CM | list / queue sorted by priority, query `status`, `type`, `mine` | FR-1.4 |
+| GET | `/harvest-requests` | F (own), CM | paged list / queue sorted by priority, query `status`, `type`, `mine`, `page`, `size` → `PageResponse<HarvestRequestDto>` | FR-1.4 |
 | GET | `/harvest-requests/{id}` | F own, CM, TL (if in their round) | detail + history | FR-1.8 |
 | PUT | `/harvest-requests/{id}` | F own | modify (rules SD-4) | FR-1.3 |
 | POST | `/harvest-requests/{id}/cancel` | F own | cancel | FR-1.3 |
@@ -184,12 +184,15 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 { "orchardId": "6660…", "type": "URGENT", "desiredFrom": "2026-11-24", "desiredTo": "2026-11-27",
   "estimatedQuantityKg": 9000, "comment": "Rain forecast Friday" }
 
+// GET /api/harvest-requests?page=0&size=20 — PageResponse<HarvestRequestDto>
+{ "content": [ … ], "page": 0, "size": 20, "totalElements": 1 }
+
 // 201 — HarvestRequestDto
 { "id": "6671…", "farmerId": "665f…", "orchard": { "id": "6660…", "name": "Henchir El Mezraa", "delegation": "SAKIET_EZZIT",
     "mainVarietyCode": "CHEMLALI", "areaHa": 5.7, "lastSeasonYieldKgHa": 2100, "currentMaturityIndex": 3.8 },
   "type": "URGENT", "status": "SUBMITTED", "desiredFrom": "2026-11-24", "desiredTo": "2026-11-27",
   "estimatedQuantityKg": 9000, "comment": "Rain forecast Friday", "rejectionReason": null,
-  "priorityScore": 82.5, "roundId": null,
+  "priorityScore": 68.0, "roundId": null,
   "history": [ { "from": null, "to": "SUBMITTED", "at": "2026-11-21T09:12:00Z", "byUserId": "665f…", "comment": null } ],
   "createdAt": "2026-11-21T09:12:00Z", "validatedAt": null,
   "allowedActions": ["MODIFY", "CANCEL"], "version": 0 }

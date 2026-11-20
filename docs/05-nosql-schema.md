@@ -282,7 +282,7 @@ by the M2 form yet.
   "estimatedQuantityKg": 9000,
   "status": "SCHEDULED",
   "roundId": ObjectId("..."),
-  "priorityScore": 82.5,
+  "priorityScore": 88.0,
   "statusHistory": [
     { "from": null, "to": "SUBMITTED", "at": ISODate("..."), "byUserId": ObjectId("665f...") },
     { "from": "SUBMITTED", "to": "VALIDATED", "at": ISODate("..."), "byUserId": ObjectId("...") },
@@ -545,7 +545,7 @@ Eviction policy `allkeys-lru` with `maxmemory 256mb`. Persistence: RDB snapshot 
 | Criterion | Spring Data MongoDB | Alternatives |
 |---|---|---|
 | Subject requirement "DAO based on Spring Data" | ✅ | Raw MongoDB Java driver ✗ (no repository abstraction); Morphia ✗ |
-| Productivity | `MongoRepository<T, ID>` CRUD + **derived queries** (`findByFarmerIdOrderByCreatedAtDesc`), `@Query` JSON queries, paging (`Pageable`) | — |
+| Productivity | `MongoRepository<T, ID>` CRUD + **derived queries**, `@Query` JSON queries, and `Pageable`/`PageResponse` envelopes; M3 uses `MongoTemplate` for its optional status/type filters | — |
 | Advanced needs | `MongoTemplate` for **geo** (`NearQuery`, `GeoJsonPoint`, `$geoWithin`), **aggregation** (`Aggregation.newAggregation(...)`), `$inc`/positional updates, bulk ops for imports | Spring Data Elasticsearch: great search but no transactions; Cassandra: query-first model too rigid for this domain |
 | Mapping | `@Document`, `@Field`, `@Indexed`, `@CompoundIndex`, `@GeoSpatialIndexed`, `@TimeSeries`, inheritance via `_class` (R8), `@Version` (R14) | — |
 | Transactions | `MongoTransactionManager` + `@Transactional` (replica set) | — |
@@ -556,12 +556,17 @@ Eviction policy `allkeys-lru` with `maxmemory 256mb`. Persistence: RDB snapshot 
 ### Repository patterns (examples)
 
 ```java
-public interface HarvestRequestRepository
-        extends MongoRepository<HarvestRequest, String>, HarvestRequestRepositoryCustom {
-    Page<HarvestRequest> findByFarmerIdOrderByCreatedAtDesc(String farmerId, Pageable p);
-    List<HarvestRequest> findByStatusOrderByPriorityScoreDesc(HarvestRequestStatus s, Pageable p);
+public interface HarvestRequestRepository extends MongoRepository<HarvestRequest, String> {
+    Optional<HarvestRequest> findByIdAndFarmerId(String id, String farmerId);
     boolean existsByOrchardIdAndStatusIn(String orchardId, Collection<HarvestRequestStatus> active);
 }
+
+// HarvestRequestService builds the optional status/type criteria and stable sort, then pages it.
+PageRequest page = PageRequest.of(pageNumber, pageSize,
+    Sort.by(Sort.Direction.DESC, "priorityScore").and(Sort.by(Sort.Direction.ASC, "createdAt")));
+Page<HarvestRequest> result = PageableExecutionUtils.getPage(
+    mongoTemplate.find(Query.of(filter).with(page), HarvestRequest.class), page,
+    () -> mongoTemplate.count(Query.of(filter).limit(-1).skip(-1), HarvestRequest.class));
 
 public interface ResourceBookingRepository extends MongoRepository<ResourceBooking, String> {
     @Query("{ 'resourceId': { $in: ?0 }, 'status': 'ACTIVE', 'start': { $lt: ?2 }, 'end': { $gt: ?1 } }")

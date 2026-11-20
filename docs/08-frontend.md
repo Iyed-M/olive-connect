@@ -95,7 +95,9 @@ M3 makes the harvest flow real. Farmers use `/farmer/requests` to review status 
 request while the API reports the action rules. Collection managers review the priority-sorted
 queue at `/collection/requests` and validate or reject submitted requests with a required reason.
 The header contains a notification bell for every authenticated role, and `/notifications`
-polls the in-app inbox every 30 seconds; SSE remains a later M8 concern.
+polls the in-app inbox every 30 seconds; SSE remains a later M8 concern. M3 labels and validation
+messages are French, quantity fields stay text-backed until the mutation parses them, the rejection
+form uses React Hook Form, and action buttons are rendered only from the API's `allowedActions`.
 
 M4 adds Worker and Equipment pages for the Logistics manager and Admin (full CRUD in the API), with
 filters, pagination, mobile cards, shared `/new` and `/$id` forms, and unavailability panels.
