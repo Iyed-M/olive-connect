@@ -88,11 +88,15 @@ public class CollectionRoundService {
     public List<CollectionRoundDto> list(LocalDate from, LocalDate to, RoundStatus status, String teamLeaderId,
                                          Authentication authentication) {
         Query query = new Query();
-        if (from != null) {
-            query.addCriteria(Criteria.where("date").gte(from));
-        }
-        if (to != null) {
-            query.addCriteria(Criteria.where("date").lte(to));
+        if (from != null || to != null) {
+            Criteria dateCriteria = Criteria.where("date");
+            if (from != null) {
+                dateCriteria = dateCriteria.gte(from);
+            }
+            if (to != null) {
+                dateCriteria = dateCriteria.lte(to);
+            }
+            query.addCriteria(dateCriteria);
         }
         if (status != null) {
             query.addCriteria(Criteria.where("status").is(status));

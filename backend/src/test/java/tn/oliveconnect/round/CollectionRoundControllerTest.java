@@ -125,6 +125,20 @@ class CollectionRoundControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void collectionManagerCanListRoundsWithInclusiveDateRange() throws Exception {
+        User manager = saveUser("manager@round-list-filter.tn", Role.COLLECTION_MANAGER);
+
+        mockMvc.perform(get("/api/rounds")
+                        .param("from", "2026-11-20")
+                        .param("to", "2026-11-20")
+                        .param("status", "PLANNED")
+                        .header("Authorization", token(manager.getEmail())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
     void roundDateOutsideRequestWindowIsRejected() throws Exception {
         User manager = saveUser("manager@window-test.tn", Role.COLLECTION_MANAGER);
         User farmer = saveUser("farmer@window-test.tn", Role.FARMER);
