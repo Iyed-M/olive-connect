@@ -56,6 +56,13 @@ class LoginRateLimiterTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void counterLeftWithoutTtlGetsOne() {
+        redis.opsForValue().set(KEY, "2");   // no TTL
+        limiter.recordFailure(EMAIL, IP);
+        assertTrue(redis.getExpire(KEY) > 0);
+    }
+
+    @Test
     void differentIpIsCountedSeparately() {
         for (int i = 0; i < 5; i++) {
             limiter.recordFailure(EMAIL, IP);

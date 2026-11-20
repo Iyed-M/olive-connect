@@ -126,4 +126,15 @@ class AuthControllerTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.roles[0]").value("ADMIN"))
                 .andExpect(jsonPath("$.onboardingDone").value(false));
     }
+
+    @Test
+    void meForDeletedUserIs401() throws Exception {   // T-SEC-6
+        String body = login(ADMIN_EMAIL, ADMIN_PASSWORD).andReturn().getResponse().getContentAsString();
+        String token = JsonPath.read(body, "$.accessToken");
+        userRepository.deleteAll();
+
+        mockMvc.perform(get("/api/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+    }
 }

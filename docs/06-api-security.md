@@ -213,7 +213,7 @@ flowchart LR
 
 ### 4.2 Authorisation: three levels
 
-1. **URL level** (`SecurityFilterChain`): `/api/map/public/**`, `/api/varieties`, `/api/auth/**` and `POST /api/registrations` are `permitAll`. Everything else is `authenticated`. `/api/system/status` is also `permitAll` (M0), as are `/actuator/health`, `/actuator/info` and the Swagger UI paths. A missing or invalid token returns 401 `UNAUTHENTICATED`. The Actuator exposes only `health` and `info` on port 8080, and Nginx never proxies it.
+1. **URL level** (`SecurityFilterChain`): `/api/map/public/**`, `/api/varieties`, `/api/auth/**` and `POST /api/registrations` are `permitAll`. Everything else is `authenticated`. `/api/system/status` is also `permitAll` (M0), as are `/actuator/health`, `/actuator/info` and the Swagger UI paths. A missing or invalid token returns 401 `UNAUTHENTICATED`. The Actuator exposes only `health` and `info` on port 8080, and Nginx never proxies it. The Actuator paths are public because the Docker healthcheck calls them. Also permitted until the M13 hardening: the springdoc pages (`/swagger-ui/**`, `/v3/api-docs/**`, `/api/docs/**`) and CORS preflight `OPTIONS` requests.
 2. **Method level** (`@PreAuthorize("hasRole('COLLECTION_MANAGER')")`) on controllers.
 3. **Data level (ownership)** in services. For example, `OrchardService.getForUser(id, user)` loads with `findByIdAndOwnerId(id, user.id())` when the user is only a FARMER. Missing → `NotFoundException` (404, not 403, so the existence of other farmers' data is never revealed). Mill managers are restricted to `assignedMillId`, team leaders to their own rounds.
 

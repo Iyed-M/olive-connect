@@ -3,7 +3,6 @@ package tn.oliveconnect.auth;
 import java.util.Optional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import tn.oliveconnect.common.NotFoundException;
 import tn.oliveconnect.user.MeDto;
 import tn.oliveconnect.user.User;
 import tn.oliveconnect.user.UserRepository;
@@ -70,6 +69,6 @@ public class AuthService {
     public MeDto me(String userId) {
         return userRepository.findById(userId)
                 .map(MeDto::from)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> new UnauthenticatedException("Your session is no longer valid"));
     }
 }

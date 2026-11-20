@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import tn.oliveconnect.auth.InvalidCredentialsException;
+import tn.oliveconnect.auth.UnauthenticatedException;
 import tn.oliveconnect.auth.TooManyAttemptsException;
 
 /**
@@ -43,6 +44,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(InvalidCredentialsException.class)
     ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
         return problem(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", ex.getMessage());
+    }
+
+    @ExceptionHandler(UnauthenticatedException.class)
+    ProblemDetail handleUnauthenticated(UnauthenticatedException ex) {
+        return problem(HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", ex.getMessage());
     }
 
     @ExceptionHandler(TooManyAttemptsException.class)

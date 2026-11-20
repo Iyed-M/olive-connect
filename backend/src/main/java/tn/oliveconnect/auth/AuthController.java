@@ -33,7 +33,7 @@ public class AuthController {
         // behind Nginx, getRemoteAddr() is the real client IP thanks to X-Forwarded-For (server.forward-headers-strategy)
         Session session = authService.login(request.email(), request.password(), httpRequest.getRemoteAddr());
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, refreshCookie(session.refreshToken(), RefreshTokenStore.LIFETIME).toString())
+                .header(HttpHeaders.SET_COOKIE, setCookie(session.refreshToken()))
                 .body(session.body());
     }
 
@@ -47,12 +47,11 @@ public class AuthController {
             ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Session expired");
             problem.setProperty("code", code);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .header(HttpHeaders.SET_COOKIE, refreshCookie("", Duration.ZERO).toString())
+                    .header(HttpHeaders.SET_COOKIE, clearCookie())
                     .body(problem);
         }
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE,
-                        refreshCookie(session.get().refreshToken(), RefreshTokenStore.LIFETIME).toString())
+                .header(HttpHeaders.SET_COOKIE, setCookie(session.get().refreshToken()))
                 .body(session.get().body());
     }
 
@@ -63,8 +62,18 @@ public class AuthController {
             authService.logout(refreshToken);
         }
         return ResponseEntity.noContent()
-                .header(HttpHeaders.SET_COOKIE, refreshCookie("", Duration.ZERO).toString())
+                .header(HttpHeaders.SET_COOKIE, clearCookie())
                 .build();
+    }
+
+    /** Set-Cookie value that stores a new refresh token for 7 days. */
+    private String setCookie(String refreshToken) {
+        return refreshCookie(refreshToken, RefreshTokenStore.LIFETIME).toString();
+    }
+
+    /** Set-Cookie value that deletes the refresh token in the browser. */
+    private String clearCookie() {
+        return refreshCookie("", Duration.ZERO).toString();
     }
 
     /** The one place that defines the cookie attributes (docs/06 section 4.1). Duration.ZERO clears it. */

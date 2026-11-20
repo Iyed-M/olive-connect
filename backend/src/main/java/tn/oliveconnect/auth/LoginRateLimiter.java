@@ -31,9 +31,12 @@ public class LoginRateLimiter {
     }
 
     public void recordFailure(String email, String ip) {
-        Long failures = redis.opsForValue().increment(key(email, ip));
-        if (failures != null && failures == 1) {
-            redis.expire(key(email, ip), WINDOW);   // only the first failure starts the window
+        String key = key(email, ip);
+        Long failures = redis.opsForValue().increment(key);
+        // The first failure starts the window. A counter without TTL (-1: the API crashed between
+        // INCR and EXPIRE) also gets one, otherwise that email and IP would stay blocked forever.
+        if (Long.valueOf(1).equals(failures) || Long.valueOf(-1).equals(redis.getExpire(key))) {
+            redis.expire(key, WINDOW);
         }
     }
 
