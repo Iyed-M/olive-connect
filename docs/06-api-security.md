@@ -47,12 +47,13 @@ Roles: **PUB** public, **F** farmer, **CM** collection manager, **TL** team lead
 | POST | `/auth/login` | PUB | body `{email, password}` → `200 {accessToken, expiresIn, user}` + `refresh_token` cookie, 400 `VALIDATION_FAILED`, 401 `INVALID_CREDENTIALS`, 429 `TOO_MANY_ATTEMPTS` (`Retry-After` header and `retryAfterSeconds`) | — |
 | POST | `/auth/refresh` | PUB (cookie) | rotate the refresh token → `200` same body as login + new cookie; 401 `UNAUTHENTICATED` (cookie missing) or `SESSION_EXPIRED` (cookie unknown or already used, User disabled → all their sessions revoked); the cookie is cleared on 401 | — |
 | POST | `/auth/logout` | PUB (cookie) | revoke this session only (identified by the cookie, works with an expired access token), clear the cookie → `204`, idempotent | — |
-| GET | `/me` | any | `MeDto {id, email, firstName, lastName, roles, onboardingDone}`, 401 `UNAUTHENTICATED` without a valid token | — |
+| GET | `/me` | any | `MeDto {id, email, firstName, lastName, roles, onboardingDone, mustChangePassword}`, 401 `UNAUTHENTICATED` without a valid token | — |
 | PATCH | `/me` | any | update phone, password, onboardingDone | NFR-3 |
-| POST | `/registrations` | PUB | visitor registration request | FR-6.1 |
-| GET | `/registrations` | AD | list, query `status` (for example `PENDING`) | FR-6.1 |
-| POST | `/registrations/{id}/approve` | AD | approve → creates FARMER | FR-6.1 |
-| POST | `/registrations/{id}/reject` | AD | reject | FR-6.1 |
+| POST | `/me/password` | any | body `{currentPassword, newPassword}` (new password 8 to 72 characters) → `204` and `mustChangePassword` becomes `false`; 400 `VALIDATION_FAILED`, 401 `INVALID_CREDENTIALS` (wrong current password) | FR-6.1 |
+| POST | `/registrations` | PUB | visitor registration request, body `{firstName, lastName, email, phone, cin, message}` → `201`, 400 `VALIDATION_FAILED` | FR-6.1 |
+| GET | `/registrations` | AD | list as an array of `{id, firstName, lastName, email, phone, cin, message, status, createdAt}`, query `status` (`PENDING`, `APPROVED` or `REJECTED`) | FR-6.1 |
+| POST | `/registrations/{id}/approve` | AD | approve → creates a FARMER with `mustChangePassword = true` → `200` the request plus `temporaryPassword` (returned once, never stored in clear) | FR-6.1 |
+| POST | `/registrations/{id}/reject` | AD | reject → `200` the request with status `REJECTED` | FR-6.1 |
 | GET | `/users` | AD | list Users, query `role`, `enabled`, `page`, `size`; sorted by `lastName` → `PageResponse<UserDto>` | FR-6.2 |
 | POST | `/users` | AD | create User (details, roles, Farmer profile, password) → 201 + `Location`, 400 `VALIDATION_FAILED`, 409 `EMAIL_TAKEN` / `MEMBER_NUMBER_TAKEN` | FR-6.2 |
 | GET | `/users/{id}` | AD | detail → `UserDto`, 404 `NOT_FOUND` | FR-6.2 |

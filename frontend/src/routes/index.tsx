@@ -43,9 +43,14 @@ function StatusPage() {
             Go to my home
           </Link>
         ) : (
-          <Link to="/login" className={buttonVariants({ className: 'mt-4' })}>
-            Log in
-          </Link>
+          <div className="mt-4 flex gap-2">
+            <Link to="/login" className={buttonVariants()}>
+              Log in
+            </Link>
+            <Link to="/register" className={buttonVariants({ variant: 'outline' })}>
+              Join the cooperative
+            </Link>
+          </div>
         )}
       </header>
 

@@ -1,4 +1,4 @@
-import { ClipboardList, Factory, HardHat, Map, Route, Sprout, Truck, Users, type LucideIcon } from 'lucide-react'
+import { ClipboardList, Factory, HardHat, Map, Route, Sprout, Truck, UserPlus, Users, type LucideIcon } from 'lucide-react'
 import type { LinkProps } from '@tanstack/react-router'
 import type { Role } from './types'
 
@@ -25,6 +25,7 @@ export const NAV: Record<Role, NavItem[]> = {
   // The Admin has full access to Workers and Equipment too (same pages as the Logistics manager).
   ADMIN: [
     { to: '/admin/users', label: 'Users', icon: Users },
+    { to: '/admin/registrations', label: 'Registrations', icon: UserPlus },
     { to: '/logistics/workers', label: 'Workers', icon: HardHat },
     { to: '/logistics/equipment', label: 'Equipment', icon: Truck },
   ],
