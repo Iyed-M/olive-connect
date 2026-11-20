@@ -21,6 +21,7 @@ import org.springframework.security.core.Authentication;
 import tn.oliveconnect.harvest.HarvestRequestRepository;
 import tn.oliveconnect.mill.MillRepository;
 import tn.oliveconnect.notification.NotificationService;
+import tn.oliveconnect.orchard.OrchardRepository;
 import tn.oliveconnect.resource.BookingService;
 import tn.oliveconnect.user.UserRepository;
 
@@ -34,6 +35,7 @@ class CollectionRoundServiceTest {
     @Mock BookingService bookingService;
     @Mock NotificationService notificationService;
     @Mock MongoTemplate mongoTemplate;
+    @Mock OrchardRepository orchardRepository;
 
     @Test
     void listCombinesFromAndToIntoOneDateCriterion() {
@@ -51,6 +53,6 @@ class CollectionRoundServiceTest {
 
     private CollectionRoundService newService() {
         return new CollectionRoundService(roundRepository, requestRepository, userRepository, millRepository,
-                bookingService, notificationService, mongoTemplate);
+                bookingService, notificationService, mongoTemplate, orchardRepository);
     }
 }

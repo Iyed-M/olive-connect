@@ -59,4 +59,15 @@ public class RoundStop {
     public void setCrateCount(Integer crateCount) { this.crateCount = crateCount; }
     public String getComment() { return comment; }
     public void setComment(String comment) { this.comment = comment; }
+
+    public boolean canTransitionTo(StopStatus next) {
+        if (next == null || status == null) {
+            return status == null && next == StopStatus.PENDING;
+        }
+        return switch (status) {
+            case PENDING -> next == StopStatus.IN_PROGRESS || next == StopStatus.SKIPPED;
+            case IN_PROGRESS -> next == StopStatus.DONE || next == StopStatus.SKIPPED;
+            case DONE, SKIPPED -> false;
+        };
+    }
 }
