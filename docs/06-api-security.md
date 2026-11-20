@@ -51,13 +51,14 @@ Roles: **PUB** public, **F** farmer, **CM** collection manager, **TL** team lead
 | GET | `/registrations` | AD | list, query `status` (for example `PENDING`) | FR-6.1 |
 | POST | `/registrations/{id}/approve` | AD | approve → creates FARMER | FR-6.1 |
 | POST | `/registrations/{id}/reject` | AD | reject | FR-6.1 |
-| GET | `/users` | AD | list accounts | FR-6.2 |
-| POST | `/users` | AD | create account | FR-6.2 |
-| GET | `/users/{id}` | AD | detail | FR-6.2 |
-| PUT | `/users/{id}` | AD | edit account | FR-6.2 |
-| PUT | `/users/{id}/roles` | AD | change roles | FR-6.2 |
-| POST | `/users/{id}/enable` | AD | enable account | FR-6.2 |
-| POST | `/users/{id}/disable` | AD | disable account + revoke sessions | FR-6.2 |
+| GET | `/users` | AD | list accounts, query `role`, `enabled`, `page`, `size`; sorted by `lastName` → `PageResponse<UserDto>` | FR-6.2 |
+| POST | `/users` | AD | create account (details, roles, Farmer profile, password) → 201 + `Location`, 400 `VALIDATION_FAILED`, 409 `EMAIL_TAKEN` / `MEMBER_NUMBER_TAKEN` | FR-6.2 |
+| GET | `/users/{id}` | AD | detail → `UserDto`, 404 `NOT_FOUND` | FR-6.2 |
+| PUT | `/users/{id}` | AD | edit account: details, roles and Farmer profile in one call; optional `password` resets it; a new email or a password reset revokes all sessions. 400, 404, 409 `EMAIL_TAKEN` / `MEMBER_NUMBER_TAKEN`, 422 `SELF_LOCKOUT` (removing own ADMIN role) | FR-6.2 |
+| POST | `/users/{id}/enable` | AD | enable account → 204, 404 | FR-6.2 |
+| POST | `/users/{id}/disable` | AD | disable account + revoke sessions → 204, 404, 422 `SELF_LOCKOUT` (own account) | FR-6.2 |
+
+Users are never deleted: disabling replaces deletion, so there is no `DELETE /users/{id}`.
 
 ### Orchards, varieties, map (F1, F4)
 | Method | Path | Roles | Description | FR |
@@ -206,7 +207,7 @@ flowchart LR
 - **Refresh cookie**: `refresh_token`, `HttpOnly; Secure; SameSite=Strict; Path=/api/auth; Max-Age=604800`. Spring CSRF protection is disabled: SameSite=Strict plus the Bearer access token make it safe.
 - **Rotation without reuse detection**: every refresh deletes the old id and issues a new one. An old id presented again gets 401, nothing more. Refresh re-reads the User from MongoDB: a disabled User gets 401 and all their sessions are revoked, otherwise the new access token carries the User's current roles.
 - **Frontend (silent refresh)**: refresh on app boot and after any 401 (one refresh at a time, then the call is retried once). If the refresh gets 401 `SESSION_EXPIRED` (cookie present but refused, on boot or after an API 401), it is retried once after about 1 s because another tab may have just rotated the shared cookie.
-- Passwords hashed with **BCrypt** (strength 12). Password policy: 8+ characters. The forced change of a temporary password is deferred to M9 (no `mustChangePassword` field in M1).
+- Passwords hashed with **BCrypt** (strength 12). Password policy: 8 to 72 characters (on create and on reset). The forced change of a temporary password is deferred to M9 (no `mustChangePassword` field in M1).
 - JWT claims: `sub` = userId, `roles` (mapped to `ROLE_*` authorities), `millId` (for mill managers, from M7), `exp`. The secret comes from the `JWT_SECRET` environment variable (at least 32 characters, the API refuses to start otherwise) and is never committed. The seeded Admin comes from `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
 - **Login rate limiting** through Redis, key `ratelimit:login:{email}:{ip}`: every failed login (unknown email, wrong password, disabled User) adds 1; the 15 min window starts at the first failure. With 5 failures, every attempt gets 429 `TOO_MANY_ATTEMPTS` with `Retry-After` and `retryAfterSeconds`, even with the right password. A success clears the counter. The client IP comes from Nginx's `X-Forwarded-For` (`server.forward-headers-strategy: native`).
 - **SSE authentication**: `EventSource` cannot send headers, so the client first calls `POST /api/events/ticket`. That returns a one-time ticket stored in Redis for 30 s, which is then passed as `?ticket=`.
