@@ -402,7 +402,7 @@ sequenceDiagram
     participant RL as LoginRateLimiter (Redis)
     participant UR as UserRepository
     participant JS as JwtService
-    participant RT as RefreshTokenStore (Redis)
+    participant RT as RefreshTokenStore
 
     U->>FE: email + password
     FE->>AC: POST /api/auth/login
@@ -800,7 +800,7 @@ sequenceDiagram
     participant UC as UserController
     participant US as UserService
     participant UR as UserRepository
-    participant RT as RefreshTokenStore (Redis)
+    participant RT as RefreshTokenStore
 
     A->>FE: fill in the form, click Create user
     FE->>UC: POST /api/users (JWT with ROLE_ADMIN)

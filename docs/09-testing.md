@@ -58,6 +58,9 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-USR-2 | Create user | email already used (any letter case) | Alternative | API | 409 `EMAIL_TAKEN` (`UserControllerTest`) |
 | T-USR-3 | Create user | FARMER role without a Farmer profile | Alternative | API | 400 `VALIDATION_FAILED` (`UserControllerTest`) |
 | T-USR-4 | Disable user | Admin disables themselves | Alternative | API | 422 `SELF_LOCKOUT` (`UserControllerTest`) |
+| T-USR-5 | Create user | email sent with spaces and capitals | Alternative | API | 201, email stored trimmed and lowercased (`UserControllerTest`) |
+| T-USR-6 | Create user | blank phone | Alternative | API | 201, no phone stored (`UserControllerTest`) |
+| T-USR-7 | Create user | Farmer profile with `delegation: null` | Alternative | API | 400 `VALIDATION_FAILED`, field `farmerProfile.delegation` (`UserControllerTest`) |
 | T-HR-1 | Declare request | valid planned request | Nominal | API | 201, status SUBMITTED, manager notified |
 | T-HR-2 | Declare request | `desiredTo < desiredFrom` | Alternative | Web | 400 with field error |
 | T-HR-3 | Declare request | orchard already has an active request | Alternative | API | 409 |

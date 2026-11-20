@@ -32,7 +32,7 @@ export function UserForm({ user }: { user?: UserDto }) {
   const [roles, setRoles] = useState<Role[]>(user?.roles ?? [])
   const [memberNumber, setMemberNumber] = useState(user?.farmerProfile?.memberNumber ?? '')
   const [cin, setCin] = useState(user?.farmerProfile?.cin ?? '')
-  const [delegation, setDelegation] = useState<Delegation | ''>(user?.farmerProfile?.delegation ?? '')
+  const [delegation, setDelegation] = useState<Delegation | null>(user?.farmerProfile?.delegation ?? null)
   const [address, setAddress] = useState(user?.farmerProfile?.address ?? '')
   const [confirmDisable, setConfirmDisable] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -205,8 +205,8 @@ export function UserForm({ user }: { user?: UserDto }) {
                 <Label htmlFor="delegation">Delegation</Label>
                 <select
                   id="delegation"
-                  value={delegation}
-                  onChange={(e) => setDelegation(e.target.value as Delegation | '')}
+                  value={delegation ?? ''}
+                  onChange={(e) => setDelegation((e.target.value || null) as Delegation | null)}
                   aria-invalid={!!fields.delegation}
                   className="h-11 w-full rounded-lg border border-input bg-background px-2 text-base md:text-sm"
                 >
