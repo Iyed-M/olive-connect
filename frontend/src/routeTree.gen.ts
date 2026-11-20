@@ -20,6 +20,9 @@ import { Route as AppRoundsMineRouteImport } from './routes/_app.rounds.mine'
 import { Route as AppAdminUsersIndexRouteImport } from './routes/_app.admin.users.index'
 import { Route as AppAdminUsersIdRouteImport } from './routes/_app.admin.users.$id'
 import { Route as AppAdminUsersNewRouteImport } from './routes/_app.admin.users.new'
+import { Route as AppFarmerOrchardsIndexRouteImport } from './routes/_app.farmer.orchards.index'
+import { Route as AppFarmerOrchardsIdRouteImport } from './routes/_app.farmer.orchards.$id'
+import { Route as AppFarmerOrchardsNewRouteImport } from './routes/_app.farmer.orchards.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -75,44 +78,68 @@ const AppAdminUsersNewRoute = AppAdminUsersNewRouteImport.update({
   path: '/admin/users/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFarmerOrchardsIndexRoute = AppFarmerOrchardsIndexRouteImport.update({
+  id: '/orchards/',
+  path: '/orchards/',
+  getParentRoute: () => AppFarmerRoute,
+} as any)
+const AppFarmerOrchardsIdRoute = AppFarmerOrchardsIdRouteImport.update({
+  id: '/orchards/$id',
+  path: '/orchards/$id',
+  getParentRoute: () => AppFarmerRoute,
+} as any)
+const AppFarmerOrchardsNewRoute = AppFarmerOrchardsNewRouteImport.update({
+  id: '/orchards/new',
+  path: '/orchards/new',
+  getParentRoute: () => AppFarmerRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/farmer': typeof AppFarmerRoute
+  '/farmer': typeof AppFarmerRouteWithChildren
   '/collection/requests': typeof AppCollectionRequestsRoute
   '/logistics/workers': typeof AppLogisticsWorkersRoute
   '/mill/incoming': typeof AppMillIncomingRoute
   '/rounds/mine': typeof AppRoundsMineRoute
   '/admin/users/$id': typeof AppAdminUsersIdRoute
   '/admin/users/new': typeof AppAdminUsersNewRoute
+  '/farmer/orchards/$id': typeof AppFarmerOrchardsIdRoute
+  '/farmer/orchards/new': typeof AppFarmerOrchardsNewRoute
   '/admin/users/': typeof AppAdminUsersIndexRoute
+  '/farmer/orchards/': typeof AppFarmerOrchardsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/farmer': typeof AppFarmerRoute
+  '/farmer': typeof AppFarmerRouteWithChildren
   '/collection/requests': typeof AppCollectionRequestsRoute
   '/logistics/workers': typeof AppLogisticsWorkersRoute
   '/mill/incoming': typeof AppMillIncomingRoute
   '/rounds/mine': typeof AppRoundsMineRoute
   '/admin/users/$id': typeof AppAdminUsersIdRoute
   '/admin/users/new': typeof AppAdminUsersNewRoute
+  '/farmer/orchards/$id': typeof AppFarmerOrchardsIdRoute
+  '/farmer/orchards/new': typeof AppFarmerOrchardsNewRoute
   '/admin/users': typeof AppAdminUsersIndexRoute
+  '/farmer/orchards': typeof AppFarmerOrchardsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/farmer': typeof AppFarmerRoute
+  '/_app/farmer': typeof AppFarmerRouteWithChildren
   '/_app/collection/requests': typeof AppCollectionRequestsRoute
   '/_app/logistics/workers': typeof AppLogisticsWorkersRoute
   '/_app/mill/incoming': typeof AppMillIncomingRoute
   '/_app/rounds/mine': typeof AppRoundsMineRoute
   '/_app/admin/users/$id': typeof AppAdminUsersIdRoute
   '/_app/admin/users/new': typeof AppAdminUsersNewRoute
+  '/_app/farmer/orchards/$id': typeof AppFarmerOrchardsIdRoute
+  '/_app/farmer/orchards/new': typeof AppFarmerOrchardsNewRoute
   '/_app/admin/users/': typeof AppAdminUsersIndexRoute
+  '/_app/farmer/orchards/': typeof AppFarmerOrchardsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -126,7 +153,10 @@ export interface FileRouteTypes {
     | '/rounds/mine'
     | '/admin/users/$id'
     | '/admin/users/new'
+    | '/farmer/orchards/$id'
+    | '/farmer/orchards/new'
     | '/admin/users/'
+    | '/farmer/orchards/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -138,7 +168,10 @@ export interface FileRouteTypes {
     | '/rounds/mine'
     | '/admin/users/$id'
     | '/admin/users/new'
+    | '/farmer/orchards/$id'
+    | '/farmer/orchards/new'
     | '/admin/users'
+    | '/farmer/orchards'
   id:
     | '__root__'
     | '/'
@@ -151,7 +184,10 @@ export interface FileRouteTypes {
     | '/_app/rounds/mine'
     | '/_app/admin/users/$id'
     | '/_app/admin/users/new'
+    | '/_app/farmer/orchards/$id'
+    | '/_app/farmer/orchards/new'
     | '/_app/admin/users/'
+    | '/_app/farmer/orchards/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -239,11 +275,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminUsersNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/farmer/orchards/': {
+      id: '/_app/farmer/orchards/'
+      path: '/orchards'
+      fullPath: '/farmer/orchards/'
+      preLoaderRoute: typeof AppFarmerOrchardsIndexRouteImport
+      parentRoute: typeof AppFarmerRoute
+    }
+    '/_app/farmer/orchards/$id': {
+      id: '/_app/farmer/orchards/$id'
+      path: '/orchards/$id'
+      fullPath: '/farmer/orchards/$id'
+      preLoaderRoute: typeof AppFarmerOrchardsIdRouteImport
+      parentRoute: typeof AppFarmerRoute
+    }
+    '/_app/farmer/orchards/new': {
+      id: '/_app/farmer/orchards/new'
+      path: '/orchards/new'
+      fullPath: '/farmer/orchards/new'
+      preLoaderRoute: typeof AppFarmerOrchardsNewRouteImport
+      parentRoute: typeof AppFarmerRoute
+    }
   }
 }
 
+interface AppFarmerRouteChildren {
+  AppFarmerOrchardsIdRoute: typeof AppFarmerOrchardsIdRoute
+  AppFarmerOrchardsNewRoute: typeof AppFarmerOrchardsNewRoute
+  AppFarmerOrchardsIndexRoute: typeof AppFarmerOrchardsIndexRoute
+}
+
+const AppFarmerRouteChildren: AppFarmerRouteChildren = {
+  AppFarmerOrchardsIdRoute: AppFarmerOrchardsIdRoute,
+  AppFarmerOrchardsNewRoute: AppFarmerOrchardsNewRoute,
+  AppFarmerOrchardsIndexRoute: AppFarmerOrchardsIndexRoute,
+}
+
+const AppFarmerRouteWithChildren = AppFarmerRoute._addFileChildren(
+  AppFarmerRouteChildren,
+)
+
 interface AppRouteChildren {
-  AppFarmerRoute: typeof AppFarmerRoute
+  AppFarmerRoute: typeof AppFarmerRouteWithChildren
   AppCollectionRequestsRoute: typeof AppCollectionRequestsRoute
   AppLogisticsWorkersRoute: typeof AppLogisticsWorkersRoute
   AppMillIncomingRoute: typeof AppMillIncomingRoute
@@ -254,7 +327,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppFarmerRoute: AppFarmerRoute,
+  AppFarmerRoute: AppFarmerRouteWithChildren,
   AppCollectionRequestsRoute: AppCollectionRequestsRoute,
   AppLogisticsWorkersRoute: AppLogisticsWorkersRoute,
   AppMillIncomingRoute: AppMillIncomingRoute,
