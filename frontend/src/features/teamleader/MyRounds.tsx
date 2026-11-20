@@ -1,9 +1,10 @@
 import { useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { ApiError } from '@/lib/api'
 import { RequireRole } from '@/components/RequireRole'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   getRound,
@@ -113,7 +114,11 @@ function RoundDetail({ round }: { round: CollectionRound }) {
             </li>
           ))}
         </ol>
-        <p className="text-xs text-muted-foreground">Les commandes d’exécution sur le terrain seront disponibles en M6.</p>
+        {(round.status === 'PLANNED' || round.status === 'IN_PROGRESS') && (
+          <Link to="/rounds/$id/run" params={{ id: round.id }} className={buttonVariants({ className: 'w-full sm:w-fit' })}>
+            Ouvrir le carnet de terrain
+          </Link>
+        )}
       </CardContent>
     </Card>
   )
