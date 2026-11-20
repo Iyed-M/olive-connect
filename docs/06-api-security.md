@@ -26,6 +26,8 @@ Base URL: `/api`. Format: JSON, dates in ISO-8601 UTC, GeoJSON for positions. AP
 | `NOT_FOUND` | 404 | resource missing (or not visible to the caller) | M1a |
 | `INTERNAL_ERROR` | 500 | unexpected error (details only in the logs) | M1a |
 | `EMAIL_TAKEN`, `MEMBER_NUMBER_TAKEN` | 409 | duplicate email or member number | M1b |
+| `CIN_TAKEN`, `CODE_TAKEN` | 409 | duplicate worker `cin` or equipment `code` | M4 |
+| `EQUIPMENT_TYPE_IMMUTABLE` | 422 | `PUT /equipment/{id}` with a `type` different from the stored one | M4 |
 | `SELF_LOCKOUT` | 422 | an Admin disables themselves or removes their own ADMIN role | M1b |
 | `TOO_MANY_ATTEMPTS` | 429 | 5 failed logins in 15 min, with `Retry-After` | M1a |
 | `STALE_VERSION` | 409 | optimistic locking conflict (stale `version`) | M1b |
@@ -101,18 +103,18 @@ Users are never deleted: disabling replaces deletion, so there is no `DELETE /us
 ### Resources (F3)
 | Method | Path | Roles | Description | FR |
 |---|---|---|---|---|
-| GET | `/workers` | LM, CM | list seasonal workers | FR-3.1 |
-| POST | `/workers` | LM | create worker | FR-3.1 |
-| GET | `/workers/{id}` | LM, CM | detail | FR-3.1 |
-| PUT | `/workers/{id}` | LM | edit worker | FR-3.1 |
-| DELETE | `/workers/{id}` | LM | delete worker | FR-3.1 |
-| GET | `/equipment` | LM, CM | list tractors, bins, nets, shakers, query `type` (for example `BIN`) | FR-3.2 |
-| POST | `/equipment` | LM | create equipment | FR-3.2 |
-| GET | `/equipment/{id}` | LM, CM | detail | FR-3.2 |
-| PUT | `/equipment/{id}` | LM | edit equipment | FR-3.2 |
-| DELETE | `/equipment/{id}` | LM | delete equipment | FR-3.2 |
-| POST | `/workers/{id}/unavailabilities` | LM | worker leave | FR-3.2 |
-| POST | `/equipment/{id}/unavailabilities` | LM | equipment maintenance | FR-3.2 |
+| GET | `/workers` | LM, CM, AD | list seasonal workers, query `active`, `page`, `size` | FR-3.1 |
+| POST | `/workers` | LM, AD | create worker | FR-3.1 |
+| GET | `/workers/{id}` | LM, CM, AD | detail | FR-3.1 |
+| PUT | `/workers/{id}` | LM, AD | edit worker | FR-3.1 |
+| DELETE | `/workers/{id}` | LM, AD | delete worker (hard delete until M5) | FR-3.1 |
+| GET | `/equipment` | LM, CM, AD | list tractors, bins, nets, shakers, query `type` (for example `BIN`), `status`, `page`, `size` | FR-3.2 |
+| POST | `/equipment` | LM, AD | create equipment | FR-3.2 |
+| GET | `/equipment/{id}` | LM, CM, AD | detail | FR-3.2 |
+| PUT | `/equipment/{id}` | LM, AD | edit equipment | FR-3.2 |
+| DELETE | `/equipment/{id}` | LM, AD | delete equipment (hard delete until M5) | FR-3.2 |
+| POST | `/workers/{id}/unavailabilities` | LM, AD | worker leave, 201 with the updated worker | FR-3.2 |
+| POST | `/equipment/{id}/unavailabilities` | LM, AD | equipment maintenance, 201 with the updated equipment, `status` unchanged | FR-3.2 |
 | GET | `/resources/availability` | CM, LM | free resources on a slot, query `start`, `end`, `type` | FR-1.5 |
 | GET | `/resources/calendar` | CM, LM | bookings + unavailabilities, query `resourceId`, `from`, `to` | FR-3.3 |
 | GET | `/supply-orders` | LM | list | FR-3.5 |
@@ -181,6 +183,40 @@ Users are never deleted: disabling replaces deletion, so there is no `DELETE /us
   "allowedActions": ["MODIFY", "CANCEL"], "version": 0 }
 ```
 
+```jsonc
+// POST /api/workers (PUT: same body)  — WorkerRequestDto. cin = 8 digits, phone = +216 + 8 digits (optional),
+// dailyRate >= 0, active defaults to true
+{ "firstName": "Sami", "lastName": "Trabelsi", "cin": "12345678", "phone": "+21620123456",
+  "skills": ["HARVEST", "TRACTOR"], "dailyRate": 45.0, "active": true }
+
+// 201 (Location: /api/workers/{id}) — WorkerDto
+{ "id": "6680…", "firstName": "Sami", "lastName": "Trabelsi", "cin": "12345678", "phone": "+21620123456",
+  "skills": ["HARVEST", "TRACTOR"], "dailyRate": 45.0, "active": true,
+  "unavailabilities": [ { "from": "2026-11-25T00:00:00Z", "to": "2026-11-27T00:00:00Z", "reason": "Leave" } ],
+  "createdAt": "2026-11-20T09:00:00Z", "version": 0 }
+
+// POST /api/equipment (PUT: same body, "type" must not change) — EquipmentRequestDto.
+// type = TRACTOR | BIN | NET | SHAKER. Required by type: TRACTOR plateNumber + powerHp (> 0),
+// BIN capacityKg (> 0) + optional serialNumber, NET/SHAKER stockQuantity (>= 0). status defaults to AVAILABLE.
+{ "type": "BIN", "code": "B-07", "status": "AVAILABLE", "serialNumber": "BN-2019-07", "capacityKg": 4000 }
+
+// 201 (Location: /api/equipment/{id}) — EquipmentDto: one shape for all types,
+// the fields of the other types are present and null
+{ "id": "6690…", "type": "BIN", "code": "B-07", "status": "AVAILABLE",
+  "plateNumber": null, "powerHp": null,
+  "serialNumber": "BN-2019-07", "capacityKg": 4000.0,
+  "toolType": null, "stockQuantity": null,
+  "unavailabilities": [], "createdAt": "2026-11-20T09:00:00Z", "version": 0 }
+// TRACTOR fills plateNumber, powerHp. NET and SHAKER fill toolType (= type) and stockQuantity.
+
+// POST /api/workers/{id}/unavailabilities and /api/equipment/{id}/unavailabilities — UnavailabilityDto.
+// "to" must be after "from" (else 400 VALIDATION_FAILED on field "to"). 201 returns the updated WorkerDto / EquipmentDto.
+{ "from": "2026-11-25T00:00:00Z", "to": "2026-11-27T00:00:00Z", "reason": "Welding repair" }
+
+// GET /api/workers, GET /api/equipment — PageResponse<WorkerDto | EquipmentDto>
+{ "content": [ … ], "page": 0, "size": 20, "totalElements": 1 }
+```
+
 `allowedActions` is computed server-side from the state machine and the user's rights. The frontend uses it to show or hide buttons, so the rules exist in only one place.
 
 ```jsonc
@@ -226,7 +262,7 @@ flowchart LR
 | Orchards | – | CRUD own | R all | R (round stops) | – | – | CRUD |
 | Harvest requests | – | C, R/U/cancel own | R, validate/reject | R (own rounds) | – | – | R |
 | Rounds | – | R own stops (status only) | CRUD | R own, start/stops/complete | R | R (to their mill) | R |
-| Workers / equipment | – | – | R | R (own round) | CRUD | – | CRUD |
+| Workers / equipment | – | – | R | – | CRUD | – | CRUD |
 | Bookings / calendar | – | – | CR | R own | CRUD | – | R |
 | Supply orders | – | – | – | – | CRUD | – | R |
 | Alerts | – | C, R own | R, handle | – | – | – | R |
