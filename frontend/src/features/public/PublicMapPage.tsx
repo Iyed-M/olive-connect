@@ -106,10 +106,9 @@ export function PublicMapPage() {
           <p className="text-sm text-muted-foreground">Olive orchards of the Sfax region.</p>
         </div>
         <div className="flex gap-2">
-          {/* Plain link: the /register page is added by the registration ticket. */}
-          <a href="/register" className={buttonVariants({ variant: 'outline' })}>
+          <Link to="/register" className={buttonVariants({ variant: 'outline' })}>
             Join the cooperative
-          </a>
+          </Link>
           {activeRole ? (
             <Link to={ROLE_HOME[activeRole]} className={buttonVariants()}>
               Go to my home

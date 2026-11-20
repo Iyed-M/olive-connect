@@ -15,6 +15,8 @@ export interface Me {
   lastName: string
   roles: Role[]
   onboardingDone: boolean
+  // true after an Admin approved a registration or reset the password: the User must change it first.
+  mustChangePassword?: boolean
 }
 
 // Mirrors the backend LoginResponse.

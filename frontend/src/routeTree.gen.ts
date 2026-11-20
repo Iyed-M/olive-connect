@@ -12,7 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as RegisterRouteImport } from './routes/register'
+import { Route as AppChangePasswordRouteImport } from './routes/_app.change-password'
 import { Route as AppFarmerRouteImport } from './routes/_app.farmer'
+import { Route as AppAdminRegistrationsRouteImport } from './routes/_app.admin.registrations'
 import { Route as AppCollectionRequestsRouteImport } from './routes/_app.collection.requests'
 import { Route as AppFarmerIndexRouteImport } from './routes/_app.farmer.index'
 import { Route as AppMillIncomingRouteImport } from './routes/_app.mill.incoming'
@@ -44,9 +47,24 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppChangePasswordRoute = AppChangePasswordRouteImport.update({
+  id: '/change-password',
+  path: '/change-password',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppFarmerRoute = AppFarmerRouteImport.update({
   id: '/farmer',
   path: '/farmer',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminRegistrationsRoute = AppAdminRegistrationsRouteImport.update({
+  id: '/admin/registrations',
+  path: '/admin/registrations',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCollectionRequestsRoute = AppCollectionRequestsRouteImport.update({
@@ -136,7 +154,10 @@ const AppLogisticsWorkersNewRoute = AppLogisticsWorkersNewRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
+  '/change-password': typeof AppChangePasswordRoute
   '/farmer': typeof AppFarmerRouteWithChildren
+  '/admin/registrations': typeof AppAdminRegistrationsRoute
   '/collection/requests': typeof AppCollectionRequestsRoute
   '/mill/incoming': typeof AppMillIncomingRoute
   '/rounds/mine': typeof AppRoundsMineRoute
@@ -157,6 +178,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
+  '/change-password': typeof AppChangePasswordRoute
+  '/admin/registrations': typeof AppAdminRegistrationsRoute
   '/collection/requests': typeof AppCollectionRequestsRoute
   '/mill/incoming': typeof AppMillIncomingRoute
   '/rounds/mine': typeof AppRoundsMineRoute
@@ -179,7 +203,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
+  '/_app/change-password': typeof AppChangePasswordRoute
   '/_app/farmer': typeof AppFarmerRouteWithChildren
+  '/_app/admin/registrations': typeof AppAdminRegistrationsRoute
   '/_app/collection/requests': typeof AppCollectionRequestsRoute
   '/_app/mill/incoming': typeof AppMillIncomingRoute
   '/_app/rounds/mine': typeof AppRoundsMineRoute
@@ -202,7 +229,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/register'
+    | '/change-password'
     | '/farmer'
+    | '/admin/registrations'
     | '/collection/requests'
     | '/mill/incoming'
     | '/rounds/mine'
@@ -223,6 +253,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/register'
+    | '/change-password'
+    | '/admin/registrations'
     | '/collection/requests'
     | '/mill/incoming'
     | '/rounds/mine'
@@ -244,7 +277,10 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/login'
+    | '/register'
+    | '/_app/change-password'
     | '/_app/farmer'
+    | '/_app/admin/registrations'
     | '/_app/collection/requests'
     | '/_app/mill/incoming'
     | '/_app/rounds/mine'
@@ -267,6 +303,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  RegisterRoute: typeof RegisterRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -292,11 +329,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/change-password': {
+      id: '/_app/change-password'
+      path: '/change-password'
+      fullPath: '/change-password'
+      preLoaderRoute: typeof AppChangePasswordRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/farmer': {
       id: '/_app/farmer'
       path: '/farmer'
       fullPath: '/farmer'
       preLoaderRoute: typeof AppFarmerRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/registrations': {
+      id: '/_app/admin/registrations'
+      path: '/admin/registrations'
+      fullPath: '/admin/registrations'
+      preLoaderRoute: typeof AppAdminRegistrationsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/collection/requests': {
@@ -433,7 +491,9 @@ const AppFarmerRouteWithChildren = AppFarmerRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppChangePasswordRoute: typeof AppChangePasswordRoute
   AppFarmerRoute: typeof AppFarmerRouteWithChildren
+  AppAdminRegistrationsRoute: typeof AppAdminRegistrationsRoute
   AppCollectionRequestsRoute: typeof AppCollectionRequestsRoute
   AppMillIncomingRoute: typeof AppMillIncomingRoute
   AppRoundsMineRoute: typeof AppRoundsMineRoute
@@ -449,7 +509,9 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppChangePasswordRoute: AppChangePasswordRoute,
   AppFarmerRoute: AppFarmerRouteWithChildren,
+  AppAdminRegistrationsRoute: AppAdminRegistrationsRoute,
   AppCollectionRequestsRoute: AppCollectionRequestsRoute,
   AppMillIncomingRoute: AppMillIncomingRoute,
   AppRoundsMineRoute: AppRoundsMineRoute,
@@ -470,6 +532,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  RegisterRoute: RegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
