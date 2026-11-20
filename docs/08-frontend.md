@@ -90,6 +90,13 @@ mobile-first list. Loading, empty, validation and API error states remain visibl
 leaving the role layout. M2 renders the farmer's bounded orchard list with simple Leaflet
 markers; marker clustering remains part of the later public bbox map work.
 
+M3 makes the harvest flow real. Farmers use `/farmer/requests` to review status timelines,
+`/farmer/requests/new` to declare a request, and `/farmer/requests/$id` to modify or cancel a
+request while the API reports the action rules. Collection managers review the priority-sorted
+queue at `/collection/requests` and validate or reject submitted requests with a required reason.
+The header contains a notification bell for every authenticated role, and `/notifications`
+polls the in-app inbox every 30 seconds; SSE remains a later M8 concern.
+
 M4 adds Worker and Equipment pages for the Logistics manager and Admin (full CRUD in the API), with
 filters, pagination, mobile cards, shared `/new` and `/$id` forms, and unavailability panels.
 Equipment fields adapt to the selected type and the type is read-only when editing. Delete asks
@@ -104,9 +111,12 @@ flowchart TB
     PUB --> REG["/register"]
     PRIV["any page of the layout, logged out"] -- "redirect=path" --> LOGIN
     LOGIN --> R{"Active role<br/>(priority role by default, switcher in header)"}
+    R --> FN["/notifications<br/>in-app inbox"]
     R -- FARMER --> FH["/farmer<br/>home: my requests status, quick actions"]
     FH --> FO["/farmer/orchards"]
+    FH --> FRL["/farmer/requests"]
     FH --> FR["/farmer/requests/new"]
+    FRL --> FRD["/farmer/requests/:id<br/>timeline + actions"]
     FH --> FA["/farmer/alerts/new"]
     FH --> FRC["/farmer/receptions"]
     R -- COLLECTION_MANAGER --> CQ["/collection/requests queue"]

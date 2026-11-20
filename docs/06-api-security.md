@@ -31,6 +31,8 @@ Base URL: `/api`. Format: JSON, dates in ISO-8601 UTC, GeoJSON for positions. AP
 | `SELF_LOCKOUT` | 422 | an Admin disables themselves or removes their own ADMIN role | M1b |
 | `TOO_MANY_ATTEMPTS` | 429 | 5 failed logins in 15 min, with `Retry-After` | M1a |
 | `STALE_VERSION` | 409 | optimistic locking conflict (stale `version`) | M1b |
+| `ACTIVE_REQUEST_EXISTS` | 409 | an orchard already has an active harvest request | M3 |
+| `INVALID_TRANSITION` | 409 | the requested HarvestRequest state transition is not allowed | M3 |
 
 ## 2. Endpoint catalogue
 
@@ -183,11 +185,26 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
   "estimatedQuantityKg": 9000, "comment": "Rain forecast Friday" }
 
 // 201 — HarvestRequestDto
-{ "id": "6671…", "orchard": { "id": "6660…", "name": "Henchir El Mezraa", "delegation": "SAKIET_EZZIT" },
+{ "id": "6671…", "farmerId": "665f…", "orchard": { "id": "6660…", "name": "Henchir El Mezraa", "delegation": "SAKIET_EZZIT",
+    "mainVarietyCode": "CHEMLALI", "areaHa": 5.7, "lastSeasonYieldKgHa": 2100, "currentMaturityIndex": 3.8 },
   "type": "URGENT", "status": "SUBMITTED", "desiredFrom": "2026-11-24", "desiredTo": "2026-11-27",
-  "estimatedQuantityKg": 9000, "priorityScore": 82.5, "roundId": null,
-  "history": [ { "to": "SUBMITTED", "at": "2026-11-21T09:12:00Z", "by": "Ali Ben Ali" } ],
+  "estimatedQuantityKg": 9000, "comment": "Rain forecast Friday", "rejectionReason": null,
+  "priorityScore": 82.5, "roundId": null,
+  "history": [ { "from": null, "to": "SUBMITTED", "at": "2026-11-21T09:12:00Z", "byUserId": "665f…", "comment": null } ],
+  "createdAt": "2026-11-21T09:12:00Z", "validatedAt": null,
   "allowedActions": ["MODIFY", "CANCEL"], "version": 0 }
+
+// PUT /api/harvest-requests/{id} — HarvestRequestUpdateDto (all fields optional; version is used for optimistic locking)
+{ "desiredFrom": "2026-11-25", "desiredTo": "2026-11-28", "estimatedQuantityKg": 9500, "version": 0 }
+
+// POST /api/harvest-requests/{id}/cancel — HarvestRequestCancelDto
+{ "reason": "Plans changed", "version": 0 }
+
+// POST /api/harvest-requests/{id}/validate — HarvestRequestVersionDto
+{ "version": 0 }
+
+// POST /api/harvest-requests/{id}/reject — HarvestRequestRejectDto
+{ "reason": "The requested window is full", "version": 0 }
 ```
 
 ```jsonc

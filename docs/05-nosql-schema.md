@@ -70,11 +70,31 @@ erDiagram
         ObjectId _id
         ObjectId farmerId
         ObjectId orchardId
-        object orchard "snapshot: name, location, delegation"
+        object orchard "snapshot: name, location, delegation, variety, totals"
         string type
+        date desiredFrom
+        date desiredTo
+        double estimatedQuantityKg
+        string comment
         string status
+        string rejectionReason
+        double priorityScore
         ObjectId roundId
         array statusHistory "embedded"
+        string season
+        date createdAt
+        date validatedAt
+        long version
+    }
+    notifications {
+        ObjectId _id
+        ObjectId recipientId
+        string type
+        string title
+        string message
+        string link
+        boolean read
+        date createdAt "TTL 90 days"
     }
     collection_rounds {
         ObjectId _id
@@ -256,7 +276,7 @@ by the M2 form yet.
   "_id": ObjectId("..."),
   "farmerId": ObjectId("665f..."),
   "orchardId": ObjectId("..."),
-  "orchard": { "name": "Henchir El Mezraa", "location": {"type":"Point","coordinates":[10.7603,34.7998]}, "delegation": "SAKIET_EZZIT", "mainVarietyCode": "CHEMLALI" },
+  "orchard": { "id": ObjectId("..."), "name": "Henchir El Mezraa", "location": {"type":"Point","coordinates":[10.7603,34.7998]}, "delegation": "SAKIET_EZZIT", "mainVarietyCode": "CHEMLALI", "areaHa": 5.7, "lastSeasonYieldKgHa": 2100, "currentMaturityIndex": 3.8 },
   "type": "URGENT",
   "desiredFrom": ISODate("2026-11-24"), "desiredTo": ISODate("2026-11-27"),
   "estimatedQuantityKg": 9000,
@@ -411,7 +431,9 @@ The latest maturity value is also copied onto `orchards.currentMaturityIndex` (R
 
 ### 4.11 `notifications` (R7 + TTL), `import_jobs`, `registration_requests`, `system_settings`
 
-- `notifications`: `{ recipientId: 1, read: 1, createdAt: -1 }`, plus a **TTL** index `{ createdAt: 1 }, expireAfterSeconds: 7776000` (90 days).
+- `notifications` documents contain `recipientId`, `type`, `title`, `message`, optional `link`, `read` and `createdAt`.
+  M3 uses `NEW_REQUEST`, `REQUEST_VALIDATED` and `REQUEST_REJECTED`; real-time fan-out is deferred to M8.
+  Indexes are `{ recipientId: 1, read: 1, createdAt: -1 }`, plus a **TTL** index `{ createdAt: 1 }, expireAfterSeconds: 7776000` (90 days).
 - `import_jobs`: `{ checksum: 1 }` unique (idempotency), `{ startedAt: -1 }`, `{ dataset: 1, status: 1 }`. `errors[]` holds at most 500 entries and `errorCount` keeps the total (R2 bounded).
 - `registration_requests`: `{ status: 1, createdAt: -1 }`, `{ email: 1 }`.
 - `system_settings`: a single document with `_id: "global"`.

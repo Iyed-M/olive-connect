@@ -68,7 +68,7 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-USR-6 | Create user | blank phone | Alternative | API | 201, no phone stored (`UserControllerTest`) |
 | T-USR-7 | Create user | Farmer profile with `delegation: null` | Alternative | API | 400 `VALIDATION_FAILED`, field `farmerProfile.delegation` (`UserControllerTest`) |
 | T-HR-1 | Declare request | valid planned request | Nominal | API | 201, status SUBMITTED, manager notified |
-| T-HR-2 | Declare request | `desiredTo < desiredFrom` | Alternative | Web | 400 with field error |
+| T-HR-2 | Declare request | `desiredTo < desiredFrom` | Alternative | API + Web | 400 with field error |
 | T-HR-3 | Declare request | orchard already has an active request | Alternative | API | 409 |
 | T-HR-4 | Cancel | request SCHEDULED, round PLANNED | Nominal | API | 200, stop removed from round |
 | T-HR-5 | Cancel | round IN_PROGRESS | Alternative | API | 409 |

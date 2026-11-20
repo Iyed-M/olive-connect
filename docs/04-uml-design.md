@@ -123,6 +123,9 @@ classDiagram
 
     class HarvestRequest {
         +String id
+        +String farmerId
+        +String orchardId
+        +OrchardSnapshot orchard
         +HarvestType type
         +LocalDate desiredFrom
         +LocalDate desiredTo
@@ -131,11 +134,25 @@ classDiagram
         +HarvestRequestStatus status
         +String rejectionReason
         +double priorityScore
+        +List~StatusChange~ statusHistory
+        +String season
+        +String roundId
         +Instant createdAt
         +Instant validatedAt
-        +long version
+        +Long version
         +canBeModifiedBy(User) boolean
+        +canTransitionTo(status) boolean
         +transitionTo(status, User)
+    }
+    class OrchardSnapshot {
+        +String id
+        +String name
+        +GeoPoint location
+        +String delegation
+        +String mainVarietyCode
+        +double areaHa
+        +double lastSeasonYieldKgHa
+        +double currentMaturityIndex
     }
     class HarvestType {
         <<enumeration>>
@@ -321,12 +338,19 @@ classDiagram
 
     class Notification {
         +String id
+        +String recipientId
         +NotificationType type
         +String title
         +String message
         +String link
         +boolean read
         +Instant createdAt
+    }
+    class NotificationType {
+        <<enumeration>>
+        NEW_REQUEST
+        REQUEST_VALIDATED
+        REQUEST_REJECTED
     }
     class ImportJob {
         +String id
@@ -360,6 +384,7 @@ classDiagram
 
     User "1" --> "0..*" HarvestRequest : declares
     HarvestRequest "*" --> "1" Orchard : concerns
+    HarvestRequest "1" *-- "1" OrchardSnapshot : snapshot
     HarvestRequest "1" *-- "*" StatusChange : history
     HarvestRequest --> HarvestType
     HarvestRequest --> HarvestRequestStatus
@@ -403,6 +428,7 @@ classDiagram
     MaturityReading "*" --> "1" Orchard : measures
 
     Notification "*" --> "1" User : recipient
+    Notification --> NotificationType
     ImportJob "1" *-- "*" ImportError
 ```
 
@@ -957,6 +983,10 @@ stateDiagram-v2
 ```
 
 Farmer may modify the request only in `SUBMITTED`, `VALIDATED`, or `SCHEDULED` with the round still `PLANNED`. A change to the dates of a `SCHEDULED` request moves it back to `VALIDATED`, which removes it from its round.
+
+M3 implements the declaration, validation, rejection, modification and cancellation transitions
+through `CANCELLED`; the `SCHEDULED`, `IN_PROGRESS` and `COMPLETED` transitions are reserved for
+the round-planning and field-execution slices (M5–M6).
 
 ### CollectionRound
 
