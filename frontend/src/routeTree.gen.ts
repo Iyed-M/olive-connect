@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppFarmerRouteImport } from './routes/_app.farmer'
 import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
+import { Route as AppCollectionPlanningRouteImport } from './routes/_app.collection.planning'
 import { Route as AppCollectionRequestsRouteImport } from './routes/_app.collection.requests'
 import { Route as AppFarmerIndexRouteImport } from './routes/_app.farmer.index'
 import { Route as AppMillIncomingRouteImport } from './routes/_app.mill.incoming'
@@ -56,6 +57,11 @@ const AppFarmerRoute = AppFarmerRouteImport.update({
 const AppNotificationsRoute = AppNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCollectionPlanningRoute = AppCollectionPlanningRouteImport.update({
+  id: '/collection/planning',
+  path: '/collection/planning',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCollectionRequestsRoute = AppCollectionRequestsRouteImport.update({
@@ -162,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/farmer': typeof AppFarmerRouteWithChildren
   '/notifications': typeof AppNotificationsRoute
+  '/collection/planning': typeof AppCollectionPlanningRoute
   '/collection/requests': typeof AppCollectionRequestsRoute
   '/mill/incoming': typeof AppMillIncomingRoute
   '/rounds/mine': typeof AppRoundsMineRoute
@@ -186,6 +193,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/notifications': typeof AppNotificationsRoute
+  '/collection/planning': typeof AppCollectionPlanningRoute
   '/collection/requests': typeof AppCollectionRequestsRoute
   '/mill/incoming': typeof AppMillIncomingRoute
   '/rounds/mine': typeof AppRoundsMineRoute
@@ -213,6 +221,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_app/farmer': typeof AppFarmerRouteWithChildren
   '/_app/notifications': typeof AppNotificationsRoute
+  '/_app/collection/planning': typeof AppCollectionPlanningRoute
   '/_app/collection/requests': typeof AppCollectionRequestsRoute
   '/_app/mill/incoming': typeof AppMillIncomingRoute
   '/_app/rounds/mine': typeof AppRoundsMineRoute
@@ -240,6 +249,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/farmer'
     | '/notifications'
+    | '/collection/planning'
     | '/collection/requests'
     | '/mill/incoming'
     | '/rounds/mine'
@@ -264,6 +274,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/notifications'
+    | '/collection/planning'
     | '/collection/requests'
     | '/mill/incoming'
     | '/rounds/mine'
@@ -290,6 +301,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_app/farmer'
     | '/_app/notifications'
+    | '/_app/collection/planning'
     | '/_app/collection/requests'
     | '/_app/mill/incoming'
     | '/_app/rounds/mine'
@@ -352,6 +364,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/collection/planning': {
+      id: '/_app/collection/planning'
+      path: '/collection/planning'
+      fullPath: '/collection/planning'
+      preLoaderRoute: typeof AppCollectionPlanningRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/collection/requests': {
@@ -517,6 +536,7 @@ const AppFarmerRouteWithChildren = AppFarmerRoute._addFileChildren(
 interface AppRouteChildren {
   AppFarmerRoute: typeof AppFarmerRouteWithChildren
   AppNotificationsRoute: typeof AppNotificationsRoute
+  AppCollectionPlanningRoute: typeof AppCollectionPlanningRoute
   AppCollectionRequestsRoute: typeof AppCollectionRequestsRoute
   AppMillIncomingRoute: typeof AppMillIncomingRoute
   AppRoundsMineRoute: typeof AppRoundsMineRoute
@@ -534,6 +554,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppFarmerRoute: AppFarmerRouteWithChildren,
   AppNotificationsRoute: AppNotificationsRoute,
+  AppCollectionPlanningRoute: AppCollectionPlanningRoute,
   AppCollectionRequestsRoute: AppCollectionRequestsRoute,
   AppMillIncomingRoute: AppMillIncomingRoute,
   AppRoundsMineRoute: AppRoundsMineRoute,
