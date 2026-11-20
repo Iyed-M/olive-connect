@@ -127,7 +127,12 @@ class HarvestRequestControllerTest extends AbstractIntegrationTest {
                         .header("Authorization", token("manager@example.tn")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("VALIDATED"))
-                .andExpect(jsonPath("$.allowedActions").value(org.hamcrest.Matchers.hasItem("CANCEL")));
+                .andExpect(jsonPath("$.allowedActions").isEmpty());
+
+        mockMvc.perform(get("/api/harvest-requests/" + requestId)
+                        .header("Authorization", token("ali@example.tn")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.allowedActions").value(org.hamcrest.Matchers.hasItems("MODIFY", "CANCEL")));
 
         mockMvc.perform(get("/api/notifications").header("Authorization", token("ali@example.tn")))
                 .andExpect(status().isOk())
@@ -225,8 +230,8 @@ class HarvestRequestControllerTest extends AbstractIntegrationTest {
     void harvestRequestIndexesAndNotificationTtlAreCreated() {
         List<String> requestIndexes = mongoTemplate.indexOps(HarvestRequest.class).getIndexInfo().stream()
                 .map(IndexInfo::getName).toList();
-        assertThat(requestIndexes).contains("farmer_created_at", "status_priority_score", "orchard_active_request",
-                "round_id");
+        assertThat(requestIndexes).contains("farmer_created_at", "status_priority_score", "orchard_location_status",
+                "orchard_active_request", "round_id");
 
         List<String> notificationIndexes = mongoTemplate.indexOps(tn.oliveconnect.notification.Notification.class)
                 .getIndexInfo().stream().map(IndexInfo::getName).toList();

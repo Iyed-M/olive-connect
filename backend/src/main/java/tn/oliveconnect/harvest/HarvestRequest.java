@@ -17,6 +17,7 @@ import tn.oliveconnect.user.User;
 @Document("harvest_requests")
 @CompoundIndex(name = "farmer_created_at", def = "{ 'farmerId': 1, 'createdAt': -1 }")
 @CompoundIndex(name = "status_priority_score", def = "{ 'status': 1, 'priorityScore': -1 }")
+@CompoundIndex(name = "orchard_location_status", def = "{ 'orchard.location': '2dsphere', 'status': 1 }")
 @CompoundIndex(name = "orchard_active_request", def = "{ 'orchardId': 1, 'status': 1 }",
         partialFilter = "{ 'status': { '$in': [ 'SUBMITTED', 'VALIDATED', 'SCHEDULED', 'IN_PROGRESS' ] } }")
 public class HarvestRequest {
