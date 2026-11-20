@@ -19,5 +19,10 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/logistics/equipment', label: 'Equipment', icon: Truck },
   ],
   MILL_MANAGER: [{ to: '/mill/incoming', label: 'Incoming', icon: Factory }],
-  ADMIN: [{ to: '/admin/users', label: 'Users', icon: Users }],
+  // The Admin has full access to Workers and Equipment too (same pages as the Logistics manager).
+  ADMIN: [
+    { to: '/admin/users', label: 'Users', icon: Users },
+    { to: '/logistics/workers', label: 'Workers', icon: HardHat },
+    { to: '/logistics/equipment', label: 'Equipment', icon: Truck },
+  ],
 }

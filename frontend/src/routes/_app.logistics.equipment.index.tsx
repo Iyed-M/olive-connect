@@ -22,7 +22,7 @@ export const Route = createFileRoute('/_app/logistics/equipment/')({ component: 
 
 function Page() {
   return (
-    <RequireRole role="LOGISTICS_MANAGER">
+    <RequireRole role={['LOGISTICS_MANAGER', 'ADMIN']}>
       <EquipmentList />
     </RequireRole>
   )

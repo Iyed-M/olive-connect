@@ -14,7 +14,7 @@ export const Route = createFileRoute('/_app/logistics/workers/')({ component: Pa
 
 function Page() {
   return (
-    <RequireRole role="LOGISTICS_MANAGER">
+    <RequireRole role={['LOGISTICS_MANAGER', 'ADMIN']}>
       <WorkersList />
     </RequireRole>
   )

@@ -48,6 +48,7 @@ describe('equipmentSummary', () => {
     toolType: null,
     stockQuantity: null,
     unavailabilities: [],
+    createdAt: '2026-11-20T09:00:00Z',
     version: 0,
   }
   it('depends on the type', () => {

@@ -115,8 +115,8 @@ Users are never deleted: disabling replaces deletion, so there is no `DELETE /us
 | DELETE | `/equipment/{id}` | LM, AD | delete equipment (hard delete until M5) | FR-3.2 |
 | POST | `/workers/{id}/unavailabilities` | LM, AD | worker leave, 201 with the updated worker | FR-3.2 |
 | POST | `/equipment/{id}/unavailabilities` | LM, AD | equipment maintenance, 201 with the updated equipment, `status` unchanged | FR-3.2 |
-| GET | `/resources/availability` | CM, LM | free resources on a slot, query `start`, `end`, `type` | FR-1.5 |
-| GET | `/resources/calendar` | CM, LM | bookings + unavailabilities, query `resourceId`, `from`, `to` | FR-3.3 |
+| GET | `/resources/availability` | CM, LM, AD | free resources on a slot, query `start`, `end`, `type` | FR-1.5 |
+| GET | `/resources/calendar` | CM, LM, AD | bookings + unavailabilities, query `resourceId`, `from`, `to` | FR-3.3 |
 | GET | `/supply-orders` | LM | list | FR-3.5 |
 | POST | `/supply-orders` | LM | create | FR-3.5 |
 | POST | `/supply-orders/{id}/receive` | LM | mark received (stock `$inc`) | FR-3.5 |
@@ -210,7 +210,7 @@ Users are never deleted: disabling replaces deletion, so there is no `DELETE /us
 // TRACTOR fills plateNumber, powerHp. NET and SHAKER fill toolType (= type) and stockQuantity.
 
 // POST /api/workers/{id}/unavailabilities and /api/equipment/{id}/unavailabilities — UnavailabilityDto.
-// "to" must be after "from" (else 400 VALIDATION_FAILED on field "to"). 201 returns the updated WorkerDto / EquipmentDto.
+// "to" must be after "from" (else 400 VALIDATION_FAILED on field "to": a deliberate choice, the same field-error style as M1b, instead of 422). 201 returns the updated WorkerDto / EquipmentDto.
 { "from": "2026-11-25T00:00:00Z", "to": "2026-11-27T00:00:00Z", "reason": "Welding repair" }
 
 // GET /api/workers, GET /api/equipment — PageResponse<WorkerDto | EquipmentDto>
