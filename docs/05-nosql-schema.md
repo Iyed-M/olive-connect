@@ -70,11 +70,31 @@ erDiagram
         ObjectId _id
         ObjectId farmerId
         ObjectId orchardId
-        object orchard "snapshot: name, location, delegation"
+        object orchard "snapshot: name, location, delegation, variety, totals"
         string type
+        date desiredFrom
+        date desiredTo
+        double estimatedQuantityKg
+        string comment
         string status
+        string rejectionReason
+        double priorityScore
         ObjectId roundId
         array statusHistory "embedded"
+        string season
+        date createdAt
+        date validatedAt
+        long version
+    }
+    notifications {
+        ObjectId _id
+        ObjectId recipientId
+        string type
+        string title
+        string message
+        string link
+        boolean read
+        date createdAt "TTL 90 days"
     }
     collection_rounds {
         ObjectId _id
@@ -206,7 +226,7 @@ flowchart TD
 - `createdBy` and `lastModifiedBy` hold the **user id** of the acting User (JWT `sub`), or `"system"` for the seeded Admin. They are filled by Mongo auditing.
 - `email` is saved trimmed and lowercased. The first Admin is created at startup by `AdminSeeder` when no Admin exists (`ADMIN_EMAIL`, `ADMIN_PASSWORD`).
 - When the FARMER role is removed, `farmerProfile` stays in the document but is ignored. Users are never deleted: disabling sets `enabled` to `false`.
-- The indexes above are created by the entity annotations (`@Indexed`, `@CompoundIndex`) with `auto-index-creation: true` in `application.yml`.
+- The indexes above are declared by entity annotations (`@Indexed`, `@CompoundIndex`) and created by the idempotent `MongoIndexInitializer` at startup. Automatic Spring index creation is disabled so the initializer can remove the legacy orchard geospatial index name before creating `location_2dsphere`.
 
 ### 4.2 `orchards` (R1, R2 plots, R4 owner snapshot, R10, R11)
 
@@ -256,13 +276,15 @@ by the M2 form yet.
   "_id": ObjectId("..."),
   "farmerId": ObjectId("665f..."),
   "orchardId": ObjectId("..."),
-  "orchard": { "name": "Henchir El Mezraa", "location": {"type":"Point","coordinates":[10.7603,34.7998]}, "delegation": "SAKIET_EZZIT", "mainVarietyCode": "CHEMLALI" },
+  "orchard": { "id": ObjectId("..."), "name": "Henchir El Mezraa", "location": {"type":"Point","coordinates":[10.7603,34.7998]}, "delegation": "SAKIET_EZZIT", "mainVarietyCode": "CHEMLALI", "areaHa": 5.7, "lastSeasonYieldKgHa": 2100, "currentMaturityIndex": 3.8 },
   "type": "URGENT",
   "desiredFrom": ISODate("2026-11-24"), "desiredTo": ISODate("2026-11-27"),
   "estimatedQuantityKg": 9000,
+  "comment": "Rain forecast Friday",
   "status": "SCHEDULED",
+  "rejectionReason": null,
   "roundId": ObjectId("..."),
-  "priorityScore": 82.5,
+  "priorityScore": 88.0,
   "statusHistory": [
     { "from": null, "to": "SUBMITTED", "at": ISODate("..."), "byUserId": ObjectId("665f...") },
     { "from": "SUBMITTED", "to": "VALIDATED", "at": ISODate("..."), "byUserId": ObjectId("...") },
@@ -277,7 +299,7 @@ by the M2 form yet.
 | `{ farmerId: 1, createdAt: -1 }` | "my requests" (farmer home) |
 | `{ status: 1, priorityScore: -1 }` | manager queue sorted by priority |
 | `{ "orchard.location": "2dsphere", status: 1 }` | requests map / grouping by proximity |
-| `{ orchardId: 1, status: 1 }` partial on active statuses | "one active request per orchard" check |
+| `{ orchardId: 1, status: 1 }` partial on `SUBMITTED`, `VALIDATED`, `SCHEDULED`, `IN_PROGRESS` | "one active request per orchard" check |
 | `{ roundId: 1 }` | requests of a round |
 
 ### 4.5 `collection_rounds` (R1, R2 stops + history, R5 ids arrays, R14)
@@ -411,7 +433,9 @@ The latest maturity value is also copied onto `orchards.currentMaturityIndex` (R
 
 ### 4.11 `notifications` (R7 + TTL), `import_jobs`, `registration_requests`, `system_settings`
 
-- `notifications`: `{ recipientId: 1, read: 1, createdAt: -1 }`, plus a **TTL** index `{ createdAt: 1 }, expireAfterSeconds: 7776000` (90 days).
+- `notifications` documents contain `recipientId`, `type`, `title`, `message`, optional `link`, `read` and `createdAt`.
+  M3 uses `NEW_REQUEST`, `REQUEST_VALIDATED` and `REQUEST_REJECTED`; real-time fan-out is deferred to M8.
+  Indexes are `{ recipientId: 1, read: 1, createdAt: -1 }`, plus a **TTL** index `{ createdAt: 1 }, expireAfterSeconds: 7776000` (90 days).
 - `import_jobs`: `{ checksum: 1 }` unique (idempotency), `{ startedAt: -1 }`, `{ dataset: 1, status: 1 }`. `errors[]` holds at most 500 entries and `errorCount` keeps the total (R2 bounded).
 - `registration_requests`: `{ status: 1, createdAt: -1 }`, `{ email: 1 }`.
 - `system_settings`: a single document with `_id: "global"`.
@@ -523,7 +547,7 @@ Eviction policy `allkeys-lru` with `maxmemory 256mb`. Persistence: RDB snapshot 
 | Criterion | Spring Data MongoDB | Alternatives |
 |---|---|---|
 | Subject requirement "DAO based on Spring Data" | ✅ | Raw MongoDB Java driver ✗ (no repository abstraction); Morphia ✗ |
-| Productivity | `MongoRepository<T, ID>` CRUD + **derived queries** (`findByFarmerIdOrderByCreatedAtDesc`), `@Query` JSON queries, paging (`Pageable`) | — |
+| Productivity | `MongoRepository<T, ID>` CRUD + **derived queries**, `@Query` JSON queries, and `Pageable`/`PageResponse` envelopes; M3 uses `MongoTemplate` for its optional status/type filters | — |
 | Advanced needs | `MongoTemplate` for **geo** (`NearQuery`, `GeoJsonPoint`, `$geoWithin`), **aggregation** (`Aggregation.newAggregation(...)`), `$inc`/positional updates, bulk ops for imports | Spring Data Elasticsearch: great search but no transactions; Cassandra: query-first model too rigid for this domain |
 | Mapping | `@Document`, `@Field`, `@Indexed`, `@CompoundIndex`, `@GeoSpatialIndexed`, `@TimeSeries`, inheritance via `_class` (R8), `@Version` (R14) | — |
 | Transactions | `MongoTransactionManager` + `@Transactional` (replica set) | — |
@@ -534,12 +558,17 @@ Eviction policy `allkeys-lru` with `maxmemory 256mb`. Persistence: RDB snapshot 
 ### Repository patterns (examples)
 
 ```java
-public interface HarvestRequestRepository
-        extends MongoRepository<HarvestRequest, String>, HarvestRequestRepositoryCustom {
-    Page<HarvestRequest> findByFarmerIdOrderByCreatedAtDesc(String farmerId, Pageable p);
-    List<HarvestRequest> findByStatusOrderByPriorityScoreDesc(HarvestRequestStatus s, Pageable p);
+public interface HarvestRequestRepository extends MongoRepository<HarvestRequest, String> {
+    Optional<HarvestRequest> findByIdAndFarmerId(String id, String farmerId);
     boolean existsByOrchardIdAndStatusIn(String orchardId, Collection<HarvestRequestStatus> active);
 }
+
+// HarvestRequestService builds the optional status/type criteria and stable sort, then pages it.
+PageRequest page = PageRequest.of(pageNumber, pageSize,
+    Sort.by(Sort.Direction.DESC, "priorityScore").and(Sort.by(Sort.Direction.ASC, "createdAt")));
+Page<HarvestRequest> result = PageableExecutionUtils.getPage(
+    mongoTemplate.find(Query.of(filter).with(page), HarvestRequest.class), page,
+    () -> mongoTemplate.count(Query.of(filter).limit(-1).skip(-1), HarvestRequest.class));
 
 public interface ResourceBookingRepository extends MongoRepository<ResourceBooking, String> {
     @Query("{ 'resourceId': { $in: ?0 }, 'status': 'ACTIVE', 'start': { $lt: ?2 }, 'end': { $gt: ?1 } }")
@@ -562,6 +591,6 @@ public class KpiRepositoryCustomImpl implements KpiRepositoryCustom {
 
 ### Index management
 
-- Indexes are declared on the entities (`@Indexed`, `@CompoundIndex`). As of M1a, `spring.data.mongodb.auto-index-creation: true` is set in `application.yml` for every environment, so the `users` indexes are created at startup.
+- Indexes are declared on the entities (`@Indexed`, `@CompoundIndex`) and created by `MongoIndexInitializer` at startup. `spring.data.mongodb.auto-index-creation: false` prevents Spring from trying to create `location_2dsphere` before the initializer can reconcile the legacy `location` index name.
 - Target for production (M13): `auto-index-creation=false`. Indexes, time-series collections, TTL and validators are created by an **idempotent migration** at startup (Mongock, or a `MongoIndexInitializer` `ApplicationRunner`), so they are versioned and can be reviewed.
 - Optional **`$jsonSchema` validators** on the critical collections (`mill_receptions`, `harvest_requests`) give a second line of defence after Bean Validation.

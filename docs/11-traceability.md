@@ -16,7 +16,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | Plot | R2 | `orchards.plots[]` | `orchard.Plot` (embedded) | — | `OrchardService` | `/orchards` | `features/farmer/OrchardForm` |
 | GeoPoint | R10 | `orchards.location` | `orchard.GeoPoint` (embedded GeoJSON) | — | `OrchardService` | `/orchards` | `features/farmer/OrchardMap` |
 | OliveVariety | R1 (natural key) | `olive_varieties` | `orchard.OliveVariety` | `OliveVarietyRepository` | `OrchardService` (Redis cached), `OliveVarietySeeder` | `OliveVarietyController /varieties` | `features/farmer/OrchardForm`, `intranet/Reference` |
-| HarvestRequest | R1, R3, R4, R11, R14 | `harvest_requests` | `harvest.HarvestRequest` | `HarvestRequestRepository` | `HarvestRequestService`, `PriorityCalculator` | `HarvestRequestController /harvest-requests` | `farmer/HarvestRequestForm`, `collection/RequestQueue` |
+| HarvestRequest | R1, R3, R4, R11, R14 | `harvest_requests` | `harvest.HarvestRequest` (+ embedded `OrchardSnapshot`) | `HarvestRequestRepository` | `HarvestRequestService`, weighted `PriorityCalculator` | `HarvestRequestController /harvest-requests` (paged GET + actions) | `farmer/HarvestRequestForm`, `farmer/MyRequests`, `farmer/HarvestRequestDetail`, `farmer/RequestActions`, `farmer/harvestRequests`, `collection/RequestQueue` |
 | StatusChange | R2 | `*.statusHistory[]` | `common.StatusChange` (embedded) | — | each owning service | in detail DTOs | `components/Timeline` |
 | CollectionRound | R1, R5, R14 | `collection_rounds` | `round.CollectionRound` | `CollectionRoundRepository` | `CollectionRoundService`, `PlanningService` | `CollectionRoundController /rounds`, `/planning` | `collection/PlanningBoard`, `teamleader/RoundRunner` |
 | RoundStop | R2 | `collection_rounds.stops[]` | `round.RoundStop` (embedded) | — | `CollectionRoundService` | `/rounds/{id}/stops/{order}` | `teamleader/RoundRunner` |
@@ -31,7 +31,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | FieldAlert | R1, R2, R10 | `field_alerts` (+ GridFS `alerts`) | `alert.FieldAlert` | `FieldAlertRepository` | `FieldAlertService`, `AutoAlertService` | `FieldAlertController /alerts` | `farmer/AlertForm`, `collection/AlertsBoard` |
 | WeatherReading | R7, R12 | `weather_readings` (time-series) | `telemetry.WeatherReading` (`@TimeSeries`) | `WeatherReadingRepository` | `TelemetryService` | (import only), `/dashboard` | dashboard charts |
 | MaturityReading | R7, R12 | `maturity_readings` (time-series) | `telemetry.MaturityReading` (`@TimeSeries`) | `MaturityReadingRepository` | `TelemetryService` | `/orchards/{id}/maturity` | orchard detail chart |
-| Notification | R7 (+TTL) | `notifications` | `notification.Notification` | `NotificationRepository` | `NotificationService` | `/notifications`, `/events` | `notifications/` |
+| Notification | R7 (+TTL) | `notifications` | `notification.Notification` | `NotificationRepository` | `NotificationService` | `NotificationController /notifications` (SSE `/events` in M8) | `notifications/NotificationBell`, `notifications/NotificationsPage`, `notifications/notifications` (30 s polling) |
 | ImportJob / ImportError | R1 / R2 | `import_jobs` | `dataimport.ImportJob` | `ImportJobRepository` | `ImportService` | `ImportController /imports` | `intranet/ImportJournal` |
 | (System status — no class, read model) | — | none (pings MongoDB and Redis) | `system.SystemStatusDto` | — | `SystemStatusService` | `SystemStatusController /system` | `routes/index.tsx` (temporary status page), `lib/api.ts` |
 | (KPIs — no class, read model) | R13 | aggregation over `mill_receptions`, `collection_rounds` | DTOs `dashboard.dto.*` | `KpiRepositoryCustom` | `KpiService` | `DashboardController /dashboard` | `dashboard/` |
@@ -48,7 +48,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | FR-1.3 | Modify / cancel / SD-4 | `PUT /harvest-requests/{id}`, `/cancel` | T-HR-4..6 |
 | FR-1.4 | Validate / reject | `/validate`, `/reject` | T-HR-7 |
 | FR-1.5 | Plan round / SD-3 | `POST /rounds`, `/planning/suggestions` | T-RD-1..5 |
-| FR-1.6 | Notifications | `/notifications`, `/events` | T-HR-1, T-RD-1, T-ML-1 |
+| FR-1.6 | Notifications | `/notifications` (M3), `/events` (M8) | T-HR-1, T-RD-1, T-ML-1 |
 | FR-1.7 | Update round / SD-6 | `/rounds/{id}/start`, `/stops/{order}`, `/complete` | T-RD-6..8 |
 | FR-2.x | Report & handle alert / SD-5 | `/alerts/**` | T-AL-1..4 |
 | FR-3.x | Resources | `/workers`, `/equipment`, `/resources/*`, `/supply-orders` | T-RS-1..2, T-RD-2 |

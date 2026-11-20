@@ -4,8 +4,8 @@ spring:
   data:
     mongodb:
       uri: ${MONGO_URI:mongodb://localhost:27017/oliveconnect?directConnection=true}
-      # Creates the indexes declared on the entities (@Indexed, @CompoundIndex) at startup.
-      auto-index-creation: true
+      # MongoIndexInitializer reconciles legacy names before creating entity indexes.
+      auto-index-creation: false
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
