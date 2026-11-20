@@ -182,11 +182,11 @@ flowchart TD
   "_id": ObjectId("665f..."),
   "email": "a.benali@example.tn",
   "passwordHash": "$2a$12$...",
-  "firstName": "Ali", "lastName": "Ben Ali", "phone": "+216 20 000 000",
+  "firstName": "Ali", "lastName": "Ben Ali", "phone": "+21620000000",
   "roles": ["FARMER"],
   "enabled": true,
   "onboardingDone": false,
-  "farmerProfile": { "memberNumber": "ADH-0421", "cin": "0XXXXXXX", "address": "Route de Gremda km 7", "delegation": "SAKIET_EZZIT" },
+  "farmerProfile": { "memberNumber": "ADH-0421", "cin": "01234567", "address": "Route de Gremda km 7", "delegation": "SAKIET_EZZIT" },
   "assignedMillId": null,
   "createdAt": ISODate("2026-11-20T08:00:00Z"), "createdBy": "665e...",
   "lastModifiedAt": ISODate("2026-11-20T08:00:00Z"), "lastModifiedBy": "665e...", "version": 0
@@ -201,6 +201,7 @@ flowchart TD
 - `delegation` is stored as the code of the `Delegation` enum (`SAKIET_EZZIT`, not the display label, which lives in the frontend). The same code is used by `orchards.delegation` and the telemetry `meta.delegation`.
 - `createdBy` and `lastModifiedBy` hold the **user id** of the acting User (JWT `sub`), or `"system"` for the seeded Admin. They are filled by Mongo auditing.
 - `email` is saved trimmed and lowercased. The first Admin is created at startup by `AdminSeeder` when no Admin exists (`ADMIN_EMAIL`, `ADMIN_PASSWORD`).
+- When the FARMER role is removed, `farmerProfile` stays in the document but is ignored. Users are never deleted: disabling sets `enabled` to `false`.
 - The indexes above are created by the entity annotations (`@Indexed`, `@CompoundIndex`) with `auto-index-creation: true` in `application.yml`.
 
 ### 4.2 `orchards` (R1, R2 plots, R4 owner snapshot, R10, R11)
@@ -493,7 +494,7 @@ db.weather_readings.aggregate([
 | `cache:mapLayer::{filterHash}:{z}:{x}:{y}` | string (GeoJSON) | 60 s | public map tiles (bbox snapped to a tile grid so the cache gets hits) |
 | `cache:kpi::{name}:{filterHash}` | string (JSON) | 300 s | dashboard |
 | `refresh:{tokenId}` | hash `{userId, exp}` | 7 days | refresh tokens (deletion = logout / revocation) |
-| `user:{userId}:refresh` | set of tokenIds | 7 days | revoke all sessions of a user |
+| `user:{userId}:refresh` | set of tokenIds | 7 days | revoke all sessions of a user (on disable, password reset, email change) |
 | `ratelimit:login:{email}:{ip}` | counter | 15 min | brute-force protection: +1 per failed login, TTL set at the first failure (fixed window), deleted on success; 5 → 429 |
 | `lock:resource:{resourceId}` | string (NX) | 5 s | serialise concurrent bookings |
 | channel `notifications` | pub/sub | — | SSE fan-out between API instances |

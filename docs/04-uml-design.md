@@ -20,6 +20,7 @@ classDiagram
         +Set~Role~ roles
         +boolean enabled
         +boolean onboardingDone
+        +FarmerProfile farmerProfile
         +String assignedMillId
         +Instant createdAt
         +String createdBy
@@ -787,6 +788,69 @@ sequenceDiagram
     end
     K-->>C: KpiSeriesDto
     C-->>CM: 200 JSON → Recharts
+```
+
+### SD-10 Admin creates, edits and disables a User (alternatives: validation, duplicate email or member number, Farmer without profile, self-lockout)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor A as Admin
+    participant FE as React app
+    participant UC as UserController
+    participant US as UserService
+    participant UR as UserRepository
+    participant RT as RefreshTokenStore (Redis)
+
+    A->>FE: fill in the form, click Create user
+    FE->>UC: POST /api/users (JWT with ROLE_ADMIN)
+    alt Bean Validation fails (password, phone, CIN, no role)
+        UC-->>FE: 400 VALIDATION_FAILED + errors[]
+    else valid
+        UC->>US: create(dto)
+        US->>UR: findByEmail(email)
+        alt email already used
+            US-->>UC: ConflictException EMAIL_TAKEN
+            UC-->>FE: 409 EMAIL_TAKEN
+        else FARMER role without farmerProfile
+            US-->>UC: FieldValidationException farmerProfile
+            UC-->>FE: 400 VALIDATION_FAILED
+        else member number already used
+            US->>UR: findByFarmerProfileMemberNumber(memberNumber)
+            US-->>UC: ConflictException MEMBER_NUMBER_TAKEN
+            UC-->>FE: 409 MEMBER_NUMBER_TAKEN
+        else free
+            US->>UR: save(user)
+            UC-->>FE: 201 + Location, UserDto
+        end
+    end
+
+    Note over A,FE: Edit (same form, PUT) and Disable (button with confirmation)
+    A->>FE: click Save
+    FE->>UC: PUT /api/users/{id} (password optional)
+    UC->>US: update(id, dto, acting Admin id)
+    alt removes their own ADMIN role
+        US-->>UC: BusinessRuleException SELF_LOCKOUT
+        UC-->>FE: 422 SELF_LOCKOUT
+    else allowed
+        US->>UR: save(user)
+        opt email changed or password reset
+            US->>RT: revokeAll(userId)
+        end
+        UC-->>FE: 200 UserDto
+    end
+
+    A->>FE: confirm Disable
+    FE->>UC: POST /api/users/{id}/disable
+    UC->>US: disable(id, acting Admin id)
+    alt the Admin disables themselves
+        US-->>UC: BusinessRuleException SELF_LOCKOUT
+        UC-->>FE: 422 SELF_LOCKOUT
+    else allowed
+        US->>UR: save(user with enabled = false)
+        US->>RT: revokeAll(userId)
+        UC-->>FE: 204
+    end
 ```
 
 ## 3. State machines

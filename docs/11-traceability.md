@@ -6,10 +6,11 @@ The subject states that **consistency between the class model, the NoSQL schema,
 
 | UML class | Transformation rule(s) | Collection / location | Entity (`@Document`) | Repository (DAO) | Service | Controller · base path | React feature |
 |---|---|---|---|---|---|---|---|
-| User | R1, R9 | `users` | `user.User` | `UserRepository` | `UserService`, `AuthService` | `AuthController /auth`, `MeController /me`, `UserController /users` | `auth/`, `admin/Users` |
-| FarmerProfile | R2 | `users.farmerProfile` | `user.FarmerProfile` (embedded) | — | `UserService` | `/me`, `/users` | `admin/Users` |
+| User | R1, R9 | `users` | `user.User` | `UserRepository` | `UserService`, `AuthService` | `AuthController /auth`, `MeController /me`, `UserController /users` | `auth/`, `admin/users`, `admin/UserForm` |
+| FarmerProfile | R2 | `users.farmerProfile` | `user.FarmerProfile` (embedded) | — | `UserService` | `/me`, `/users` | `admin/UserForm` |
 | Role (enum) | R9 | `users.roles[]` | `user.Role` | — | — | — | `auth/types.ts` (same values as the Java enum) |
-| Delegation (enum) | R2 | `users.farmerProfile.delegation` (code, e.g. `SAKIET_EZZIT`) | `user.Delegation` | — | — | — | labels in the frontend |
+| Delegation (enum) | R2 | `users.farmerProfile.delegation` (code, e.g. `SAKIET_EZZIT`) | `user.Delegation` | — | — | — | labels in `admin/users.ts` |
+| (User admin DTOs — no class, write and read models) | — | `users` | `user.UserDto`, `UserCreateDto`, `UserUpdateDto`, `FarmerProfileDto` | — | `UserService` | `UserController /users` | `admin/users.ts` |
 | RegistrationRequest | R1 | `registration_requests` | `user.RegistrationRequest` | `RegistrationRequestRepository` | `RegistrationService` | `RegistrationController /registrations` | `public/RegistrationPage`, `admin/Registrations` |
 | Orchard | R1, R4, R10, R11 | `orchards` | `orchard.Orchard` | `OrchardRepository` (+ custom geo) | `OrchardService`, `MapService` | `OrchardController /orchards`, `MapController /map` | `farmer/Orchards`, `public/PublicMapPage` |
 | Plot | R2 | `orchards.plots[]` | `orchard.Plot` (embedded) | — | `OrchardService` | `/orchards` | `farmer/OrchardForm` |
@@ -40,6 +41,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 |---|---|---|---|
 | (M0, no FR) | System status / walking skeleton | `GET /system/status` | T-SYS-1 |
 | FR-6.2 (M1a) | Log in / SD-1 | `POST /auth/login`, `/auth/refresh`, `/auth/logout`, `GET /me` | T-AUTH-1, T-AUTH-3..5, T-AUTH-7, T-AUTH-9..11, T-SEC-5 |
+| FR-6.2 (M1b) | Admin manages Users / SD-10 | `GET /users`, `POST /users`, `GET` and `PUT /users/{id}`, `POST /users/{id}/enable`, `/disable` | T-USR-1..4, T-SEC-4, T-AUTH-6 |
 | FR-1.1 | Manage orchards | `/orchards` | T-SEC-1 |
 | FR-1.2 | Declare harvest request / SD-2 | `POST /harvest-requests` | T-HR-1..3 |
 | FR-1.3 | Modify / cancel / SD-4 | `PUT /harvest-requests/{id}`, `/cancel` | T-HR-4..6 |
