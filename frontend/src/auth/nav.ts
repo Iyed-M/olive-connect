@@ -1,4 +1,4 @@
-import { ClipboardList, Factory, HardHat, Map, Route, Sprout, Truck, Users, type LucideIcon } from 'lucide-react'
+import { CalendarDays, ClipboardList, Factory, HardHat, Map, Route, Sprout, Truck, Users, type LucideIcon } from 'lucide-react'
 import type { LinkProps } from '@tanstack/react-router'
 import type { Role } from './types'
 
@@ -16,7 +16,10 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/farmer/requests', label: 'Demandes', icon: ClipboardList },
     { to: '/farmer/orchards', label: 'Vergers', icon: Map },
   ],
-  COLLECTION_MANAGER: [{ to: '/collection/requests', label: 'Demandes', icon: ClipboardList }],
+  COLLECTION_MANAGER: [
+    { to: '/collection/requests', label: 'Demandes', icon: ClipboardList },
+    { to: '/collection/planning', label: 'Planification', icon: CalendarDays },
+  ],
   TEAM_LEADER: [{ to: '/rounds/mine', label: 'Mes tournées', icon: Route }],
   LOGISTICS_MANAGER: [
     { to: '/logistics/workers', label: 'Ouvriers', icon: HardHat },
