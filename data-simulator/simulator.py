@@ -22,7 +22,7 @@ INVALID_RATE = 0.02  # share of records that are broken on purpose
 DELEGATIONS = [
     ("Sakiet Ezzit", 10.76, 34.80, 0.05),
     ("Sakiet Eddaier", 10.68, 34.74, 0.05),
-    ("El Ain", 10.62, 34.72, 0.06),
+    ("El Amra", 10.62, 34.72, 0.06),
     ("Agareb", 10.53, 34.74, 0.07),
     ("Menzel Chaker", 10.40, 34.95, 0.07),
     ("Jebeniana", 10.90, 35.03, 0.07),
