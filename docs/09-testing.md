@@ -58,8 +58,16 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-ORCH-5 | Manage orchards | collection manager lists farmers' orchards | Nominal | API | all orchards are returned (`OrchardControllerTest`) |
 | T-ORCH-6 | Reference data | variety list is read twice after the first request | Nominal | API | second response is served from `cache:varieties::all` (`OrchardControllerTest`) |
 | T-SEC-2 | Any | farmer calls `POST /rounds` | Alternative | Web | 403 |
-| T-SEC-3 | Public map | response contains no owner/phone/yield fields | Nominal | Web | JSON has no such keys |
+| T-SEC-3 | Public map | response contains no owner/phone/yield fields | Nominal | Web | JSON has no such keys, and a reflection test on `PublicOrchardFeature` (`MapControllerTest`) |
 | T-SEC-4 | Users | Farmer calls `GET /users`, `GET /users/{id}` and `POST /users/{id}/disable` | Alternative | API | 403 `FORBIDDEN` on each (`UserControllerTest`) |
+| T-REG-1 | Registration | visitor submits a request (no login, email normalized) | Nominal | API | 201, status `PENDING` (`RegistrationControllerTest`) |
+| T-REG-2 | Registration | invalid fields | Alternative | API | 400 `VALIDATION_FAILED` (`RegistrationControllerTest`) |
+| T-REG-3 | Registration | email of a User or of a pending request | Alternative | API | 409 `EMAIL_TAKEN` (`RegistrationControllerTest`) |
+| T-REG-4 | Registration | Admin lists by `status`; non-Admin | Nominal / Alternative | API | filtered list; 401 / 403 (`RegistrationControllerTest`) |
+| T-REG-5 | Registration | Admin approves | Nominal | API | FARMER created, `mustChangePassword=true`, temporary password returned once and usable to log in (`RegistrationControllerTest`) |
+| T-REG-6 | Registration | Farmer changes the temporary password | Nominal / Alternative | API | 204 clears `mustChangePassword`; wrong current password 422 `WRONG_PASSWORD` (`RegistrationControllerTest`) |
+| T-REG-7 | Registration | approve or reject an already processed request | Alternative | API | 409 `REGISTRATION_ALREADY_PROCESSED`, unknown id 404 (`RegistrationControllerTest`) |
+| T-REG-8 | Registration | approve with a taken member number or email | Alternative | API | 409 `MEMBER_NUMBER_TAKEN` / `EMAIL_TAKEN`, request stays `PENDING` (`RegistrationControllerTest`) |
 | T-USR-1 | Create user | Admin creates a Farmer with a profile | Nominal | API | 201 with `Location` (`UserControllerTest`) |
 | T-USR-2 | Create user | email already used (any letter case) | Alternative | API | 409 `EMAIL_TAKEN` (`UserControllerTest`) |
 | T-USR-3 | Create user | FARMER role without a Farmer profile | Alternative | API | 400 `VALIDATION_FAILED` (`UserControllerTest`) |
@@ -120,6 +128,8 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-KPI-1 | Dashboard | fill rate per week on seeded data | Nominal | Repo | values equal to hand-computed fixture |
 | T-KPI-2 | Dashboard | second call served from cache | Nominal | API | repository called once (spy) |
 | T-MAP-1 | Map | bbox query | Nominal | Repo | only orchards inside bbox; `explain` shows 2dsphere IXSCAN |
+| T-MAP-2 | Map | filters, low-zoom clustering, Redis cache, invalid `bbox` | Nominal + Alt | Web | filtered features, `cluster`/`count`, one `cache:mapPublic::*` key with TTL <= 60 s, 400 |
+| T-MAP-3 | Map | 1,500 orchards, one public request | NFR | Web | response in < 2 s |
 | T-PERF-1 | Load | 100 VUs, 10 min, mixed scenario | NFR | k6 | p95 map < 2 s, p99 < 10 s, error rate < 1 % |
 
 ## 3. Examples
@@ -177,7 +187,8 @@ class PlanRoundIT {
 @Test
 void mapQueryUsesGeoIndex() {
     Document plan = mongoTemplate.getDb().runCommand(Document.parse("""
-      { explain: { find: "orchards", filter: { location: { $geoWithin: { $box: [[10.6,34.7],[10.9,34.9]] } } } },
+      { explain: { find: "orchards", filter: { location: { $geoWithin: { $geometry: { type: "Polygon", coordinates:
+          [[[10.6,34.7],[10.9,34.7],[10.9,34.9],[10.6,34.9],[10.6,34.7]]] } } } } },
         verbosity: "queryPlanner" }"""));
     assertThat(plan.toJson()).contains("IXSCAN").contains("location_2dsphere").doesNotContain("COLLSCAN");
 }

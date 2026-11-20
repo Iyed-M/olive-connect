@@ -20,6 +20,7 @@ classDiagram
         +Set~Role~ roles
         +boolean enabled
         +boolean onboardingDone
+        +boolean mustChangePassword
         +FarmerProfile farmerProfile
         +String assignedMillId
         +Instant createdAt
@@ -45,6 +46,13 @@ classDiagram
         +RegistrationStatus status
         +Instant createdAt
         +String processedById
+        +String createdUserId
+    }
+    class RegistrationStatus {
+        <<enumeration>>
+        PENDING
+        APPROVED
+        REJECTED
     }
     class Role {
         <<enumeration>>
@@ -557,6 +565,59 @@ sequenceDiagram
 
 Rotation has **no reuse detection**: presenting an old id again only returns 401, it does not revoke the other sessions of the User.
 
+### SD-REG Registration request, approval and forced password change (F6)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor V as Visitor
+    actor A as Admin
+    participant FE as React
+    participant RC as RegistrationController
+    participant RS as RegistrationService
+    participant RR as RegistrationRequestRepository
+    participant UR as UserRepository
+    participant MC as MeController
+    participant AS as AuthService
+    V->>FE: fill /register
+    FE->>RC: POST /api/registrations {firstName, lastName, email, cin}
+    RC->>RS: create(dto)
+    RS->>UR: findByEmail(email)
+    alt email already used by a User or a pending request
+        RS-->>RC: ConflictException EMAIL_TAKEN
+        RC-->>FE: 409 EMAIL_TAKEN
+    else new email
+        RS->>RR: save(request PENDING)
+        RC-->>FE: 201 Created and RegistrationDto
+    end
+    A->>FE: open /admin/registrations and enter memberNumber, delegation
+    FE->>RC: POST /api/registrations/{id}/approve {memberNumber, delegation}
+    RC->>RS: approve(id, dto, adminId)
+    RS->>RR: findById(id)
+    alt request is not PENDING
+        RS-->>RC: ConflictException REGISTRATION_ALREADY_PROCESSED
+        RC-->>FE: 409 REGISTRATION_ALREADY_PROCESSED
+    else email or member number already used
+        RS-->>RC: ConflictException EMAIL_TAKEN or MEMBER_NUMBER_TAKEN
+        RC-->>FE: 409
+    else approvable
+        RS->>UR: save(FARMER, BCrypt hash of temporary password, mustChangePassword true)
+        RS->>RR: save(request APPROVED, processedById, createdUserId)
+        RC-->>FE: 200 {registration, userId, temporaryPassword} and Cache-Control no-store
+    end
+    A-->>V: gives the temporary password (shown once, no email)
+    V->>FE: log in then redirected to /change-password
+    FE->>MC: PATCH /api/me/password {currentPassword, newPassword}
+    MC->>AS: changePassword(userId, currentPassword, newPassword)
+    alt wrong current password
+        AS-->>MC: BusinessRuleException WRONG_PASSWORD
+        MC-->>FE: 422 WRONG_PASSWORD
+    else correct
+        AS->>UR: save(new hash, mustChangePassword false)
+        MC-->>FE: 204
+    end
+```
+
 ### SD-ORCHARD Register and edit an orchard (F1)
 
 ```mermaid
@@ -1041,6 +1102,19 @@ Farmer may modify the request only in `SUBMITTED`, `VALIDATED`, or `SCHEDULED` w
 M3 implements the declaration, validation, rejection, modification and cancellation transitions
 through `CANCELLED`; the `SCHEDULED`, `IN_PROGRESS` and `COMPLETED` transitions are reserved for
 the round-planning and field-execution slices (M5–M6).
+
+### RegistrationStatus
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING : visitor submits
+    PENDING --> APPROVED : admin approves (FARMER created)
+    PENDING --> REJECTED : admin rejects
+    APPROVED --> [*]
+    REJECTED --> [*]
+```
+
+An approved or rejected request cannot be processed again (409 `REGISTRATION_ALREADY_PROCESSED`).
 
 ### CollectionRound
 

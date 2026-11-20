@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
+import { Link, createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import { useAuth } from '@/auth/AuthContext'
 import { currentHome } from '@/auth/home'
 import { safeRedirect } from '@/auth/redirect'
@@ -100,6 +100,12 @@ function LoginPage() {
               {isSubmitting ? 'Logging in...' : 'Log in'}
             </Button>
           </form>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Not a member yet?{' '}
+            <Link to="/register" className="text-primary underline">
+              Request to join
+            </Link>
+          </p>
         </CardContent>
       </Card>
     </PublicPage>

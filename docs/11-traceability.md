@@ -6,13 +6,14 @@ The subject states that **consistency between the class model, the NoSQL schema,
 
 | UML class | Transformation rule(s) | Collection / location | Entity (`@Document`) | Repository (DAO) | Service | Controller · base path | React feature |
 |---|---|---|---|---|---|---|---|
-| User | R1, R9 | `users` | `user.User` | `UserRepository` | `UserService`, `AuthService` | `AuthController /auth`, `MeController /me`, `UserController /users` | `auth/`, `admin/users`, `admin/UserForm` |
+| User | R1, R9 | `users` | `user.User` | `UserRepository` | `UserService`, `AuthService` | `AuthController /auth`, `MeController /me`, `UserController /users` | `auth/`, `admin/users`, `admin/UserForm`, `routes/_app.change-password.tsx` |
 | FarmerProfile | R2 | `users.farmerProfile` | `user.FarmerProfile` (embedded) | — | `UserService` | `/me`, `/users` | `admin/UserForm` |
 | Role (enum) | R9 | `users.roles[]` | `user.Role` | — | — | — | `auth/types.ts` (same values as the Java enum) |
 | Delegation (enum) | R2 | `users.farmerProfile.delegation` (code, e.g. `SAKIET_EZZIT`) | `user.Delegation` | — | — | — | labels in `admin/users.ts` |
 | (User admin DTOs — no class, write and read models) | — | `users` | `user.UserDto`, `UserCreateDto`, `UserUpdateDto`, `FarmerProfileDto` | — | `UserService` | `UserController /users` | `admin/users.ts` |
-| RegistrationRequest | R1 | `registration_requests` | `user.RegistrationRequest` | `RegistrationRequestRepository` | `RegistrationService` | `RegistrationController /registrations` | `public/RegistrationPage`, `admin/Registrations` |
+| RegistrationRequest | R1 | `registration_requests` | `user.RegistrationRequest` | `RegistrationRequestRepository` | `RegistrationService` | `RegistrationController /registrations` | `routes/register.tsx`, `routes/_app.admin.registrations.tsx` |
 | Orchard | R1, R4, R10, R11 | `orchards` | `orchard.Orchard` | `OrchardRepository` | `OrchardService` | `OrchardController /orchards` | `features/farmer/OrchardsPage`, `features/farmer/OrchardForm`, `features/farmer/OrchardMap` |
+| (Public map DTOs — no class, anonymous read model) | R4 | `orchards` (projection) | `map.PublicOrchardFeature`, `map.PublicFeatureCollection` | `MongoTemplate` (projection) | `MapService` | `MapController /map/public` | `features/public/PublicMapPage` |
 | Plot | R2 | `orchards.plots[]` | `orchard.Plot` (embedded) | — | `OrchardService` | `/orchards` | `features/farmer/OrchardForm` |
 | GeoPoint | R10 | `orchards.location` | `orchard.GeoPoint` (embedded GeoJSON) | — | `OrchardService` | `/orchards` | `features/farmer/OrchardMap` |
 | OliveVariety | R1 (natural key) | `olive_varieties` | `orchard.OliveVariety` | `OliveVarietyRepository` | `OrchardService` (Redis cached), `OliveVarietySeeder` | `OliveVarietyController /varieties` | `features/farmer/OrchardForm`, `intranet/Reference` |
@@ -33,7 +34,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | MaturityReading | R7, R12 | `maturity_readings` (time-series) | `telemetry.MaturityReading` (`@TimeSeries`) | `MaturityReadingRepository` | `TelemetryService` | `/orchards/{id}/maturity` | orchard detail chart |
 | Notification | R7 (+TTL) | `notifications` | `notification.Notification` | `NotificationRepository` | `NotificationService` | `NotificationController /notifications` (SSE `/events` in M8) | `notifications/NotificationBell`, `notifications/NotificationsPage`, `notifications/notifications` (30 s polling) |
 | ImportJob / ImportError | R1 / R2 | `import_jobs` | `dataimport.ImportJob` | `ImportJobRepository` | `ImportService` | `ImportController /imports` | `intranet/ImportJournal` |
-| (System status — no class, read model) | — | none (pings MongoDB and Redis) | `system.SystemStatusDto` | — | `SystemStatusService` | `SystemStatusController /system` | `routes/index.tsx` (temporary status page), `lib/api.ts` |
+| (System status — no class, read model) | — | none (pings MongoDB and Redis) | `system.SystemStatusDto` | — | `SystemStatusService` | `SystemStatusController /system` | `lib/api.ts` (`getSystemStatus`, no page calls it since M9 replaced the status page with the public map) |
 | (KPIs — no class, read model) | R13 | aggregation over `mill_receptions`, `collection_rounds` | DTOs `dashboard.dto.*` | `KpiRepositoryCustom` | `KpiService` | `DashboardController /dashboard` | `dashboard/` |
 
 ## 2. Requirement ⇄ use case ⇄ endpoint ⇄ test
@@ -52,9 +53,10 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | FR-1.7 | Update round / SD-6 | `/rounds/{id}/start`, `/stops/{order}`, `/complete` | T-RD-6..8 |
 | FR-2.x | Report & handle alert / SD-5 | `/alerts/**` | T-AL-1..4 |
 | FR-3.x | Resources | `/workers`, `/equipment`, `/resources/*`, `/supply-orders` | T-RS-1..2, T-RD-2 |
-| FR-4.x | Map | `/map/public`, `/map/private` | T-SEC-3, T-MAP-1, T-PERF-1 |
+| FR-4.x | Map | `/map/public`, `/map/private` | T-SEC-3, T-MAP-1..3, T-PERF-1 |
 | FR-5.x | Dashboard / SD-9 | `/dashboard/*` | T-KPI-1..2 |
-| FR-6.1–6.2 | Accounts | `/registrations`, `/users` | T-AUTH-* |
+| FR-6.1 (M9) | Registration request and approval / SD-REG | `POST /registrations`, `GET /registrations`, `POST /registrations/{id}/approve`, `/reject`, `PATCH /me/password` | T-REG-1..8 |
+| FR-6.2 | Accounts | `/users` | T-AUTH-* |
 | FR-6.3–6.4 | Import / SD-8 | `/imports/*` | T-IM-1..5 |
 | FR-6.5 | Intranet | `/orchards`, `/equipment`, `/rounds`, `/imports` (ADMIN/LM) | E2E |
 | NFR-4 | Performance | all reads | T-PERF-1, index tests |
