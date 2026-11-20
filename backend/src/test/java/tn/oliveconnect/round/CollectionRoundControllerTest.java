@@ -3,6 +3,7 @@ package tn.oliveconnect.round;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -98,7 +99,12 @@ class CollectionRoundControllerTest extends AbstractIntegrationTest {
                 .isEqualTo(HarvestRequestStatus.SCHEDULED);
         assertThat(requestRepository.findById(request.getId()).orElseThrow().getRoundId())
                 .isEqualTo(round.getId());
-        assertThat(bookingRepository.findByRoundId(round.getId())).hasSize(2);
+        assertThat(bookingRepository.findByRoundId(round.getId())).hasSize(3);
+        assertThat(bookingRepository.findByRoundId(round.getId()).stream()
+                .map(ResourceBooking::getResourceKind))
+                .containsExactlyInAnyOrder(tn.oliveconnect.resource.ResourceKind.TEAM_LEADER,
+                        tn.oliveconnect.resource.ResourceKind.WORKER,
+                        tn.oliveconnect.resource.ResourceKind.EQUIPMENT);
         assertThat(notificationRepository.findAll().stream().map(n -> n.getType()))
                 .contains(NotificationType.ROUND_SCHEDULED, NotificationType.ROUND_ASSIGNED);
     }
@@ -116,6 +122,71 @@ class CollectionRoundControllerTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.teamLeaders[0].id").value(leader.getId()))
                 .andExpect(jsonPath("$.groups[0].requestIds[0]").value(request.getId()));
+    }
+
+    @Test
+    void roundDateOutsideRequestWindowIsRejected() throws Exception {
+        User manager = saveUser("manager@window-test.tn", Role.COLLECTION_MANAGER);
+        User farmer = saveUser("farmer@window-test.tn", Role.FARMER);
+        User leader = saveUser("leader@window-test.tn", Role.TEAM_LEADER);
+        Worker worker = saveWorker("11111111");
+        Bin bin = saveBin("B-07");
+        Mill mill = saveMill("Sfax North", 10000);
+        HarvestRequest request = saveValidatedRequest(farmer, manager, "Window orchard", 900);
+
+        mockMvc.perform(post("/api/rounds").header("Authorization", token(manager.getEmail()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(planJson(request, leader, worker, bin, mill).replace("2026-11-25", "2026-11-28")))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("REQUEST_OUTSIDE_WINDOW"));
+    }
+
+    @Test
+    void roundUpdateRejectsAnEmptyStopList() throws Exception {
+        User manager = saveUser("manager@update-test.tn", Role.COLLECTION_MANAGER);
+        User farmer = saveUser("farmer@update-test.tn", Role.FARMER);
+        User leader = saveUser("leader@update-test.tn", Role.TEAM_LEADER);
+        Worker worker = saveWorker("11111111");
+        Bin bin = saveBin("B-07");
+        Mill mill = saveMill("Sfax North", 10000);
+        HarvestRequest request = saveValidatedRequest(farmer, manager, "Update orchard", 900);
+        MvcResult created = mockMvc.perform(post("/api/rounds").header("Authorization", token(manager.getEmail()))
+                        .contentType(MediaType.APPLICATION_JSON).content(planJson(request, leader, worker, bin, mill)))
+                .andExpect(status().isCreated()).andReturn();
+        String roundId = JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+        int version = JsonPath.read(created.getResponse().getContentAsString(), "$.version");
+
+        mockMvc.perform(put("/api/rounds/" + roundId).header("Authorization", token(manager.getEmail()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"requestIds\":[],\"version\":" + version + "}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("ROUND_EMPTY"));
+    }
+
+    @Test
+    void sameTeamLeaderCannotBeBookedTwiceForOverlappingRounds() throws Exception {
+        User manager = saveUser("manager@leader-conflict.tn", Role.COLLECTION_MANAGER);
+        User farmerOne = saveUser("farmer-one@leader-conflict.tn", Role.FARMER);
+        User farmerTwo = saveUser("farmer-two@leader-conflict.tn", Role.FARMER);
+        User leader = saveUser("leader@leader-conflict.tn", Role.TEAM_LEADER);
+        Worker firstWorker = saveWorker("11111111");
+        Worker secondWorker = saveWorker("22222222");
+        Bin firstBin = saveBin("B-07");
+        Bin secondBin = saveBin("B-08");
+        Mill mill = saveMill("Sfax North", 10000);
+        HarvestRequest firstRequest = saveValidatedRequest(farmerOne, manager, "First leader orchard", 900);
+        HarvestRequest secondRequest = saveValidatedRequest(farmerTwo, manager, "Second leader orchard", 900);
+
+        mockMvc.perform(post("/api/rounds").header("Authorization", token(manager.getEmail()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(planJson(firstRequest, leader, firstWorker, firstBin, mill)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/rounds").header("Authorization", token(manager.getEmail()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(planJson(secondRequest, leader, secondWorker, secondBin, mill)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("BOOKING_CONFLICT"));
     }
 
     @Test

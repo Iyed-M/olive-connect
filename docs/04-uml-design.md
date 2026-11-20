@@ -290,6 +290,7 @@ classDiagram
         <<enumeration>>
         WORKER
         EQUIPMENT
+        TEAM_LEADER
     }
     class BookingStatus {
         <<enumeration>>
@@ -438,6 +439,7 @@ classDiagram
     ResourceBooking "*" --> "1" CollectionRound : for
     ResourceBooking "*" --> "0..1" Worker : books
     ResourceBooking "*" --> "0..1" Equipment : books
+    ResourceBooking "*" --> "0..1" User : books team leader
     ResourceBooking --> ResourceKind
     ResourceBooking --> BookingStatus
     SupplyOrder "*" --> "1" Tool : replenishes
@@ -671,7 +673,7 @@ sequenceDiagram
         Note over S,RR: MongoDB multi-document transaction (@Transactional)
         S->>MR: findById(millId)
         S->>RR: save(round PLANNED, stops ordered)
-        S->>BS: checkAndBook(resources, slot)
+        S->>BS: checkAndBook(team leader, resources, slot)
         BS->>BR: findOverlapping(resourceIds, start, end)
         alt conflict found
             BS-->>S: BookingConflictException(resource, otherRound)
@@ -1119,7 +1121,7 @@ The subject asks to plan "according to orchard maturity and resource availabilit
    the `FieldAlert` collection is implemented. Waiting days are measured from `createdAt` and the
    score is stored on every create/update, so the manager queue can sort without recalculating it.
 2. **Grouping suggestion**: for a chosen date, take requests sorted by score. Seed a round with the top one, then add the nearest requests (`$geoNear` from the seed orchard, within 10 km) until the estimated kg reach the sum of the booked bin capacities.
-3. **Availability**: list the workers and equipment with no overlapping `ResourceBooking`, no `Unavailability`, and status `AVAILABLE`.
+3. **Availability**: return workers and equipment with `available`/`reason` flags based on overlapping `ResourceBooking`, `Unavailability`, and `AVAILABLE` status.
 4. **Mill choice**: pick the nearest mill whose `availableCapacityKg` covers the estimate, using a `$geoNear` query on `mills`.
 
 The `GET /api/planning/suggestions?date=` endpoint returns these suggestions. Creating the round still goes through SD-3.

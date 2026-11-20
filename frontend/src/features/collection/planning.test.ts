@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { ApiError } from '@/lib/api'
+import type { HarvestRequest } from '@/features/farmer/harvestRequests'
 import {
   buildRoundPayload,
   formatRoundWarning,
   normalizeAvailability,
+  normalizePlanningSuggestions,
   normalizeRoundMutation,
   normalizeRoundPage,
   planningErrorMessage,
@@ -35,11 +37,11 @@ describe('sortValidatedRequests', () => {
 })
 
 describe('round time and payload helpers', () => {
-  it('converts a local round slot to ISO availability bounds', () => {
+  it('converts the UTC round slot to ISO availability bounds', () => {
     const range = toAvailabilityRange('2026-11-25', '07:00', '15:00')
     expect(range).not.toBeNull()
     expect(range ? range.start < range.end : false).toBe(true)
-    expect(range?.start).toMatch(/T\d\d:00:00\.000Z$/)
+    expect(range?.start).toBe('2026-11-25T07:00:00.000Z')
   })
 
   it('builds a stable API payload without persisting stale form text', () => {
@@ -82,6 +84,17 @@ describe('planning warnings and conflicts', () => {
 })
 
 describe('planning DTO normalization', () => {
+  it('normalizes the backend suggestion resource fields and group request ids', () => {
+    const suggestions = normalizePlanningSuggestions({
+      availableWorkers: [{ id: 'w-1', resourceKind: 'WORKER', firstName: 'Sami', lastName: 'Trabelsi' }],
+      availableEquipment: [{ id: 'b-1', resourceKind: 'EQUIPMENT', resourceType: 'BIN', code: 'B-07', available: true }],
+      groups: [{ requests: [{ id: 'request-1' } as HarvestRequest], estimatedTotalKg: 900, nearestMillId: 'mill-1' }],
+    })
+    expect(suggestions.availability.workers[0]).toMatchObject({ id: 'w-1', available: true })
+    expect(suggestions.availability.equipment[0]).toMatchObject({ id: 'b-1', resourceType: 'BIN' })
+    expect(suggestions.groups[0].requestIds).toEqual(['request-1'])
+  })
+
   it('normalizes grouped free and busy resources for the form', () => {
     const availability = normalizeAvailability({
       workers: [{ id: 'w-1', firstName: 'Sami', lastName: 'Trabelsi' }],

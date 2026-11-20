@@ -20,8 +20,8 @@ import tn.oliveconnect.harvest.HarvestRequestRepository;
 import tn.oliveconnect.harvest.HarvestRequestStatus;
 import tn.oliveconnect.mill.MillDto;
 import tn.oliveconnect.mill.MillRepository;
-import tn.oliveconnect.resource.EquipmentDto;
 import tn.oliveconnect.resource.ResourceAvailabilityService;
+import tn.oliveconnect.resource.ResourceAvailabilityItemDto;
 import tn.oliveconnect.user.Role;
 import tn.oliveconnect.user.UserRepository;
 
@@ -53,8 +53,9 @@ public class PlanningService {
         List<HarvestRequestDto> requestDtos = requests.stream()
                 .map(request -> HarvestRequestDto.from(request, List.of()))
                 .toList();
-        var availability = availabilityService.find(selectedDate.atStartOfDay().toInstant(ZoneOffset.UTC),
-                selectedDate.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC), null);
+        var slotStart = selectedDate.atStartOfDay().toInstant(ZoneOffset.UTC);
+        var slotEnd = selectedDate.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+        var availability = availabilityService.find(slotStart, slotEnd, null);
         List<MillDto> mills = nearestMills(requests).stream().map(MillDto::from).toList();
         List<HarvestRequest> groupedRequests = groupRequests(requests, availability.equipment());
         double estimatedTotalKg = groupedRequests.stream()
@@ -68,17 +69,19 @@ public class PlanningService {
                 suggestedMill == null ? null : suggestedMill.id());
         List<TeamLeaderOptionDto> teamLeaders = userRepository
                 .findByRolesContainingAndEnabledTrueOrderByLastNameAscFirstNameAsc(Role.TEAM_LEADER).stream()
-                .map(TeamLeaderOptionDto::from).toList();
+                .map(user -> TeamLeaderOptionDto.from(user,
+                        availabilityService.isTeamLeaderAvailable(user.getId(), slotStart, slotEnd))).toList();
         return new PlanningSuggestionsDto(selectedDate, requestDtos, availability.workers(), availability.equipment(),
                 teamLeaders, mills, requests.isEmpty() ? List.of() : List.of(group), suggestedMill);
     }
 
     private List<HarvestRequest> groupRequests(List<HarvestRequest> requests,
-                                                List<tn.oliveconnect.resource.EquipmentDto> equipment) {
+                                                List<ResourceAvailabilityItemDto> equipment) {
         if (requests.isEmpty()) {
             return List.of();
         }
-        double capacity = equipment.stream().filter(item -> item.type() == tn.oliveconnect.resource.EquipmentType.BIN)
+        double capacity = equipment.stream().filter(ResourceAvailabilityItemDto::available)
+                .filter(item -> "BIN".equals(item.resourceType()))
                 .filter(item -> item.capacityKg() != null).mapToDouble(item -> item.capacityKg()).sum();
         HarvestRequest seed = requests.get(0);
         List<HarvestRequest> grouped = new ArrayList<>();

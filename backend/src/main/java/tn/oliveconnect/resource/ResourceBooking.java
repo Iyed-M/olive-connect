@@ -46,6 +46,17 @@ public class ResourceBooking {
         return booking;
     }
 
+    public static ResourceBooking forTeamLeader(String resourceId, String roundId, Instant start, Instant end) {
+        ResourceBooking booking = new ResourceBooking();
+        booking.resourceKind = ResourceKind.TEAM_LEADER;
+        booking.resourceType = ResourceKind.TEAM_LEADER.name();
+        booking.resourceId = resourceId;
+        booking.roundId = roundId;
+        booking.start = start;
+        booking.end = end;
+        return booking;
+    }
+
     public String getId() { return id; }
     public ResourceKind getResourceKind() { return resourceKind; }
     public void setResourceKind(ResourceKind resourceKind) { this.resourceKind = resourceKind; }

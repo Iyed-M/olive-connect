@@ -152,7 +152,9 @@ interface RawPlanningSuggestions {
   date?: string
   requests?: HarvestRequest[]
   validatedRequests?: HarvestRequest[]
-  groups?: PlanningGroup[]
+  groups?: Array<Omit<PlanningGroup, 'requestIds'> & { requestIds?: string[]; requests?: HarvestRequest[] }>
+  availableWorkers?: RawResourceAvailability[]
+  availableEquipment?: RawResourceAvailability[]
   teamLeaders?: TeamLeaderOption[]
   availableTeamLeaders?: TeamLeaderOption[]
   resources?: RawAvailabilityResponse
@@ -204,15 +206,15 @@ export function sortValidatedRequests(requests: HarvestRequest[]): HarvestReques
   return sortRequestsByPriority(requests.filter((request) => request.status === 'VALIDATED'))
 }
 
-/** Convert the local date/time inputs to the UTC instants used by availability queries. */
+/** Round LocalTime values are interpreted as UTC by the API and bookings. */
 export function toAvailabilityRange(
   date: string,
   startTime: string,
   endTime: string,
 ): { start: string; end: string } | null {
   if (!date || !startTime || !endTime) return null
-  const start = new Date(`${date}T${startTime}:00`)
-  const end = new Date(`${date}T${endTime}:00`)
+  const start = new Date(`${date}T${startTime}:00Z`)
+  const end = new Date(`${date}T${endTime}:00Z`)
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) return null
   return { start: start.toISOString(), end: end.toISOString() }
 }
@@ -249,12 +251,22 @@ export function normalizeAvailability(response: RawAvailabilityResponse): Resour
 
 export function normalizePlanningSuggestions(response: RawPlanningSuggestions): PlanningSuggestions {
   const mills = response.mills ?? (response.nearestMill ? [response.nearestMill] : [])
+  const groups = (response.groups ?? []).map((group) => ({
+    requestIds: group.requestIds ?? group.requests?.map((request) => request.id) ?? [],
+    estimatedTotalKg: group.estimatedTotalKg,
+    nearestMillId: group.nearestMillId,
+  }))
+  const availability = response.resources
+    ? normalizeAvailability(response.resources)
+    : response.availableResources
+      ? normalizeAvailability(response.availableResources)
+      : normalizeAvailability({ workers: response.availableWorkers ?? [], equipment: response.availableEquipment ?? [] })
   return {
     date: response.date ?? '',
     requests: response.requests ?? response.validatedRequests ?? [],
-    groups: response.groups ?? [],
+    groups,
     teamLeaders: response.teamLeaders ?? response.availableTeamLeaders ?? [],
-    availability: response.resources ? normalizeAvailability(response.resources) : response.availableResources ? normalizeAvailability(response.availableResources) : { workers: [], equipment: [] },
+    availability,
     mills,
     warnings: normalizeWarnings(response.warnings ?? []),
   }

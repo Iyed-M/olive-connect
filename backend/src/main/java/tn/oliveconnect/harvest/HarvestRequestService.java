@@ -198,10 +198,10 @@ public class HarvestRequestService {
             if (round.getStatus() != RoundStatus.PLANNED) {
                 throw new ConflictException("ROUND_STARTED", "Round already started — contact the collection manager");
             }
-            detachFromPlannedRound(request, round, authentication.getName(), reason);
+            removeStopFromPlannedRound(request, round, authentication.getName(), reason);
             request.setRoundId(null);
-            HarvestRequestDto cancelled = toDto(harvestRequestRepository.save(
-                    transitionToCancelled(request, authentication.getName(), reason)), authentication);
+            request.transitionTo(HarvestRequestStatus.CANCELLED, authentication.getName(), reason);
+            HarvestRequestDto cancelled = toDto(harvestRequestRepository.save(request), authentication);
             notificationService.notifyCollectionManagers(NotificationType.ROUND_UPDATED,
                     "Scheduled request cancelled", "A farmer cancelled a scheduled harvest request", linkFor(request));
             notificationService.notifyUser(round.getTeamLeaderId(), NotificationType.ROUND_UPDATED,
@@ -364,19 +364,19 @@ public class HarvestRequestService {
                 .anyMatch(authority -> authority.getAuthority().equals("ROLE_" + role.name()));
     }
 
-    private HarvestRequest transitionToCancelled(HarvestRequest request, String userId, String reason) {
-        request.transitionTo(HarvestRequestStatus.CANCELLED, userId, reason);
-        return request;
+    private void detachFromPlannedRound(HarvestRequest request, CollectionRound round, String userId, String comment) {
+        removeStopFromPlannedRound(request, round, userId, comment);
+        request.transitionTo(HarvestRequestStatus.VALIDATED, userId, comment);
+        request.setRoundId(null);
     }
 
-    private void detachFromPlannedRound(HarvestRequest request, CollectionRound round, String userId, String comment) {
+    private void removeStopFromPlannedRound(HarvestRequest request, CollectionRound round,
+                                            String userId, String comment) {
         round.removeStopForRequest(request.getId());
         if (round.getStops().isEmpty()) {
             bookingService.releaseByRoundId(round.getId());
             round.transitionTo(RoundStatus.CANCELLED, userId, comment);
         }
         collectionRoundRepository.save(round);
-        request.transitionTo(HarvestRequestStatus.VALIDATED, userId, comment);
-        request.setRoundId(null);
     }
 }

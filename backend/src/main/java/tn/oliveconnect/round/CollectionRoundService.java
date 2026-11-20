@@ -13,6 +13,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,22 +39,26 @@ import tn.oliveconnect.user.UserRepository;
 @Transactional
 public class CollectionRoundService {
 
+    private static final int MAX_STOPS = 15;
+
     private final CollectionRoundRepository roundRepository;
     private final HarvestRequestRepository requestRepository;
     private final UserRepository userRepository;
     private final MillRepository millRepository;
     private final BookingService bookingService;
     private final NotificationService notificationService;
+    private final MongoTemplate mongoTemplate;
 
     public CollectionRoundService(CollectionRoundRepository roundRepository, HarvestRequestRepository requestRepository,
                                   UserRepository userRepository, MillRepository millRepository, BookingService bookingService,
-                                  NotificationService notificationService) {
+                                  NotificationService notificationService, MongoTemplate mongoTemplate) {
         this.roundRepository = roundRepository;
         this.requestRepository = requestRepository;
         this.userRepository = userRepository;
         this.millRepository = millRepository;
         this.bookingService = bookingService;
         this.notificationService = notificationService;
+        this.mongoTemplate = mongoTemplate;
     }
 
     public CollectionRoundDto plan(CollectionRoundCreateDto dto, Authentication authentication) {
@@ -61,6 +68,7 @@ public class CollectionRoundService {
         Mill mill = findMill(dto.millId());
         List<HarvestRequest> requests = findRequestsInOrder(dto.requestIds());
         assertValidated(requests);
+        assertDateWithinRequestWindows(requests, dto.date());
 
         CollectionRound round = buildRound(dto.date(), dto.startTime(), dto.endTime(), plannedById,
                 dto.teamLeaderId(), dto.millId(), dto.workerIds(), dto.equipmentIds(), requests);
@@ -68,7 +76,7 @@ public class CollectionRoundService {
 
         Instant start = toInstant(dto.date(), dto.startTime());
         Instant end = toInstant(dto.date(), dto.endTime());
-        bookingService.checkAndBook(round.getId(), dto.workerIds(), dto.equipmentIds(), start, end);
+        bookingService.checkAndBook(round.getId(), dto.teamLeaderId(), dto.workerIds(), dto.equipmentIds(), start, end);
 
         scheduleRequests(requests, round, plannedById);
         List<PlanningWarningDto> warnings = capacityWarnings(mill, round.getEstimatedTotalKg());
@@ -79,13 +87,22 @@ public class CollectionRoundService {
     @Transactional(readOnly = true)
     public List<CollectionRoundDto> list(LocalDate from, LocalDate to, RoundStatus status, String teamLeaderId,
                                          Authentication authentication) {
-        List<CollectionRound> rounds = roundRepository.findAll(Sort.by(Sort.Direction.ASC, "date")
-                .and(Sort.by(Sort.Direction.ASC, "startTime")));
+        Query query = new Query();
+        if (from != null) {
+            query.addCriteria(Criteria.where("date").gte(from));
+        }
+        if (to != null) {
+            query.addCriteria(Criteria.where("date").lte(to));
+        }
+        if (status != null) {
+            query.addCriteria(Criteria.where("status").is(status));
+        }
+        if (teamLeaderId != null) {
+            query.addCriteria(Criteria.where("teamLeaderId").is(teamLeaderId));
+        }
+        List<CollectionRound> rounds = mongoTemplate.find(query.with(Sort.by(Sort.Direction.ASC, "date")
+                .and(Sort.by(Sort.Direction.ASC, "startTime"))), CollectionRound.class);
         return rounds.stream()
-                .filter(round -> from == null || !round.getDate().isBefore(from))
-                .filter(round -> to == null || !round.getDate().isAfter(to))
-                .filter(round -> status == null || round.getStatus() == status)
-                .filter(round -> teamLeaderId == null || teamLeaderId.equals(round.getTeamLeaderId()))
                 .filter(round -> canView(round, authentication))
                 .map(round -> CollectionRoundDto.from(round, List.of()))
                 .toList();
@@ -116,12 +133,20 @@ public class CollectionRoundService {
         List<String> equipmentIds = dto.equipmentIds() == null ? round.getEquipmentIds() : dto.equipmentIds();
         List<String> requestIds = dto.requestIds() == null
                 ? round.getStops().stream().map(RoundStop::getHarvestRequestId).toList() : dto.requestIds();
+        if (requestIds.isEmpty()) {
+            throw new BusinessRuleException("ROUND_EMPTY", "A collection round must contain at least one stop");
+        }
+        if (requestIds.size() > MAX_STOPS) {
+            throw new BusinessRuleException("ROUND_TOO_MANY_STOPS",
+                    "A collection round cannot contain more than " + MAX_STOPS + " stops");
+        }
 
         validateWindow(date, startTime, endTime);
         requireUserWithRole(teamLeaderId, Role.TEAM_LEADER, "team leader");
         Mill mill = findMill(millId);
         List<HarvestRequest> requests = findRequestsInOrder(requestIds);
         assertValidatedOrAlreadyScheduled(requests, round.getId());
+        assertDateWithinRequestWindows(requests, date);
         detachRemovedRequests(round, requestIds, authentication.getName());
 
         round.setDate(date);
@@ -137,7 +162,7 @@ public class CollectionRoundService {
         roundRepository.save(round);
 
         bookingService.releaseByRoundId(round.getId());
-        bookingService.checkAndBook(round.getId(), workerIds, equipmentIds, toInstant(date, startTime),
+        bookingService.checkAndBook(round.getId(), teamLeaderId, workerIds, equipmentIds, toInstant(date, startTime),
                 toInstant(date, endTime));
         scheduleRequests(requests, round, authentication.getName());
         notifyRoundUpdated(requests, round);
@@ -231,6 +256,15 @@ public class CollectionRoundService {
                 .findFirst().ifPresent(request -> {
                     throw new BusinessRuleException("REQUEST_NOT_VALIDATED",
                             "Request " + request.getId() + " is not validated");
+                });
+    }
+
+    private void assertDateWithinRequestWindows(List<HarvestRequest> requests, LocalDate date) {
+        requests.stream().filter(request -> (request.getDesiredFrom() != null
+                && date.isBefore(request.getDesiredFrom())) || (request.getDesiredTo() != null
+                && date.isAfter(request.getDesiredTo()))).findFirst().ifPresent(request -> {
+                    throw new BusinessRuleException("REQUEST_OUTSIDE_WINDOW",
+                            "Request " + request.getId() + " is outside its desired harvest window");
                 });
     }
 

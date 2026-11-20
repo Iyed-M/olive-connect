@@ -34,6 +34,7 @@ erDiagram
     resource_bookings }o--|| collection_rounds : "roundId"
     resource_bookings }o--|| workers : "resourceId (WORKER)"
     resource_bookings }o--|| equipment : "resourceId (EQUIPMENT)"
+    resource_bookings }o--|| users : "resourceId (TEAM_LEADER)"
     supply_orders }o--|| equipment : "toolId"
     mill_receptions }o--|| mills : "millId"
     mill_receptions }o--|| collection_rounds : "roundId"
@@ -353,13 +354,14 @@ Stops are embedded (R2): there are at most about 15 per round, they are read and
   "roundId": ObjectId("..."), "start": ISODate("2026-11-25T07:00:00Z"), "end": ISODate("2026-11-25T15:00:00Z"),
   "status": "ACTIVE" }
 ```
+`resourceKind` is `WORKER`, `EQUIPMENT`, or `TEAM_LEADER`; team-leader bookings reference the selected User id and use the same overlap and Redis-lock rules.
 | Index | Purpose |
 |---|---|
 | `{ resourceId: 1, start: 1, end: 1 }` partial `status: "ACTIVE"` | **overlap check**: `{resourceId: X, start: {$lt: newEnd}, end: {$gt: newStart}, status: "ACTIVE"}` |
 | `{ start: 1, resourceType: 1 }` | calendar per resource type for a week |
 | `{ roundId: 1 }` | release bookings when a round is cancelled |
 
-Overlap check and insert happen **in the same transaction** as the round creation. Concurrent planning of the same bin is serialised by a Redis lock `lock:resource:{id}` (SET NX PX 5000). The transaction alone does not prevent two inserts that don't conflict on the same document.
+Overlap check and insert happen **in the same transaction** as the round creation. Concurrent planning of the same resource is serialised by a Redis lock `lock:resource:{kind}:{id}` (SET NX PX 5000, renewed every second until transaction completion). The transaction alone does not prevent two inserts that don't conflict on the same document.
 
 ### 4.7 `workers`, `equipment` (R1, R2 unavailabilities, R8 inheritance)
 

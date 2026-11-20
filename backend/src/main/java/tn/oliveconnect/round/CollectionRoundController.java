@@ -51,7 +51,7 @@ public class CollectionRoundController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('COLLECTION_MANAGER')")
-    public CollectionRoundDto update(@PathVariable String id, @RequestBody CollectionRoundUpdateDto dto,
+    public CollectionRoundDto update(@PathVariable String id, @Valid @RequestBody CollectionRoundUpdateDto dto,
                                      Authentication authentication) {
         return roundService.update(id, dto, authentication);
     }
