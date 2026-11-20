@@ -1,4 +1,4 @@
-import { ClipboardList, Factory, HardHat, Map, Route, Sprout, Truck, UserPlus, Users, type LucideIcon } from 'lucide-react'
+import { ClipboardList, Factory, FileUp, HardHat, Map, Route, Settings, Sprout, Truck, UserPlus, Users, type LucideIcon } from 'lucide-react'
 import type { LinkProps } from '@tanstack/react-router'
 import type { Role } from './types'
 
@@ -29,5 +29,7 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/admin/registrations', label: 'Inscriptions', icon: UserPlus },
     { to: '/logistics/workers', label: 'Ouvriers', icon: HardHat },
     { to: '/logistics/equipment', label: 'Équipements', icon: Truck },
+    { to: '/intranet/imports', label: 'Imports', icon: FileUp },
+    { to: '/intranet/settings', label: 'Paramètres', icon: Settings },
   ],
 }

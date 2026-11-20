@@ -36,7 +36,8 @@ function send(path: string, init?: RequestInit) {
     ...init,
     credentials: 'same-origin', // sends the refresh cookie to /api/auth/*
     headers: {
-      'Content-Type': 'application/json',
+      // A FormData body (file upload) gets its multipart Content-Type from the browser.
+      ...(init?.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init?.headers,
     },
