@@ -20,7 +20,7 @@ Entries marked **(M0)** exist today. The others are planned for later milestones
 ```text
 frontend/
 ├── index.html                # (M0)
-├── vite.config.ts            # (M0) proxy /api → http://localhost:8080 in dev, TanStack Router + Tailwind plugins, alias @ → src
+├── vite.config.ts            # (M0) proxy /api → http://localhost:$API_PORT in dev (default 8080), TanStack Router + Tailwind plugins, alias @ → src
 ├── components.json           # (M0) shadcn/ui configuration
 ├── Dockerfile, nginx.conf    # (M0) production image, see docs/10
 ├── src/

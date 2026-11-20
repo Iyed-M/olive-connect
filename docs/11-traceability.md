@@ -60,7 +60,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 
 ## 3. Deployment consistency checklist
 
-- [x] (M0) Service names and ports agree: `web` publishes only port 80 (`HTTP_PORT`) and forwards `/api/` to `api:8080` (`frontend/nginx.conf`), `api` listens on 8080 (`server.port`), `mongo` and `redis` publish nothing, and the Actuator shares port 8080 (healthcheck `http://localhost:8080/actuator/health` in `deploy/docker-compose.yml`).
+- [x] (M0) Service names and ports agree: `web` publishes only port 80 (`HTTP_PORT`) and forwards `/api/` to `api:8080` (`frontend/nginx.conf`), `api` listens on 8080 (`server.port: ${API_PORT:8080}`, overridden only for host dev), `mongo` and `redis` publish nothing, and the Actuator shares port 8080 (healthcheck `http://localhost:8080/actuator/health` in `deploy/docker-compose.yml`).
 - [x] (M0) `MONGO_URI` and `REDIS_HOST` in `deploy/docker-compose.yml` are the variables read by `application.yml`.
 - [x] (M0) The commands in `.github/workflows/ci.yml` match [10](10-deployment.md) §2 (`./mvnw -B verify`, `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm build`, `docker compose -f deploy/docker-compose.yml build`).
 - [ ] (M13) Env variable names in `application-prod.yml` match `.env.example` and `docker-compose.yml`.
