@@ -1,11 +1,17 @@
 package tn.oliveconnect;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MongoDBContainer;
 
@@ -24,9 +30,25 @@ public abstract class AbstractIntegrationTest {
     @ServiceConnection(name = "redis")
     static final GenericContainer<?> redis = new GenericContainer<>("redis:7-alpine").withExposedPorts(6379);
 
+    /** Import inbox shared by the tests (processed/ and rejected/ are created inside it). */
+    protected static final Path INBOX = createInbox();
+
     static {
         mongo.start();
         redis.start();
+    }
+
+    private static Path createInbox() {
+        try {
+            return Files.createTempDirectory("oliveconnect-inbox");
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @DynamicPropertySource
+    static void inboxProperty(DynamicPropertyRegistry registry) {
+        registry.add("app.imports.inbox-dir", INBOX::toString);
     }
 
     @Autowired
