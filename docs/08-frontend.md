@@ -75,7 +75,8 @@ M2 makes `/farmer/orchards` real. The Farmer navigation contains Home and Orchar
 form uses a Leaflet map picker, asks `navigator.geolocation` for an initial position, supports
 bounded plot rows, and displays the server-computed area, tree count and main variety on the
 mobile-first list. Loading, empty, validation and API error states remain visible without
-leaving the role layout.
+leaving the role layout. M2 renders the farmer's bounded orchard list with simple Leaflet
+markers; marker clustering remains part of the later public bbox map work.
 
 ```mermaid
 flowchart TB

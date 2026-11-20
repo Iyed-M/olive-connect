@@ -19,7 +19,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import tn.oliveconnect.AbstractIntegrationTest;
-import tn.oliveconnect.auth.AuthService;
 import tn.oliveconnect.user.AdminSeeder;
 import tn.oliveconnect.user.Delegation;
 import tn.oliveconnect.user.FarmerProfile;

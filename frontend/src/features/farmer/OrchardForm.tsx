@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { OrchardMap } from './OrchardMap'
 import {
   createOrchard,
+  deleteOrchard,
   listVarieties,
   updateOrchard,
   type GeoPoint,
@@ -59,6 +60,13 @@ export function OrchardForm({ orchard }: { orchard?: Orchard }) {
   const varieties = useQuery({ queryKey: ['varieties'], queryFn: listVarieties, staleTime: Infinity })
   const mutation = useMutation({
     mutationFn: (body: OrchardWriteBody) => (orchard ? updateOrchard(orchard.id, body) : createOrchard(body)),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['orchards'] })
+      await navigate({ to: '/farmer/orchards' })
+    },
+  })
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteOrchard(orchard!.id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['orchards'] })
       await navigate({ to: '/farmer/orchards' })
@@ -191,9 +199,20 @@ export function OrchardForm({ orchard }: { orchard?: Orchard }) {
 
       {error && <p role="alert" className="text-sm text-destructive">{error.detail}</p>}
       {mutation.isError && !error && <p role="alert" className="text-sm text-destructive">Could not save the orchard.</p>}
+      {deleteMutation.isError && <p role="alert" className="text-sm text-destructive">Could not delete the orchard.</p>}
       <div className="flex gap-2">
         <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Saving...' : 'Save orchard'}</Button>
         <Link to="/farmer/orchards" className="inline-flex h-11 items-center rounded-lg border px-4 text-sm">Back to orchards</Link>
+        {orchard && <Button
+          type="button"
+          variant="destructive"
+          disabled={deleteMutation.isPending}
+          onClick={() => {
+            if (window.confirm('Delete this orchard?')) deleteMutation.mutate()
+          }}
+        >
+          {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+        </Button>}
       </div>
     </form>
   )

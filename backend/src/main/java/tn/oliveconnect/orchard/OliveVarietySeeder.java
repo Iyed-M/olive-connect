@@ -36,6 +36,10 @@ public class OliveVarietySeeder implements ApplicationRunner {
                 repository.save(variety);
             }
         }
-        redis.delete(OrchardService.VARIETY_CACHE_KEY);
+        try {
+            redis.delete(OrchardService.VARIETY_CACHE_KEY);
+        } catch (RuntimeException ignored) {
+            // Redis is optional for startup because MongoDB remains the source of truth.
+        }
     }
 }

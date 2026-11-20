@@ -51,7 +51,7 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-SEC-5 | Any | `GET /api/me` without a token (or with a garbage token) | Alternative | API | 401 `UNAUTHENTICATED`; with a valid token 200 `MeDto` (`AuthControllerTest`) |
 | T-SEC-6 | Me | valid token whose User was deleted | Alternative | API | 401 `UNAUTHENTICATED` (`AuthControllerTest`) |
 | T-SEC-1 | Any | farmer reads another farmer's orchard | Alternative | API | **404** |
-| T-ORCH-1 | Manage orchards | farmer creates an orchard with two valid plots | Nominal | API | 201, totals recomputed, owner snapshot stored (`OrchardControllerTest`) |
+| T-ORCH-1 | Manage orchards | farmer creates an orchard with two valid plots | Nominal | API + unit | 201, totals recomputed, owner snapshot stored (`OrchardControllerTest`, `OrchardTest`) |
 | T-ORCH-2 | Manage orchards | another farmer reads the orchard URL | Alternative | API | 404 `NOT_FOUND` (`OrchardControllerTest`) |
 | T-ORCH-3 | Manage orchards | plot has an out-of-range area | Alternative | API | 400 `VALIDATION_FAILED` (`OrchardControllerTest`) |
 | T-ORCH-4 | Manage orchards | GPS point is outside Tunisia | Alternative | API | 400 `VALIDATION_FAILED` (`OrchardControllerTest`) |

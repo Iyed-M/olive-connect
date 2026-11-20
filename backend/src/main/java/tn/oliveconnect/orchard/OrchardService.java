@@ -75,13 +75,13 @@ public class OrchardService {
     }
 
     public List<OliveVarietyDto> listVarieties() {
-        String cached = redis.opsForValue().get(VARIETY_CACHE_KEY);
+        String cached = readVarietyCache();
         if (cached != null) {
             try {
                 return objectMapper.readValue(cached, new TypeReference<>() {
                 });
             } catch (JsonProcessingException ignored) {
-                redis.delete(VARIETY_CACHE_KEY);
+                deleteVarietyCache();
             }
         }
 
@@ -89,10 +89,26 @@ public class OrchardService {
                 .stream().map(OliveVarietyDto::from).toList();
         try {
             redis.opsForValue().set(VARIETY_CACHE_KEY, objectMapper.writeValueAsString(varieties));
-        } catch (JsonProcessingException ignored) {
+        } catch (JsonProcessingException | RuntimeException ignored) {
             // A cache serialization failure must not make the reference endpoint unavailable.
         }
         return varieties;
+    }
+
+    private String readVarietyCache() {
+        try {
+            return redis.opsForValue().get(VARIETY_CACHE_KEY);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private void deleteVarietyCache() {
+        try {
+            redis.delete(VARIETY_CACHE_KEY);
+        } catch (RuntimeException ignored) {
+            // Redis is an optimization, never the source of truth for reference data.
+        }
     }
 
     private Orchard findVisible(String id, Authentication authentication) {
