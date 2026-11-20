@@ -89,8 +89,8 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 | Method | Path | Roles | Description | FR |
 |---|---|---|---|---|
 | POST | `/harvest-requests` | F | declare | FR-1.2 |
-| GET | `/harvest-requests` | F (own), CM | paged list / queue sorted by priority, query `status`, `type`, `mine`, `page`, `size` → `PageResponse<HarvestRequestDto>` | FR-1.4 |
-| GET | `/harvest-requests/{id}` | F own, CM, TL (if in their round) | detail + history | FR-1.8 |
+| GET | `/harvest-requests` | F (own list), CM (priority queue) | paged list, query `status`, `type`, `mine`, `page`, `size` → `PageResponse<HarvestRequestDto>`; farmer results sort by creation time and the manager queue by priority | FR-1.4 |
+| GET | `/harvest-requests/{id}` | F own, CM, TL (round membership planned) | detail + history | FR-1.8 |
 | PUT | `/harvest-requests/{id}` | F own | modify (rules SD-4) | FR-1.3 |
 | POST | `/harvest-requests/{id}/cancel` | F own | cancel | FR-1.3 |
 | POST | `/harvest-requests/{id}/validate` | CM | validate | FR-1.4 |

@@ -226,7 +226,7 @@ flowchart TD
 - `createdBy` and `lastModifiedBy` hold the **user id** of the acting User (JWT `sub`), or `"system"` for the seeded Admin. They are filled by Mongo auditing.
 - `email` is saved trimmed and lowercased. The first Admin is created at startup by `AdminSeeder` when no Admin exists (`ADMIN_EMAIL`, `ADMIN_PASSWORD`).
 - When the FARMER role is removed, `farmerProfile` stays in the document but is ignored. Users are never deleted: disabling sets `enabled` to `false`.
-- The indexes above are created by the entity annotations (`@Indexed`, `@CompoundIndex`) with `auto-index-creation: true` in `application.yml`.
+- The indexes above are declared by entity annotations (`@Indexed`, `@CompoundIndex`) and created by the idempotent `MongoIndexInitializer` at startup. Automatic Spring index creation is disabled so the initializer can remove the legacy orchard geospatial index name before creating `location_2dsphere`.
 
 ### 4.2 `orchards` (R1, R2 plots, R4 owner snapshot, R10, R11)
 
@@ -280,7 +280,9 @@ by the M2 form yet.
   "type": "URGENT",
   "desiredFrom": ISODate("2026-11-24"), "desiredTo": ISODate("2026-11-27"),
   "estimatedQuantityKg": 9000,
+  "comment": "Rain forecast Friday",
   "status": "SCHEDULED",
+  "rejectionReason": null,
   "roundId": ObjectId("..."),
   "priorityScore": 88.0,
   "statusHistory": [
@@ -297,7 +299,7 @@ by the M2 form yet.
 | `{ farmerId: 1, createdAt: -1 }` | "my requests" (farmer home) |
 | `{ status: 1, priorityScore: -1 }` | manager queue sorted by priority |
 | `{ "orchard.location": "2dsphere", status: 1 }` | requests map / grouping by proximity |
-| `{ orchardId: 1, status: 1 }` partial on active statuses | "one active request per orchard" check |
+| `{ orchardId: 1, status: 1 }` partial on `SUBMITTED`, `VALIDATED`, `SCHEDULED`, `IN_PROGRESS` | "one active request per orchard" check |
 | `{ roundId: 1 }` | requests of a round |
 
 ### 4.5 `collection_rounds` (R1, R2 stops + history, R5 ids arrays, R14)
@@ -589,6 +591,6 @@ public class KpiRepositoryCustomImpl implements KpiRepositoryCustom {
 
 ### Index management
 
-- Indexes are declared on the entities (`@Indexed`, `@CompoundIndex`). As of M1a, `spring.data.mongodb.auto-index-creation: true` is set in `application.yml` for every environment, so the `users` indexes are created at startup.
+- Indexes are declared on the entities (`@Indexed`, `@CompoundIndex`) and created by `MongoIndexInitializer` at startup. `spring.data.mongodb.auto-index-creation: false` prevents Spring from trying to create `location_2dsphere` before the initializer can reconcile the legacy `location` index name.
 - Target for production (M13): `auto-index-creation=false`. Indexes, time-series collections, TTL and validators are created by an **idempotent migration** at startup (Mongock, or a `MongoIndexInitializer` `ApplicationRunner`), so they are versioned and can be reviewed.
 - Optional **`$jsonSchema` validators** on the critical collections (`mill_receptions`, `harvest_requests`) give a second line of defence after Bean Validation.

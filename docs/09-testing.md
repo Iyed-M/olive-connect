@@ -73,7 +73,7 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-HR-4 | Cancel | request SCHEDULED, round PLANNED | Nominal (M5) | API | 200, stop removed from round |
 | T-HR-5 | Cancel | round IN_PROGRESS | Alternative (M5–M6) | API | 409 |
 | T-HR-6 | Modify | concurrent edit (stale version) | Alternative | API | 409 STALE_VERSION |
-| T-HR-7 | Validate/reject | reject without reason | Alternative | Web | 400 |
+| T-HR-7 | Validate/reject | reject without reason | Alternative | API + Web | 400 and required-reason validation |
 | T-RD-1 | Plan round | free resources, mill capacity OK | Nominal | API | 201, bookings created, requests SCHEDULED, farmers notified |
 | T-RD-2 | Plan round | bin already booked on overlapping slot | Alternative | API | 409 BOOKING_CONFLICT, **nothing persisted** (transaction rollback) |
 | T-RD-3 | Plan round | request not VALIDATED | Alternative | API | 422 |
