@@ -75,13 +75,13 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-USR-5 | Create user | email sent with spaces and capitals | Alternative | API | 201, email stored trimmed and lowercased (`UserControllerTest`) |
 | T-USR-6 | Create user | blank phone | Alternative | API | 201, no phone stored (`UserControllerTest`) |
 | T-USR-7 | Create user | Farmer profile with `delegation: null` | Alternative | API | 400 `VALIDATION_FAILED`, field `farmerProfile.delegation` (`UserControllerTest`) |
-| T-HR-1 | Declare request | valid planned request | Nominal | API | 201, status SUBMITTED, manager notified |
-| T-HR-2 | Declare request | `desiredTo < desiredFrom` | Alternative | Web | 400 with field error |
+| T-HR-1 | Declare request | valid planned request | Nominal | API | 201, status SUBMITTED, documented priority score, manager notified |
+| T-HR-2 | Declare request | `desiredTo < desiredFrom` | Alternative | API + Web | 400 with field error |
 | T-HR-3 | Declare request | orchard already has an active request | Alternative | API | 409 |
-| T-HR-4 | Cancel | request SCHEDULED, round PLANNED | Nominal | API | 200, stop removed from round |
-| T-HR-5 | Cancel | round IN_PROGRESS | Alternative | API | 409 |
+| T-HR-4 | Cancel | request SCHEDULED, round PLANNED | Nominal (M5) | API | 200, stop removed from round |
+| T-HR-5 | Cancel | round IN_PROGRESS | Alternative (M5–M6) | API | 409 |
 | T-HR-6 | Modify | concurrent edit (stale version) | Alternative | API | 409 STALE_VERSION |
-| T-HR-7 | Validate/reject | reject without reason | Alternative | Web | 400 |
+| T-HR-7 | Validate/reject | reject without reason | Alternative | API + Web | 400 and required-reason validation |
 | T-RD-1 | Plan round | free resources, mill capacity OK | Nominal | API | 201, bookings created, requests SCHEDULED, farmers notified |
 | T-RD-2 | Plan round | bin already booked on overlapping slot | Alternative | API | 409 BOOKING_CONFLICT, **nothing persisted** (transaction rollback) |
 | T-RD-3 | Plan round | request not VALIDATED | Alternative | API | 422 |

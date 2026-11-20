@@ -131,6 +131,9 @@ classDiagram
 
     class HarvestRequest {
         +String id
+        +String farmerId
+        +String orchardId
+        +OrchardSnapshot orchard
         +HarvestType type
         +LocalDate desiredFrom
         +LocalDate desiredTo
@@ -139,11 +142,25 @@ classDiagram
         +HarvestRequestStatus status
         +String rejectionReason
         +double priorityScore
+        +List~StatusChange~ statusHistory
+        +String season
+        +String roundId
         +Instant createdAt
         +Instant validatedAt
-        +long version
+        +Long version
         +canBeModifiedBy(User) boolean
+        +canTransitionTo(status) boolean
         +transitionTo(status, User)
+    }
+    class OrchardSnapshot {
+        +String id
+        +String name
+        +GeoPoint location
+        +String delegation
+        +String mainVarietyCode
+        +double areaHa
+        +double lastSeasonYieldKgHa
+        +double currentMaturityIndex
     }
     class HarvestType {
         <<enumeration>>
@@ -329,12 +346,19 @@ classDiagram
 
     class Notification {
         +String id
+        +String recipientId
         +NotificationType type
         +String title
         +String message
         +String link
         +boolean read
         +Instant createdAt
+    }
+    class NotificationType {
+        <<enumeration>>
+        NEW_REQUEST
+        REQUEST_VALIDATED
+        REQUEST_REJECTED
     }
     class ImportJob {
         +String id
@@ -368,6 +392,7 @@ classDiagram
 
     User "1" --> "0..*" HarvestRequest : declares
     HarvestRequest "*" --> "1" Orchard : concerns
+    HarvestRequest "1" *-- "1" OrchardSnapshot : snapshot
     HarvestRequest "1" *-- "*" StatusChange : history
     HarvestRequest --> HarvestType
     HarvestRequest --> HarvestRequestStatus
@@ -411,6 +436,7 @@ classDiagram
     MaturityReading "*" --> "1" Orchard : measures
 
     Notification "*" --> "1" User : recipient
+    Notification --> NotificationType
     ImportJob "1" *-- "*" ImportError
 ```
 
@@ -613,6 +639,7 @@ sequenceDiagram
     participant C as HarvestRequestController
     participant S as HarvestRequestService
     participant OR as OrchardRepository
+    participant OVR as OliveVarietyRepository
     participant HR as HarvestRequestRepository
     participant P as PriorityCalculator
     participant NS as NotificationService
@@ -634,7 +661,8 @@ sequenceDiagram
                 S-->>C: ConflictException
                 C-->>FE: 409 "A request is already open for this orchard"
             else none
-                S->>P: score(type, maturityIndex, desiredFrom)
+                S->>OVR: find variety optimal maturity range
+                S->>P: score(type, maturityIndex, optimal range, waitingDays, no open MATURITY alert)
                 S->>HR: save(request SUBMITTED + history)
                 S->>NS: notifyRole(COLLECTION_MANAGER, NEW_REQUEST)
                 S-->>C: HarvestRequest
@@ -1019,6 +1047,10 @@ stateDiagram-v2
 
 Farmer may modify the request only in `SUBMITTED`, `VALIDATED`, or `SCHEDULED` with the round still `PLANNED`. A change to the dates of a `SCHEDULED` request moves it back to `VALIDATED`, which removes it from its round.
 
+M3 implements the declaration, validation, rejection, modification and cancellation transitions
+through `CANCELLED`; the `SCHEDULED`, `IN_PROGRESS` and `COMPLETED` transitions are reserved for
+the round-planning and field-execution slices (M5–M6).
+
 ### RegistrationStatus
 
 ```mermaid
@@ -1125,6 +1157,9 @@ The subject asks to plan "according to orchard maturity and resource availabilit
 1. **Priority score** of each validated request:
    `score = 40·[URGENT] + 30·maturityProximity + 20·min(waitingDays/7, 1) + 10·[open MATURITY alert]`
    where `maturityProximity = 1 − |index − optimalMid| / optimalHalfWidth` (clamped to 0..1, from `OliveVariety`).
+   M3 computes the score from the orchard snapshot and `OliveVariety`; the open-alert term is `0` until
+   the `FieldAlert` collection is implemented. Waiting days are measured from `createdAt` and the
+   score is stored on every create/update, so the manager queue can sort without recalculating it.
 2. **Grouping suggestion**: for a chosen date, take requests sorted by score. Seed a round with the top one, then add the nearest requests (`$geoNear` from the seed orchard, within 10 km) until the estimated kg reach the sum of the booked bin capacities.
 3. **Availability**: list the workers and equipment with no overlapping `ResourceBooking`, no `Unavailability`, and status `AVAILABLE`.
 4. **Mill choice**: pick the nearest mill whose `availableCapacityKg` covers the estimate, using a `$geoNear` query on `mills`.

@@ -120,8 +120,8 @@ tn.oliveconnect
 ├── auth/              (M1a) AuthController, MeController, AuthService, JwtService, RefreshTokenStore,
 │                      LoginRateLimiter, LoginRequest, LoginResponse, AccessToken, Session,
 │                      InvalidCredentialsException, UnauthenticatedException, TooManyAttemptsException
-├── common/            (M1a) GlobalExceptionHandler, NotFoundException.
-│                      Planned: Conflict, Forbidden, BusinessRule exceptions, PageResponse
+├── common/            (M1a–M3) GlobalExceptionHandler, NotFoundException, ConflictException,
+│                      BusinessRuleException, FieldValidationException, PageResponse, StatusChange
 ├── user/              (M1a) User, FarmerProfile, Role, Delegation, MeDto, UserRepository, AdminSeeder.
 │                      RegistrationRequest, RegistrationStatus, RegistrationRequestRepository, RegistrationService,
 │                      RegistrationController and their DTOs (M9).
@@ -129,7 +129,8 @@ tn.oliveconnect
 ├── orchard/           Orchard, Plot, GeoPoint, OliveVariety, HarvestStatus, DTOs, repositories,
 │                      OrchardService, OrchardController, OliveVarietyController, OliveVarietySeeder,
 │                      MapController (public + private layers, future)
-├── harvest/           HarvestRequest, HarvestRequestStatus, StatusChange, HarvestRequestRepository,
+├── harvest/           HarvestRequest, OrchardSnapshot, HarvestRequestStatus, HarvestType,
+│                      DTOs, PriorityCalculator, HarvestRequestRepository,
 │                      HarvestRequestService, HarvestRequestController
 ├── round/             CollectionRound, RoundStop, RoundStatus, CollectionRoundRepository,
 │                      CollectionRoundService, PlanningService, CollectionRoundController
@@ -140,8 +141,9 @@ tn.oliveconnect
 ├── mill/              Mill, MillReception, QualityGrade, repositories, MillService,
 │                      MillReceptionService, MillController
 ├── telemetry/         WeatherReading, MaturityReading (time-series), repositories, TelemetryService
-├── notification/      Notification, NotificationRepository, NotificationService,
-│                      SseEmitterRegistry, RedisNotificationPublisher/Subscriber, NotificationController
+├── notification/      Notification, NotificationType, NotificationRepository, NotificationService,
+│                      NotificationController (M3 inbox; SSE fan-out planned for M8),
+│                      SseEmitterRegistry, RedisNotificationPublisher/Subscriber
 ├── dashboard/         KpiService, KpiRepositoryCustom(+Impl with Aggregation), DashboardController, dto/
 ├── dataimport/        ImportJob, ImportJobRepository, ImportScheduler, ImportService,
 │                      parsers/ (CsvParser, JsonParser), validators/, ImportController (admin)

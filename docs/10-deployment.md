@@ -203,7 +203,9 @@ volumes:
 
 Only `web` publishes a port. MongoDB and Redis have no published port, so only the API can reach them. The replica set is initiated by the MongoDB healthcheck (container host name `mongo:27017`). The Actuator runs on the API port 8080 and is not reachable from outside, because Nginx only forwards `/api/`.
 
-`deploy/docker-compose.dev.yml` starts only MongoDB and Redis, with ports bound to `127.0.0.1`, so the API and the frontend can run on the host during development.
+`deploy/docker-compose.dev.yml` starts MongoDB 8 and Redis 7, with ports bound to `127.0.0.1`, so the API and the frontend can run on the host during development.
+
+On startup, `MongoIndexInitializer` creates the declared indexes after reconciling the M2 orchard geospatial index. If an existing development database still has the legacy single-field index named `location`, the initializer removes that index only and recreates it as `location_2dsphere`; no orchard documents are deleted.
 
 ### 3.2 Planned additions (M10 and M13)
 
