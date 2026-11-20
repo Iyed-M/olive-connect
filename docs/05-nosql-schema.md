@@ -507,7 +507,7 @@ db.weather_readings.aggregate([
 | Key pattern | Type | TTL | Usage |
 |---|---|---|---|
 | `cache:varieties::all` | string (JSON) | none (evict on update) | reference data |
-| `cache:mapPublic::{bbox}:{zoom}:{variety}:{status}:{maturityMin}:{maturityMax}` | string (GeoJSON) | 60 s | public map response, one key per distinct request (M9) |
+| `cache:mapPublic::{w},{s},{e},{n}:{zoom}:{variety}:{status}:{delegation}:{maturityMin}:{maturityMax}` | string (GeoJSON) | 60 s | public map response, one key per distinct normalised request (M9) |
 | `cache:kpi::{name}:{filterHash}` | string (JSON) | 300 s | dashboard |
 | `refresh:{tokenId}` | hash `{userId, exp}` | 7 days | refresh tokens (deletion = logout / revocation) |
 | `user:{userId}:refresh` | set of tokenIds | 7 days | revoke all sessions of a user (on disable, password reset, email change) |

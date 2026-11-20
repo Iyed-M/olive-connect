@@ -76,7 +76,7 @@ Users are never deleted: disabling replaces deletion, so there is no `DELETE /us
 | GET | `/orchards/{id}/maturity` | F own, CM | maturity time series, query `days` (default 30) | FR-4.3 |
 | GET | `/orchards/nearest` | F | own orchard nearest to GPS position, query `lng`, `lat` (alert form) | FR-2.1 |
 | GET | `/varieties` | PUB | reference list | — |
-| GET | `/map/public` | PUB | GeoJSON FeatureCollection **without personal data**, query `bbox=w,s,e,n` (required), `zoom` (0-22, default 15, below 13 orchards are grouped into grid clusters `{cluster: true, count}`), `variety`, `status`, `delegation` (a Delegation code, FR-4.2 zone), `maturityMin`, `maturityMax`; features carry only `id`, `varietyCode`, `harvestStatus`, `maturityIndex`; 400 `VALIDATION_FAILED` on a bad `bbox` (including one wider or taller than 4 degrees), `zoom`, `status` or `delegation`; cached 60 s in Redis | FR-4.1, 4.2, 4.4 |
+| GET | `/map/public` | PUB | GeoJSON FeatureCollection **without personal data**, query `bbox=w,s,e,n` (required), `zoom` (0-22, default 15, below 13 orchards are grouped into grid clusters `{cluster: true, count}`), `variety`, `status`, `delegation` (a Delegation code, FR-4.2 zone), `maturityMin`, `maturityMax`; features carry only `id`, `varietyCode`, `harvestStatus`, `maturityIndex`; 400 `VALIDATION_FAILED` on a bad `bbox` (including one wider or taller than 4 degrees), `zoom`, `status` or `delegation`; cached 60 s in Redis; response header `Cache-Control: public, max-age=60` (Nginx micro-cache 30 s) | FR-4.1, 4.2, 4.4 |
 | GET | `/map/private` | F (own), CM, AD | enriched layers, query `bbox`, `layers=orchards,alerts,rounds` | FR-4.3 |
 
 `POST` and `PUT /orchards` accept `{name, delegation, location: {type: "Point", coordinates: [lng, lat]}, plots}`.
