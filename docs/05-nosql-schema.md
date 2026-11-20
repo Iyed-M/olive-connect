@@ -186,9 +186,10 @@ flowchart TD
   "roles": ["FARMER"],
   "enabled": true,
   "onboardingDone": false,
-  "farmerProfile": { "memberNumber": "ADH-0421", "cin": "0XXXXXXX", "address": "Route de Gremda km 7", "delegation": "Sakiet Ezzit" },
+  "farmerProfile": { "memberNumber": "ADH-0421", "cin": "0XXXXXXX", "address": "Route de Gremda km 7", "delegation": "SAKIET_EZZIT" },
   "assignedMillId": null,
-  "createdAt": ISODate("2026-11-20T08:00:00Z"), "createdBy": "admin", "version": 0
+  "createdAt": ISODate("2026-11-20T08:00:00Z"), "createdBy": "665e...",
+  "lastModifiedAt": ISODate("2026-11-20T08:00:00Z"), "lastModifiedBy": "665e...", "version": 0
 }
 ```
 | Index | Purpose |
@@ -196,6 +197,11 @@ flowchart TD
 | `{ email: 1 }` unique | login |
 | `{ roles: 1, enabled: 1 }` | "notify all collection managers", user admin list |
 | `{ "farmerProfile.memberNumber": 1 }` unique, sparse | search member |
+
+- `delegation` is stored as the code of the `Delegation` enum (`SAKIET_EZZIT`, not the display label, which lives in the frontend). The same code is used by `orchards.delegation` and the telemetry `meta.delegation`.
+- `createdBy` and `lastModifiedBy` hold the **user id** of the acting User (JWT `sub`), or `"system"` for the seeded Admin. They are filled by Mongo auditing.
+- `email` is saved trimmed and lowercased. The first Admin is created at startup by `AdminSeeder` when no Admin exists (`ADMIN_EMAIL`, `ADMIN_PASSWORD`).
+- The indexes above are created by the entity annotations (`@Indexed`, `@CompoundIndex`) with `auto-index-creation: true` in `application.yml`.
 
 ### 4.2 `orchards` (R1, R2 plots, R4 owner snapshot, R10, R11)
 
@@ -207,7 +213,7 @@ flowchart TD
   "owner": { "displayName": "Ali Ben Ali" },
   "location": { "type": "Point", "coordinates": [10.7603, 34.7998] },
   "boundary": { "type": "Polygon", "coordinates": [[[10.75,34.79],[10.77,34.79],[10.77,34.81],[10.75,34.79]]] },
-  "delegation": "Sakiet Ezzit",
+  "delegation": "SAKIET_EZZIT",
   "plots": [
     { "code": "P1", "varietyCode": "CHEMLALI", "areaHa": 4.5, "treeCount": 450, "plantingYear": 1998, "irrigated": false },
     { "code": "P2", "varietyCode": "CHETOUI",  "areaHa": 1.2, "treeCount": 180, "plantingYear": 2015, "irrigated": true }
@@ -240,7 +246,7 @@ flowchart TD
   "_id": ObjectId("..."),
   "farmerId": ObjectId("665f..."),
   "orchardId": ObjectId("..."),
-  "orchard": { "name": "Henchir El Mezraa", "location": {"type":"Point","coordinates":[10.7603,34.7998]}, "delegation": "Sakiet Ezzit", "mainVarietyCode": "CHEMLALI" },
+  "orchard": { "name": "Henchir El Mezraa", "location": {"type":"Point","coordinates":[10.7603,34.7998]}, "delegation": "SAKIET_EZZIT", "mainVarietyCode": "CHEMLALI" },
   "type": "URGENT",
   "desiredFrom": ISODate("2026-11-24"), "desiredTo": ISODate("2026-11-27"),
   "estimatedQuantityKg": 9000,
@@ -336,7 +342,7 @@ Indexes: `{ type: 1, status: 1 }`, `{ code: 1 }` unique. Workers: `{ active: 1, 
   "grossWeightKg": 4350, "tareKg": 820, "netWeightKg": 3530,
   "binCapacityKg": 4000, "fillRate": 0.8825,
   "quality": { "grade": "GOOD", "defectRatePct": 3.1, "leafRatePct": 1.2, "estimatedOilYieldPct": 21 },
-  "season": "2026-2027", "varietyCode": "CHEMLALI", "delegation": "Sakiet Ezzit", "orchardAreaHa": 5.7,
+  "season": "2026-2027", "varietyCode": "CHEMLALI", "delegation": "SAKIET_EZZIT", "orchardAreaHa": 5.7,
   "requestValidatedAt": ISODate("2026-11-21T10:00:00Z"),
   "leadTimeHours": 97.5,
   "receivedAt": ISODate("2026-11-25T12:30:00Z"), "receivedById": ObjectId("...")
@@ -378,7 +384,7 @@ db.createCollection("maturity_readings", {
 });
 ```
 ```json
-{ "timestamp": ISODate("2026-11-21T06:15:00Z"), "meta": { "stationId": "SFX-03", "delegation": "Sakiet Ezzit" },
+{ "timestamp": ISODate("2026-11-21T06:15:00Z"), "meta": { "stationId": "SFX-03", "delegation": "SAKIET_EZZIT" },
   "temperatureC": 14.2, "humidityPct": 81, "rainfallMm": 2.4, "windKmh": 12 }
 { "timestamp": ISODate("2026-11-21T06:00:00Z"), "meta": { "orchardId": ObjectId("..."), "source": "SENSOR" },
   "maturityIndex": 3.8, "varietyCode": "CHEMLALI" }
@@ -486,9 +492,9 @@ db.weather_readings.aggregate([
 | `cache:varieties::all` | string (JSON) | none (evict on update) | reference data |
 | `cache:mapLayer::{filterHash}:{z}:{x}:{y}` | string (GeoJSON) | 60 s | public map tiles (bbox snapped to a tile grid so the cache gets hits) |
 | `cache:kpi::{name}:{filterHash}` | string (JSON) | 300 s | dashboard |
-| `refresh:{tokenId}` | hash `{userId, exp, ua}` | 7 days | refresh tokens (deletion = logout / revocation) |
+| `refresh:{tokenId}` | hash `{userId, exp}` | 7 days | refresh tokens (deletion = logout / revocation) |
 | `user:{userId}:refresh` | set of tokenIds | 7 days | revoke all sessions of a user |
-| `ratelimit:login:{email}:{ip}` | counter | 15 min | brute-force protection |
+| `ratelimit:login:{email}:{ip}` | counter | 15 min | brute-force protection: +1 per failed login, TTL set at the first failure (fixed window), deleted on success; 5 → 429 |
 | `lock:resource:{resourceId}` | string (NX) | 5 s | serialise concurrent bookings |
 | channel `notifications` | pub/sub | — | SSE fan-out between API instances |
 
@@ -540,6 +546,6 @@ public class KpiRepositoryCustomImpl implements KpiRepositoryCustom {
 
 ### Index management
 
-- In dev, indexes are declared on the entities (`@Indexed`, `@CompoundIndex`) with `spring.data.mongodb.auto-index-creation=true`.
-- In production, `auto-index-creation=false`. Indexes, time-series collections, TTL and validators are created by an **idempotent migration** at startup (Mongock, or a `MongoIndexInitializer` `ApplicationRunner`), so they are versioned and can be reviewed.
+- Indexes are declared on the entities (`@Indexed`, `@CompoundIndex`). As of M1a, `spring.data.mongodb.auto-index-creation: true` is set in `application.yml` for every environment, so the `users` indexes are created at startup.
+- Target for production (M13): `auto-index-creation=false`. Indexes, time-series collections, TTL and validators are created by an **idempotent migration** at startup (Mongock, or a `MongoIndexInitializer` `ApplicationRunner`), so they are versioned and can be reviewed.
 - Optional **`$jsonSchema` validators** on the critical collections (`mill_receptions`, `harvest_requests`) give a second line of defence after Bean Validation.

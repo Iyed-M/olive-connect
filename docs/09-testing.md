@@ -23,7 +23,7 @@ flowchart TB
 | Repository | `@DataMongoTest` + Testcontainers `mongo:7` | Derived queries, `@Query`, geo queries, aggregation pipelines, **indexes used** (`explain()` asserts `IXSCAN`) | every build |
 | Web/security | `@WebMvcTest` + `spring-security-test` (`@WithMockUser`) | Status codes, validation errors, role access (403), JSON shape | every build |
 | Integration | `@SpringBootTest` + `MockMvc` + Testcontainers (Mongo replica set + Redis) | Full layers incl. transactions, cache, SSE | every build (CI) |
-| Frontend | Vitest + React Testing Library + MSW (mocked API) | Forms, role-based rendering, error display | every build |
+| Frontend | Vitest + React Testing Library + MSW (mocked API) | Forms, role-based rendering, error display. Built so far (M1a): Vitest unit tests of the pure auth functions (`priorityRole`, `activeRole` fallback, `safeRedirect`) | every build |
 | E2E | Playwright (mobile viewport 390×844 + desktop) | Real browser → Nginx → API → DB | before release |
 | Load | **k6** | NFR-4: 100 concurrent users, map/search < 10 s | before release, on the VPS |
 | Manual | Checklist on a real phone | Geolocation, usability in the field, guided tour | before demo |
@@ -35,9 +35,20 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | ID | Use case | Scenario | Type | Level | Expected |
 |---|---|---|---|---|---|
 | T-SYS-1 | System status | `GET /api/system/status` with MongoDB and Redis running | Nominal | API | 200, `api`, `mongo`, `redis` = `UP`, `version` (`SystemStatusControllerTest`) |
-| T-AUTH-1 | Login | valid credentials | Nominal | API | 200, access token, refresh cookie |
-| T-AUTH-2 | Login | wrong password ×6 | Alternative | API | 401 ×5 then 429 |
-| T-AUTH-3 | Login | disabled account | Alternative | API | 401 |
+| T-AUTH-1 | Login | valid credentials (seeded Admin) | Nominal | API | 200, access token, `user.roles` contains `ADMIN`, `refresh_token` cookie is `HttpOnly; Secure; SameSite=Strict; Path=/api/auth` (`AuthControllerTest`, `RefreshTokenTest`) |
+| T-AUTH-2 | Login | wrong password ×6 | Alternative | API | 401 ×5 then 429 `TOO_MANY_ATTEMPTS` + `Retry-After` (`LoginRateLimitTest`, `LoginRateLimiterTest`) |
+| T-AUTH-12 | Login | 5 failures then the right password | Alternative | API | 429 (still blocked) (`LoginRateLimitTest`) |
+| T-AUTH-13 | Login | 4 failures, a success, 5 failures | Alternative | API | 401 ×5 (counter reset) (`LoginRateLimitTest`) |
+| T-AUTH-3 | Login | disabled account (also wrong password, unknown email) | Alternative | API | 401 `INVALID_CREDENTIALS`, same message for all three (`AuthControllerTest`) |
+| T-AUTH-4 | Refresh | refresh with the cookie, then again with the old cookie | Alternative | API | 200 with a new access token and a new cookie value; the old cookie gets 401 `SESSION_EXPIRED` (`RefreshTokenTest`) |
+| T-AUTH-5 | Logout | logout, then refresh with that cookie, then logout again | Alternative | API | 204 (cookie cleared), refresh 401, second logout 204 (`RefreshTokenTest`) |
+| T-AUTH-9 | Refresh | no cookie | Alternative | API | 401 `UNAUTHENTICATED` (`RefreshTokenTest`) |
+| T-AUTH-10 | Refresh | User disabled in the database after login | Alternative | API | 401 and the Redis set `user:{id}:refresh` is gone (`RefreshTokenTest`) |
+| T-AUTH-11 | Refresh | roles changed in the database after login | Nominal | API | `user.roles` in the response are the current ones (`RefreshTokenTest`) |
+| T-AUTH-7 | Login | blank email | Alternative | API | 400 `VALIDATION_FAILED` with `errors[]` (`AuthControllerTest`) |
+| T-AUTH-8 | Startup | seeding run twice | Alternative | API | one Admin, `createdBy` = `system`; the `users` indexes exist (`AdminSeederTest`) |
+| T-SEC-5 | Any | `GET /api/me` without a token (or with a garbage token) | Alternative | API | 401 `UNAUTHENTICATED`; with a valid token 200 `MeDto` (`AuthControllerTest`) |
+| T-SEC-6 | Me | valid token whose User was deleted | Alternative | API | 401 `UNAUTHENTICATED` (`AuthControllerTest`) |
 | T-SEC-1 | Any | farmer reads another farmer's orchard | Alternative | API | **404** |
 | T-SEC-2 | Any | farmer calls `POST /rounds` | Alternative | Web | 403 |
 | T-SEC-3 | Public map | response contains no owner/phone/yield fields | Nominal | Web | JSON has no such keys |
@@ -155,4 +166,4 @@ The k6 run is done against the deployed VPS with the `--history` dataset loaded 
 
 ## 4. CI
 
-A GitHub Actions (or GitLab CI) pipeline runs on each push: `./mvnw verify` (unit, slice and Testcontainers tests, plus the JaCoCo report), then `pnpm install --frozen-lockfile && pnpm lint && pnpm build` (`pnpm test` is added with the first frontend tests), then the Docker image build (`docker compose -f deploy/docker-compose.yml build`). This is `.github/workflows/ci.yml`; the Mermaid render check is the separate `.github/workflows/docs.yml`. On the `main` branch it also runs the Playwright tests against `docker compose up`.
+A GitHub Actions (or GitLab CI) pipeline runs on each push: `./mvnw verify` (unit, slice and Testcontainers tests, plus the JaCoCo report), then `pnpm install --frozen-lockfile && pnpm lint && pnpm test && pnpm build`, then the Docker image build (`docker compose -f deploy/docker-compose.yml build`). This is `.github/workflows/ci.yml`; the Mermaid render check is the separate `.github/workflows/docs.yml`. On the `main` branch it also runs the Playwright tests against `docker compose up`.

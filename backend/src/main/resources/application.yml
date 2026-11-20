@@ -4,12 +4,25 @@ spring:
   data:
     mongodb:
       uri: ${MONGO_URI:mongodb://localhost:27017/oliveconnect?directConnection=true}
+      # Creates the indexes declared on the entities (@Indexed, @CompoundIndex) at startup.
+      auto-index-creation: true
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+# Secrets and seed values. The defaults are for local dev only: the production compose file
+# passes the real values from deploy/.env and refuses to start without them.
+app:
+  jwt-secret: ${JWT_SECRET:dev-only-secret-change-me-0123456789abcdef} # at least 32 characters
+  admin-email: ${ADMIN_EMAIL:admin@oliveconnect.tn}
+  admin-password: ${ADMIN_PASSWORD:admin1234}
+
 server:
-  port: 8080
+  # Override with API_PORT when running on the host and 8080 is taken (the Vite proxy reads it too).
+  # Keep 8080 in Docker: Nginx and the healthcheck call api:8080.
+  port: ${API_PORT:8080}
+  # Trust X-Forwarded-For from Nginx, so request.getRemoteAddr() is the real client IP (login rate limit)
+  forward-headers-strategy: native
 
 # Actuator on the same port, only health and info exposed
 management:

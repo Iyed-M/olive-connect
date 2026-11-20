@@ -12,5 +12,6 @@ export default defineConfig({
     tailwindcss(),
   ],
   resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
-  server: { proxy: { '/api': 'http://localhost:8080' } },
+  // API_PORT must match the port the API listens on (application.yml, default 8080)
+  server: { proxy: { '/api': `http://localhost:${process.env.API_PORT ?? '8080'}` } },
 })

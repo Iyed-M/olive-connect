@@ -22,12 +22,16 @@ classDiagram
         +boolean onboardingDone
         +String assignedMillId
         +Instant createdAt
+        +String createdBy
+        +Instant lastModifiedAt
+        +String lastModifiedBy
+        +Long version
     }
     class FarmerProfile {
         +String memberNumber
         +String cin
         +String address
-        +String delegation
+        +Delegation delegation
     }
     class RegistrationRequest {
         +String id
@@ -49,6 +53,25 @@ classDiagram
         LOGISTICS_MANAGER
         MILL_MANAGER
         ADMIN
+    }
+    class Delegation {
+        <<enumeration>>
+        SFAX_VILLE
+        SFAX_OUEST
+        SFAX_SUD
+        SAKIET_EZZIT
+        SAKIET_EDDAIER
+        THYNA
+        AGAREB
+        JEBINIANA
+        EL_AMRA
+        EL_HENCHA
+        MENZEL_CHAKER
+        GHRAIBA
+        BIR_ALI_BEN_KHALIFA
+        SKHIRA
+        MAHRES
+        KERKENNAH
     }
 
     class Orchard {
@@ -299,6 +322,7 @@ classDiagram
     %% ---- relationships ----
     User "1" *-- "0..1" FarmerProfile : farmer data
     User "1" --> "*" Role
+    FarmerProfile "*" --> "1" Delegation
     RegistrationRequest "*" --> "0..1" User : processed by
     User "1" --> "0..*" Orchard : owns
     Orchard "1" *-- "1..*" Plot
@@ -381,27 +405,60 @@ sequenceDiagram
 
     U->>FE: email + password
     FE->>AC: POST /api/auth/login
-    AC->>AS: login(cmd)
-    AS->>RL: tryAcquire(email, ip)
-    alt more than 5 failures in 15 min
+    AC->>AS: login(email, password, client IP)
+    AS->>RL: checkAllowed(email, ip)
+    alt 5 failures already in the 15 min window
         RL-->>AS: blocked
         AS-->>AC: TooManyAttemptsException
-        AC-->>FE: 429 Too Many Requests
+        AC-->>FE: 429 TOO_MANY_ATTEMPTS + Retry-After
     else allowed
         AS->>UR: findByEmail(email)
         alt unknown user or wrong password or disabled
-            AS->>RL: recordFailure
-            AS-->>AC: BadCredentialsException
+            AS->>RL: recordFailure (first one starts the 15 min window)
+            AS-->>AC: InvalidCredentialsException
             AC-->>FE: 401 (generic message)
         else valid
-            AS->>JS: accessToken(user, roles) TTL 15 min
-            AS->>RT: store refreshToken (TTL 7 days)
+            AS->>RL: reset(email, ip)
+            AS->>JS: accessToken(user) TTL 15 min
+            AS->>RT: create(userId) (TTL 7 days)
             AS-->>AC: tokens + profile
             AC-->>FE: 200 {accessToken} + HttpOnly cookie refresh
             FE-->>U: redirect to role home (+ guided tour if first login)
         end
     end
+
+    Note over FE,AC: Refresh: on app boot and after any 401 (access token expired)
+    FE->>AC: POST /api/auth/refresh (cookie)
+    AC->>AS: refresh(refreshToken)
+    AS->>RT: consume(tokenId) (read + delete: rotation)
+    alt cookie missing (nobody logged in)
+        AC-->>FE: 401 UNAUTHENTICATED + clear cookie
+        Note over FE: logged out, no retry, no delay
+    else cookie unknown or already used
+        AC-->>FE: 401 SESSION_EXPIRED + clear cookie
+        Note over FE: wait about 1 s and retry once (another tab may have<br/>just rotated the shared cookie), then a second 401 = logged out
+    else known session
+        AS->>UR: findById(userId) (re-read the User)
+        alt User missing or disabled
+            AS->>RT: revokeAll(userId)
+            AC-->>FE: 401 SESSION_EXPIRED + clear cookie
+        else enabled
+            AS->>JS: accessToken(user) with the CURRENT roles
+            AS->>RT: create(userId) (new tokenId)
+            AC-->>FE: 200 {accessToken, expiresIn, user} + new cookie
+        end
+    end
+
+    Note over FE,AC: Logout: public, identified by the cookie only
+    U->>FE: click Log out
+    FE->>AC: POST /api/auth/logout (cookie)
+    AC->>AS: logout(refreshToken)
+    AS->>RT: revoke(tokenId) (this session only, no error if unknown)
+    AC-->>FE: 204 + clear cookie
+    FE-->>U: redirect to /login
 ```
+
+Rotation has **no reuse detection**: presenting an old id again only returns 401, it does not revoke the other sessions of the User.
 
 ### SD-2 Declare a harvest request (F1)
 
