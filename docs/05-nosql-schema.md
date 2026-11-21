@@ -120,6 +120,16 @@ erDiagram
         date end
         string status
     }
+    supply_orders {
+        ObjectId _id
+        ObjectId toolId
+        int quantity
+        string supplier
+        date orderedAt
+        date expectedAt
+        date receivedAt
+        string status
+    }
     mills {
         ObjectId _id
         string name UK
@@ -278,6 +288,7 @@ flowchart TD
   "harvestStatus": "SCHEDULED",
   "currentMaturityIndex": 3.8, "maturityUpdatedAt": ISODate("2026-11-21T06:00:00Z"),
   "lastSeasonYieldKgHa": 2100,
+  "corrections": [ { "at": ISODate("2026-11-22T09:00:00Z"), "byUserId": ObjectId("..."), "comment": "Orchard corrected by staff" } ],
   "version": 3
 }
 ```
@@ -287,6 +298,7 @@ authenticated Farmer id and `owner.displayName` is the extended-reference snapsh
 staff searches. `areaHa`, `treeCount` and `mainVarietyCode` are recomputed from `plots` before
 the document is saved. A future boundary polygon remains part of the design but is not accepted
 by the M2 form yet.
+`corrections` (embedded, bounded by manual use) is appended when a staff member (not the owner) edits the orchard (FR-6.5).
 | Index | Purpose |
 |---|---|
 | `{ location: "2dsphere" }` | map bbox `$geoWithin`, nearest orchard, `$geoNear` grouping |
@@ -354,6 +366,7 @@ by the M2 form yet.
   ],
   "estimatedTotalKg": 15000, "totalHarvestedKg": 0,
   "statusHistory": [ { "from": null, "to": "PLANNED", "at": ISODate("..."), "byUserId": ObjectId("...") } ],
+  "corrections": [],
   "season": "2026-2027", "version": 0
 }
 ```
@@ -393,15 +406,30 @@ Overlap check and insert happen **in the same transaction** as the round creatio
 { "_id": ObjectId("..."), "_class": "tn.oliveconnect.resource.Tractor", "type": "TRACTOR", "code": "TR-02",
   "status": "AVAILABLE", "plateNumber": "123 TU 4567", "powerHp": 90, "unavailabilities": [] }
 { "_id": ObjectId("..."), "_class": "tn.oliveconnect.resource.Tool", "type": "SHAKER", "code": "VIB-STOCK",
-  "status": "AVAILABLE", "toolType": "SHAKER", "stockQuantity": 12, "unavailabilities": [] }
+  "status": "AVAILABLE", "toolType": "SHAKER", "stockQuantity": 12, "unavailabilities": [],
+  "corrections": [ { "at": ISODate("..."), "byUserId": ObjectId("..."), "comment": "Equipment corrected by staff" } ] }
 
 // workers
 { "_id": ObjectId("..."), "externalRef": "WRK-0001", "firstName": "Sami", "lastName": "Trabelsi", "cin": "12345678", "phone": "+21620123456",
   "skills": ["HARVEST", "TRACTOR"], "dailyRate": 45.0, "active": true,
   "unavailabilities": [ { "from": ISODate("..."), "to": ISODate("..."), "reason": "Leave" } ] }
 ```
-`type` always equals `toolType` for a `Tool` (`NET` or `SHAKER`). `unavailabilities` is append-only in M4 and does not change `status`. Deletion is a hard delete until the bookings of M5 exist.
+`type` always equals `toolType` for a `Tool` (`NET` or `SHAKER`). `unavailabilities` is append-only in M4 and does not change `status`. Deletion is a hard delete until the bookings of M5 exist. Every update of an equipment appends a `corrections` entry (FR-6.5).
 Indexes: `{ type: 1, status: 1 }`, `{ code: 1 }` unique. Workers: `{ active: 1, skills: 1 }`, `{ cin: 1 }` unique, `{ externalRef: 1 }` unique sparse (import key, M10). The import upserts workers on `externalRef`, and equipment (tractors, bins) on `code` (equal to the `externalRef` of the file).
+
+#### `supply_orders` (R1, R3)
+
+```json
+{ "_id": ObjectId("..."), "toolId": ObjectId("tool..."), "quantity": 20, "supplier": "Sfax Nets",
+  "orderedAt": ISODate("2026-11-21"), "expectedAt": ISODate("2026-11-28"), "receivedAt": null,
+  "status": "ORDERED", "version": 0 }
+```
+| Index | Purpose |
+|---|---|
+| `{ status: 1, orderedAt: -1 }` | list newest first, filtered by status |
+| `{ toolId: 1 }` | orders of a tool |
+
+`toolId` references a `Tool` (R1: an order has its own lifecycle). Receiving an order sets `status: "RECEIVED"` and runs `$inc: { stockQuantity: quantity }` on the tool in the same transaction; `version` stops two simultaneous receives.
 
 ### 4.8 `mills`, `mill_receptions` (R1, R2 quality, R3, R11 computed, R13 denormalised)
 

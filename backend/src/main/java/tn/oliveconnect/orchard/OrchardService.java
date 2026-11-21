@@ -3,6 +3,7 @@ package tn.oliveconnect.orchard;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import tn.oliveconnect.common.Correction;
 import tn.oliveconnect.common.FieldValidationException;
 import tn.oliveconnect.common.NotFoundException;
 import tn.oliveconnect.user.Delegation;
@@ -66,6 +68,10 @@ public class OrchardService {
         Orchard orchard = findVisible(id, authentication);
         User owner = findOwner(orchard.getOwnerId());
         apply(orchard, dto, owner);
+        if (!authentication.getName().equals(orchard.getOwnerId())) {
+            orchard.getCorrections().add(new Correction(Instant.now(), authentication.getName(),
+                    "Orchard corrected by staff"));
+        }
         return OrchardDto.from(orchardRepository.save(orchard));
     }
 
@@ -121,7 +127,8 @@ public class OrchardService {
     }
 
     private boolean canReadAll(Authentication authentication) {
-        return hasRole(authentication, Role.COLLECTION_MANAGER) || hasRole(authentication, Role.ADMIN);
+        return hasRole(authentication, Role.COLLECTION_MANAGER) || hasRole(authentication, Role.LOGISTICS_MANAGER)
+                || hasRole(authentication, Role.ADMIN);
     }
 
     private String ownerIdForCreate(OrchardWriteDto dto, Authentication authentication) {

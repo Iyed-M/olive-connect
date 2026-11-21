@@ -81,10 +81,10 @@ Users are never deleted: disabling replaces deletion, so there is no `DELETE /us
 ### Orchards, varieties, map (F1, F4)
 | Method | Path | Roles | Description | FR |
 |---|---|---|---|---|
-| GET | `/orchards` | F (own), CM, AD | list (farmer: only own), sorted by name | FR-1.1 |
+| GET | `/orchards` | F (own), CM, LM, AD | list (farmer: only own), sorted by name | FR-1.1 |
 | POST | `/orchards` | F, AD | create with GeoJSON Point and embedded plots; returns 201 + `Location` | FR-1.1 |
-| GET | `/orchards/{id}` | F own, CM, AD | detail; another Farmer's orchard is indistinguishable from missing and returns 404 | FR-1.1 |
-| PUT | `/orchards/{id}` | F own, AD | replace name, delegation, position and plots; totals are recomputed | FR-1.1 |
+| GET | `/orchards/{id}` | F own, CM, LM, AD | detail; another Farmer's orchard is indistinguishable from missing and returns 404 | FR-1.1 |
+| PUT | `/orchards/{id}` | F own, CM, LM, AD | replace name, delegation, position and plots; totals are recomputed; an edit by someone other than the owner appends a `corrections` entry (staff correction, FR-6.5) | FR-1.1, FR-6.5 |
 | DELETE | `/orchards/{id}` | F own, AD | delete an owned orchard | FR-1.1 |
 | GET | `/orchards/{id}/maturity` | F own, CM | maturity time series, query `days` (default 30) | FR-4.3 |
 | GET | `/orchards/nearest` | F | own orchard nearest to GPS position, query `lng`, `lat` (alert form) | FR-2.1 |
@@ -115,9 +115,10 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 |---|---|---|---|---|
 | GET | `/planning/suggestions` | CM | priority-sorted groups, free resources, mill, query `date` | FR-1.5 |
 | POST | `/rounds` | CM | plan round (transaction + bookings) | FR-1.5 |
-| GET | `/rounds` | CM, TL (own) | calendar/list, query `from`, `to`, `status`, `teamLeaderId` | FR-1.5 |
-| GET | `/rounds/{id}` | CM, TL own | detail | FR-1.5 |
-| PUT | `/rounds/{id}` | CM (PLANNED only) | modify stops/resources | FR-1.5 |
+| GET | `/rounds` | CM, AD, TL (own) | calendar/list, query `from`, `to`, `status`, `teamLeaderId` | FR-1.5 |
+| GET | `/rounds/{id}` | CM, AD, TL own | detail | FR-1.5 |
+| PUT | `/rounds/{id}` | CM (PLANNED only) | modify stops/resources; appends a `corrections` entry | FR-1.5 |
+| PATCH | `/rounds/{id}/correction` | CM, AD | body `{totalHarvestedKg, comment}`: correct the weight of a COMPLETED round, 422 `ROUND_NOT_COMPLETED` otherwise; appends a `corrections` entry | FR-6.5 |
 | POST | `/rounds/{id}/cancel` | CM | cancel + release bookings | — |
 | POST | `/rounds/{id}/start` | TL own | start on the round date; cascades requests/orchards to `IN_PROGRESS`, generic 403 for another leader, 409 `ROUND_NOT_TODAY` for the wrong date | FR-1.7 |
 | POST | `/rounds/{id}/complete` | TL own | complete when every stop is `DONE` or `SKIPPED`; 422 `STOPS_PENDING` otherwise | FR-1.7 |
@@ -134,15 +135,15 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 | GET | `/equipment` | LM, CM, AD | list tractors, bins, nets, shakers, query `type` (for example `BIN`), `status`, `page`, `size` | FR-3.2 |
 | POST | `/equipment` | LM, AD | create equipment | FR-3.2 |
 | GET | `/equipment/{id}` | LM, CM, AD | detail | FR-3.2 |
-| PUT | `/equipment/{id}` | LM, AD | edit equipment | FR-3.2 |
+| PUT | `/equipment/{id}` | LM, AD | edit equipment; each update appends a `corrections` entry (FR-6.5) | FR-3.2, FR-6.5 |
 | DELETE | `/equipment/{id}` | LM, AD | delete equipment (hard delete until M5) | FR-3.2 |
 | POST | `/workers/{id}/unavailabilities` | LM, AD | worker leave, 201 with the updated worker | FR-3.2 |
 | POST | `/equipment/{id}/unavailabilities` | LM, AD | equipment maintenance, 201 with the updated equipment, `status` unchanged | FR-3.2 |
 | GET | `/resources/availability` | CM, LM, AD | resources on a slot with `available`/`reason`, query `start`, `end`, `type` | FR-1.5 |
-| GET | `/resources/calendar` | CM, LM, AD | bookings + unavailabilities, query `resourceId`, `from`, `to` | FR-3.3 |
-| GET | `/supply-orders` | LM | list | FR-3.5 |
-| POST | `/supply-orders` | LM | create | FR-3.5 |
-| POST | `/supply-orders/{id}/receive` | LM | mark received (stock `$inc`) | FR-3.5 |
+| GET | `/resources/calendar` | CM, LM, AD | ACTIVE bookings + unavailabilities of one worker or equipment overlapping `from`..`to` (ISO instants), query `resourceId`, `from`, `to`; 404 unknown resource, 400 `to` not after `from` | FR-3.3 |
+| GET | `/supply-orders` | LM, AD | paged list, newest first, query `status`, `page`, `size` → `PageResponse<SupplyOrderDto>` | FR-3.5 |
+| POST | `/supply-orders` | LM | create an `ORDERED` order, 201 with `Location`; 404 unknown tool, 422 `NOT_A_TOOL` | FR-3.5 |
+| POST | `/supply-orders/{id}/receive` | LM | mark received (stock `$inc` in one transaction), 409 `SUPPLY_ALREADY_RECEIVED` | FR-3.5 |
 
 ### Alerts (F2)
 | Method | Path | Roles | Description | FR |
@@ -329,12 +330,12 @@ flowchart LR
 | Resource | Visitor | Farmer | Coll. mgr | Team leader | Logistics | Mill mgr | Admin |
 |---|---|---|---|---|---|---|---|
 | Public map (no personal data) | R | R | R | R | R | R | R |
-| Orchards | – | CRUD own | R all | R (round stops) | – | – | CRUD |
+| Orchards | – | CRUD own | R all, correct | R (round stops) | R all, correct | – | CRUD |
 | Harvest requests | – | C, R/U/cancel own | R, validate/reject | R (own rounds) | – | – | R |
-| Rounds | – | – (request status is returned on own harvest requests) | CRUD | R own, start/stops/complete | – | – | – |
+| Rounds | – | – (request status is returned on own harvest requests) | CRUD, correct | R own, start/stops/complete | – | – | R, correct |
 | Workers / equipment | – | – | R | – | CRUD | – | CRUD |
 | Bookings / calendar | – | – | CR | R own | CRUD | – | R |
-| Supply orders | – | – | – | – | CRUD | – | R |
+| Supply orders | – | – | – | – | CR, receive | – | R |
 | Alerts | – | C, R own | R, handle | – | – | – | R |
 | Mills / capacity | – | R | R | R | R | U own | CRUD |
 | Receptions | – | R own | R | – | – | C/R own mill | R |

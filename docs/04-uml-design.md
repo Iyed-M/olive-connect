@@ -100,6 +100,7 @@ classDiagram
         +double currentMaturityIndex
         +Instant maturityUpdatedAt
         +double lastSeasonYieldKgHa
+        +List~Correction~ corrections
         +Long version
         +recomputeTotals()
     }
@@ -186,6 +187,12 @@ classDiagram
         +String comment
     }
 
+    class Correction {
+        +Instant at
+        +String byUserId
+        +String comment
+    }
+
     class CollectionRound {
         +String id
         +String code
@@ -205,6 +212,7 @@ classDiagram
         +Instant completedAt
         +List~StatusChange~ statusHistory
         +String season
+        +List~Correction~ corrections
         +Long version
         +start()
         +complete()
@@ -258,6 +266,7 @@ classDiagram
         +EquipmentType type
         +EquipmentStatus status
         +List~Unavailability~ unavailabilities
+        +List~Correction~ corrections
     }
     class Tractor {
         +String plateNumber
@@ -317,13 +326,20 @@ classDiagram
     }
     class SupplyOrder {
         +String id
+        +String toolId
         +int quantity
         +String supplier
         +LocalDate orderedAt
         +LocalDate expectedAt
         +LocalDate receivedAt
         +SupplyStatus status
+        +Long version
         +receive()
+    }
+    class SupplyStatus {
+        <<enumeration>>
+        ORDERED
+        RECEIVED
     }
 
     class Mill {
@@ -516,6 +532,10 @@ classDiagram
     ResourceBooking --> ResourceKind
     ResourceBooking --> BookingStatus
     SupplyOrder "*" --> "1" Tool : replenishes
+    SupplyOrder --> SupplyStatus
+    Orchard "1" *-- "*" Correction : corrections
+    CollectionRound "1" *-- "*" Correction : corrections
+    Equipment "1" *-- "*" Correction : corrections
 
     Mill "*" --> "*" User : managed by
     MillReception "*" --> "1" Mill
@@ -1088,6 +1108,41 @@ sequenceDiagram
     C-->>CM: 200 JSON → Recharts
 ```
 
+### SD-SUPPLY Logistics orders and receives nets or shakers (alternatives: not a tool, already received)
+
+```mermaid
+sequenceDiagram
+    actor LM as Logistics manager
+    participant C as SupplyController
+    participant S as SupplyService
+    participant R as SupplyOrderRepository
+    participant E as EquipmentRepository
+    participant M as MongoDB
+
+    LM->>C: POST /api/supply-orders {toolId, quantity, supplier}
+    C->>S: create(dto)
+    S->>E: findById(toolId)
+    alt unknown tool
+        S-->>LM: 404 NOT_FOUND
+    else not a Tool
+        S-->>LM: 422 NOT_A_TOOL
+    else ok
+        S->>R: save(order ORDERED)
+        S-->>LM: 201 SupplyOrderDto
+    end
+    LM->>C: POST /api/supply-orders/{id}/receive
+    C->>S: receive(id)
+    S->>R: findById(id)
+    alt already RECEIVED
+        S-->>LM: 409 SUPPLY_ALREADY_RECEIVED
+    else ORDERED
+        Note over S,M: one transaction
+        S->>R: save(order RECEIVED)
+        S->>M: $inc stockQuantity on the Tool
+        S-->>LM: 200 SupplyOrderDto
+    end
+```
+
 ### SD-10 Admin creates, edits and disables a User (alternatives: validation, duplicate email or member number, Farmer without profile, self-lockout)
 
 ```mermaid
@@ -1255,6 +1310,15 @@ stateDiagram-v2
         it is derived from ResourceBooking
         for a given time slot.
     end note
+```
+
+### SupplyOrder
+
+```mermaid
+stateDiagram-v2
+    [*] --> ORDERED : logistics creates the order
+    ORDERED --> RECEIVED : goods received, stock incremented
+    RECEIVED --> [*]
 ```
 
 ## 4. Activity diagram — global collection process

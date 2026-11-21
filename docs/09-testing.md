@@ -103,7 +103,8 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-AL-2 | Report alert | GPS 5 km away | Alternative | Unit | `locationMismatch=true` |
 | T-AL-3 | Report alert | photo too large / wrong type | Alternative | Web | 400 |
 | T-AL-4 | Handle alert | create urgent request from MATURITY alert | Nominal | API | request URGENT created, alert RESOLVED |
-| T-RS-1 | Resources | calendar of a bin for a week | Nominal | Repo | bookings + unavailabilities returned |
+| T-RS-1 | Resources | calendar of a bin for a week (released and out-of-range bookings left out) | Nominal | API | ACTIVE bookings + unavailabilities returned (`ResourceCalendarTest`) |
+| T-RS-1b | Resources | calendar with unknown resource, `to` before `from`, missing parameter, farmer | Alternative | API | 404, 400 `VALIDATION_FAILED`, 400, 403 (`ResourceCalendarTest`) |
 | T-RS-3 | Workers | logistics manager creates, reads, updates, filters and deletes a worker | Nominal | API | 201 with `Location`, 200, 204 then 404 (`ResourceControllerTest`) |
 | T-RS-4 | Workers | worker with an existing `cin` | Alternative | API | 409 `CIN_TAKEN` (`ResourceControllerTest`) |
 | T-RS-5 | Equipment | `GET /equipment` with a tractor, a bin and a tool | Nominal | API | each item has its own fields, `type` filter works (`ResourceControllerTest`) |
@@ -115,7 +116,12 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-RS-11 | Unavailability | `to` not after `from` | Alternative | API | 400 `VALIDATION_FAILED` on field `to`, nothing stored (`ResourceControllerTest`; the rule itself in `ResourceServiceTest`) |
 | T-RS-12 | Workers / equipment | collection manager | Alternative | API | GET 200, POST/PUT/DELETE 403 (`ResourceControllerTest`) |
 | T-RS-13 | Workers / equipment | farmer and admin | Alternative | API | farmer 403 on every route, admin full access, no token 401 (`ResourceControllerTest`) |
-| T-RS-2 | Supply order | receive → stock incremented | Nominal | API | `stockQuantity` += qty |
+| T-RS-2 | Supply order | receive → stock incremented | Nominal | API | `stockQuantity` += qty, status `RECEIVED` (`SupplyControllerTest`) |
+| T-RS-2b | Supply order | receive twice | Alternative | API | 409 `SUPPLY_ALREADY_RECEIVED`, stock incremented once (`SupplyControllerTest`) |
+| T-RS-2c | Supply order | unknown order or tool, a bin instead of a tool, `quantity` 0 | Alternative | API | 404, 404, 422 `NOT_A_TOOL`, 400 `VALIDATION_FAILED` (`SupplyControllerTest`) |
+| T-RS-2d | Supply order | admin, collection manager, farmer, no token | Alternative | API | admin reads but cannot write (403), 403, 403, 401 (`SupplyControllerTest`) |
+| T-RS-14 | Corrections (FR-6.5) | logistics corrects an orchard, equipment update, admin corrects a completed round | Nominal | API | `corrections` entry added, owner's own orchard edit adds none (`OrchardControllerTest`, `SupplyControllerTest`, `CollectionRoundCorrectionTest`) |
+| T-RS-15 | Corrections (FR-6.5) | correct a PLANNED round, no comment, logistics, unknown round | Alternative | API | 422 `ROUND_NOT_COMPLETED`, 400, 403, 404 (`CollectionRoundCorrectionTest`) |
 | T-ML-1 | Reception | valid weighing | Nominal | API | net & fillRate computed, capacity decremented, farmer notified |
 | T-ML-2 | Reception | bin not part of round | Alternative | API | 422 |
 | T-ML-3 | Reception | same bin/orchard twice | Alternative | Repo | duplicate key → 409 |

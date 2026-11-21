@@ -1,5 +1,6 @@
 package tn.oliveconnect.resource;
 
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -12,6 +13,7 @@ import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Service;
 import tn.oliveconnect.common.BusinessRuleException;
 import tn.oliveconnect.common.ConflictException;
+import tn.oliveconnect.common.Correction;
 import tn.oliveconnect.common.FieldValidationException;
 import tn.oliveconnect.common.NotFoundException;
 import tn.oliveconnect.common.PageResponse;
@@ -122,12 +124,13 @@ public class ResourceService {
         return EquipmentDto.from(equipmentRepository.save(equipment));
     }
 
-    public EquipmentDto updateEquipment(String id, EquipmentRequestDto dto) {
+    public EquipmentDto updateEquipment(String id, EquipmentRequestDto dto, String userId) {
         Equipment equipment = findEquipment(id);
         if (equipment.getType() != dto.type()) {
             throw new BusinessRuleException("EQUIPMENT_TYPE_IMMUTABLE", "The type of an equipment cannot change");
         }
         applyEquipment(equipment, dto);
+        equipment.getCorrections().add(new Correction(Instant.now(), userId, "Equipment corrected by staff"));
         return EquipmentDto.from(equipmentRepository.save(equipment));
     }
 

@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.oliveconnect.common.BusinessRuleException;
 import tn.oliveconnect.common.ConflictException;
+import tn.oliveconnect.common.Correction;
 import tn.oliveconnect.common.FieldValidationException;
 import tn.oliveconnect.common.NotFoundException;
 import tn.oliveconnect.common.StatusChange;
@@ -172,6 +173,7 @@ public class CollectionRoundService {
         round.setStops(buildStops(requests, startTime));
         round.setEstimatedTotalKg(requests.stream().mapToDouble(HarvestRequest::getEstimatedQuantityKg).sum());
         round.setSeason(seasonFor(date));
+        round.getCorrections().add(new Correction(Instant.now(), authentication.getName(), "Round edited"));
         roundRepository.save(round);
 
         bookingService.releaseByRoundId(round.getId());
@@ -180,6 +182,17 @@ public class CollectionRoundService {
         scheduleRequests(requests, round, authentication.getName());
         notifyRoundUpdated(requests, round);
         return CollectionRoundDto.from(round, capacityWarnings(mill, round.getEstimatedTotalKg()));
+    }
+
+    /** Staff fix of the weight of a finished round. Bookings and stops are not touched. */
+    public CollectionRoundDto correct(String id, RoundCorrectionDto dto, Authentication authentication) {
+        CollectionRound round = findRound(id);
+        if (round.getStatus() != RoundStatus.COMPLETED) {
+            throw new BusinessRuleException("ROUND_NOT_COMPLETED", "Only a COMPLETED round can be corrected");
+        }
+        round.setTotalHarvestedKg(dto.totalHarvestedKg());
+        round.getCorrections().add(new Correction(Instant.now(), authentication.getName(), dto.comment()));
+        return CollectionRoundDto.from(roundRepository.save(round), List.of());
     }
 
     public void cancel(String id, RoundCancelDto dto, Authentication authentication) {
@@ -522,7 +535,7 @@ public class CollectionRoundService {
     }
 
     private boolean canView(CollectionRound round, Authentication authentication) {
-        if (hasRole(authentication, Role.COLLECTION_MANAGER)) {
+        if (hasRole(authentication, Role.COLLECTION_MANAGER) || hasRole(authentication, Role.ADMIN)) {
             return true;
         }
         if (hasRole(authentication, Role.TEAM_LEADER)) {

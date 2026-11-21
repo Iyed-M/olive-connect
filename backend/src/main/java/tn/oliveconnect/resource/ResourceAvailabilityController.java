@@ -14,9 +14,12 @@ import tn.oliveconnect.common.FieldValidationException;
 public class ResourceAvailabilityController {
 
     private final ResourceAvailabilityService availabilityService;
+    private final ResourceCalendarService calendarService;
 
-    public ResourceAvailabilityController(ResourceAvailabilityService availabilityService) {
+    public ResourceAvailabilityController(ResourceAvailabilityService availabilityService,
+                                          ResourceCalendarService calendarService) {
         this.availabilityService = availabilityService;
+        this.calendarService = calendarService;
     }
 
     @GetMapping("/availability")
@@ -26,5 +29,14 @@ public class ResourceAvailabilityController {
             throw new FieldValidationException("end", "must be after start");
         }
         return availabilityService.find(start, end, type);
+    }
+
+    @GetMapping("/calendar")
+    public ResourceCalendarDto calendar(@RequestParam String resourceId, @RequestParam Instant from,
+                                        @RequestParam Instant to) {
+        if (!to.isAfter(from)) {
+            throw new FieldValidationException("to", "must be after from");
+        }
+        return calendarService.find(resourceId, from, to);
     }
 }
