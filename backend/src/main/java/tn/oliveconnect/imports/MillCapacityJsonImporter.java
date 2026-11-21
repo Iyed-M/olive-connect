@@ -2,6 +2,10 @@ package tn.oliveconnect.imports;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -18,7 +22,7 @@ import tn.oliveconnect.mill.MillRepository;
 @Component
 public class MillCapacityJsonImporter implements DatasetImporter<MillCapacityJsonImporter.MillCapacity> {
 
-    public record MillCapacity(String millCode, double dailyCapacityKg, double availableCapacityKg) {
+    public record MillCapacity(String millCode, double dailyCapacityKg, double availableCapacityKg, Instant date) {
     }
 
     private final MillRepository repository;
@@ -46,10 +50,11 @@ public class MillCapacityJsonImporter implements DatasetImporter<MillCapacityJso
     public ParseResult<MillCapacity> parse(Path file) throws IOException {
         List<Row<MillCapacity>> rows = new ArrayList<>();
         List<ImportError> errors = new ArrayList<>();
+        Instant date = fileDate(file);
         for (JsonArrayFile.Item item : JsonArrayFile.read(file, "mills")) {
             FieldReader reader = FieldReader.of(item.position(), item.node());
             MillCapacity capacity = new MillCapacity(reader.text("millCode"), reader.decimal("dailyCapacityKg"),
-                    reader.decimal("availableCapacityKg"));
+                    reader.decimal("availableCapacityKg"), date);
             if (reader.error() != null) {
                 errors.add(reader.error());
             } else {
@@ -57,6 +62,13 @@ public class MillCapacityJsonImporter implements DatasetImporter<MillCapacityJso
             }
         }
         return new ParseResult<>(rows, errors);
+    }
+
+    /** The date of the file comes from its name (mill_capacity_YYYYMMDD.json). */
+    private static Instant fileDate(Path file) {
+        String name = file.getFileName().toString();
+        String digits = name.substring("mill_capacity_".length(), "mill_capacity_".length() + 8);
+        return LocalDate.parse(digits, DateTimeFormatter.BASIC_ISO_DATE).atStartOfDay(ZoneOffset.UTC).toInstant();
     }
 
     @Override
@@ -99,7 +111,12 @@ public class MillCapacityJsonImporter implements DatasetImporter<MillCapacityJso
         List<Mill> toSave = new ArrayList<>();
         for (MillCapacity record : records) {
             Mill mill = mills.get(record.millCode());
+            // a file older than the one already applied must not overwrite newer data
+            if (mill.getCapacityUpdatedAt() != null && mill.getCapacityUpdatedAt().isAfter(record.date())) {
+                continue;
+            }
             mill.setAvailableCapacityKg(record.availableCapacityKg());
+            mill.setCapacityUpdatedAt(record.date());
             toSave.add(mill);
         }
         repository.saveAll(toSave);

@@ -3,6 +3,7 @@ package tn.oliveconnect.imports;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -13,14 +14,14 @@ final class RowChecks {
     }
 
     /** Tunisia bounding box of docs/07 §3. */
-    static ImportError coordinates(int line, double lng, double lat) {
+    static Optional<ImportError> coordinates(int line, double lng, double lat) {
         if (lng < 7 || lng > 12) {
-            return new ImportError(line, "lng", lng + " outside Tunisia");
+            return Optional.of(new ImportError(line, "lng", lng + " outside Tunisia"));
         }
         if (lat < 30 || lat > 38) {
-            return new ImportError(line, "lat", lat + " outside Tunisia");
+            return Optional.of(new ImportError(line, "lat", lat + " outside Tunisia"));
         }
-        return null;
+        return Optional.empty();
     }
 
     /** The second and later rows with the same key are rejected (the first one wins). */

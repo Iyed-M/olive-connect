@@ -15,8 +15,10 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -57,14 +59,16 @@ public class ImportService {
         List<ImportJob> jobs = new ArrayList<>();
         int skipped = 0;
         List<Path> files = new ArrayList<>(listInbox());
-        files.sort(Comparator.comparingInt((Path file) -> findImporter(file.getFileName().toString())
+        Map<Path, Optional<DatasetImporter<?>>> importerOf = new HashMap<>();
+        files.forEach(file -> importerOf.put(file, findImporter(file.getFileName().toString())));
+        files.sort(Comparator.comparingInt((Path file) -> importerOf.get(file)
                 .map(DatasetImporter::order).orElse(Integer.MAX_VALUE)));   // stable: ties stay sorted by name
         for (Path file : files) {
-            Optional<DatasetImporter<?>> importer = findImporter(file.getFileName().toString());
+            Optional<DatasetImporter<?>> importer = importerOf.get(file);
             if (importer.isPresent() && importer.get().source() != source) {
                 continue;   // belongs to the other source, its own run will take it
             }
-            Optional<ImportJob> job = importFile(file);
+            Optional<ImportJob> job = importFile(file, importer);
             if (job.isPresent()) {
                 jobs.add(job.get());
             } else {
@@ -88,12 +92,12 @@ public class ImportService {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-        Optional<ImportJob> job = importFile(target);
+        Optional<ImportJob> job = importFile(target, findImporter(fileName));
         return new RunResult(job.map(List::of).orElse(List.of()), job.isPresent() ? 0 : 1);
     }
 
     /** Imports one file and moves it. Empty result: the same file was already imported, so it is skipped. */
-    synchronized Optional<ImportJob> importFile(Path file) {
+    private synchronized Optional<ImportJob> importFile(Path file, Optional<DatasetImporter<?>> importer) {
         String fileName = file.getFileName().toString();
         String checksum = sha256(file);
 
@@ -104,12 +108,11 @@ public class ImportService {
         }
 
         // A file that FAILED before (or a crashed run) is retried on the same journal entry: checksum is unique
-        Optional<DatasetImporter<?>> importer = findImporter(fileName);
         ImportJob job = existing.orElseGet(ImportJob::new);
         job.reset();
         job.setFileName(fileName);
         job.setChecksum(checksum);
-        job.setDataset(importer.map(DatasetImporter::dataset).orElse("UNKNOWN"));
+        job.setDataset(importer.isPresent() ? importer.get().dataset() : "UNKNOWN");
         job.setSource(importer.map(DatasetImporter::source).orElse(null));
         job.setStatus(ImportStatus.RUNNING);
         job.setStartedAt(Instant.now());

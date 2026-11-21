@@ -12,13 +12,13 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import tn.oliveconnect.orchard.OliveVariety;
 import tn.oliveconnect.orchard.OliveVarietyRepository;
+import tn.oliveconnect.orchard.OrchardService;
 
 /** varieties.json: { "varieties": [ { code, name, avgOilYieldPct, optimalMaturityMin, optimalMaturityMax } ] }. */
 @Component
 public class VarietiesJsonImporter implements DatasetImporter<OliveVariety> {
 
     // same key as OrchardService: the cached list is stale once a variety changes
-    private static final String VARIETY_CACHE_KEY = "cache:varieties::all";
 
     private final OliveVarietyRepository repository;
     private final StringRedisTemplate redis;
@@ -109,7 +109,7 @@ public class VarietiesJsonImporter implements DatasetImporter<OliveVariety> {
         }
         repository.saveAll(toSave);
         try {
-            redis.delete(VARIETY_CACHE_KEY);
+            redis.delete(OrchardService.VARIETY_CACHE_KEY);
         } catch (RuntimeException ignored) {
             // Redis is optional: MongoDB remains the source of truth
         }

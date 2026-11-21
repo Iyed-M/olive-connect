@@ -220,7 +220,7 @@ def write_dynamic(out, rng, seed, count, now):
 
 
 def write_history(out, rng, seed, count, now):
-    """3 past seasons (1 Oct - 31 Dec): one weather file per 6 h, one maturity file per day (sampled)."""
+    """3 past seasons (1 Oct - 31 Dec): one weather file per 3 h, one maturity file per day (half of the orchards)."""
     for back in (3, 2, 1):
         start = datetime(season_start_of(now).year - back, 10, 1, tzinfo=timezone.utc)
         day = start
@@ -228,10 +228,10 @@ def write_history(out, rng, seed, count, now):
         while day < start + timedelta(days=92):
             if rng.random() < 0.05:  # rain event lasting 1 to 2 days
                 rainy_until = day + timedelta(days=rng.randint(1, 2))
-            for hour in (0, 6, 12, 18):
+            for hour in range(0, 24, 3):
                 at = day + timedelta(hours=hour)
                 write_weather(out, rng, at, rainy=at < rainy_until)
-            write_maturity(out, rng, seed, count, start, day + timedelta(hours=6), sample=0.3)
+            write_maturity(out, rng, seed, count, start, day + timedelta(hours=6), sample=0.5)
             write_mill_capacity(out, rng, day)
             day += timedelta(days=1)
     print("history written to", out)

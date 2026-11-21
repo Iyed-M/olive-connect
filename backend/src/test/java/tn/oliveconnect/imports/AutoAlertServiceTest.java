@@ -45,7 +45,7 @@ class AutoAlertServiceTest extends AbstractIntegrationTest {
         Orchard inside = mongoTemplate.save(orchard("inside", "SAKIET_EZZIT", 0));
         mongoTemplate.save(orchard("elsewhere", "THYNA", 0));
         rain("SFX-01", "SAKIET_EZZIT", Instant.now().minus(Duration.ofHours(2)), 12);
-        rain("SFX-02", "SAKIET_EZZIT", Instant.now().minus(Duration.ofHours(5)), 10);
+        rain("SFX-01", "SAKIET_EZZIT", Instant.now().minus(Duration.ofHours(5)), 10);
 
         autoAlertService.evaluate();
         autoAlertService.evaluate();
@@ -57,6 +57,17 @@ class AutoAlertServiceTest extends AbstractIntegrationTest {
         assertThat(alert.getSource()).isEqualTo(AlertSource.SENSOR);
         assertThat(alert.getStatus()).isEqualTo(AlertStatus.NEW);
         assertThat(alert.getOrchardId()).isEqualTo(inside.getId());
+    }
+
+    @Test
+    void twoStationsOfADelegationAreNotAddedUp() {
+        mongoTemplate.save(orchard("inside", "SAKIET_EZZIT", 0));
+        rain("SFX-01", "SAKIET_EZZIT", Instant.now().minus(Duration.ofHours(2)), 12);
+        rain("SFX-02", "SAKIET_EZZIT", Instant.now().minus(Duration.ofHours(2)), 12);
+
+        autoAlertService.evaluate();
+
+        assertThat(alertRepository.findAll()).isEmpty();   // 24 mm added up, but each station saw 12 mm
     }
 
     @Test

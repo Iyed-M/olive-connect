@@ -414,7 +414,7 @@ Indexes: `{ type: 1, status: 1 }`, `{ code: 1 }` unique. Workers: `{ active: 1, 
 | `{ farmerId: 1, receivedAt: -1 }` | farmer "my receptions" |
 | `{ roundId: 1, binId: 1, orchardId: 1 }` unique | prevents weighing the same bin load twice |
 
-`mills`: `{ code: 1 }` unique (import key), `{ location: "2dsphere" }` for nearest-mill suggestions. M10 creates the `Mill` document with only `code`, `name`, `location`, `dailyCapacityKg` and `availableCapacityKg`; `address` and `capacityUpdatedAt` come with M7. `availableCapacityKg` is updated by `$inc` on each reception and overwritten by the dynamic import (mill system).
+`mills`: `{ code: 1 }` unique (import key), `{ location: "2dsphere" }` for nearest-mill suggestions. M10 creates the `Mill` document with only `code`, `name`, `location`, `dailyCapacityKg`, `availableCapacityKg` and `capacityUpdatedAt`; `address` comes with M7. `availableCapacityKg` is updated by `$inc` on each reception and overwritten by the dynamic import (mill system) unless the file is older than `capacityUpdatedAt` (the date of `mill_capacity_YYYYMMDD.json`).
 
 ### 4.9 `field_alerts` (R1, R2 history, R10)
 

@@ -6,7 +6,7 @@ Plain Python 3 script (standard library only) that plays the external systems of
 python3 simulator.py ../inbox --only reference   # orchards.csv, varieties.json, mills.json, resources.csv
 python3 simulator.py ../inbox --only dynamic     # weather_*.json, maturity_*.csv, mill_capacity_*.json
 python3 simulator.py ../inbox --loop 15          # same, then new dynamic files every 15 minutes
-python3 simulator.py ../inbox --history          # 3 past seasons of readings (about 100 000+ rows)
+python3 simulator.py ../inbox --history          # 3 past seasons of readings (about 220 000 readings with the default 1500 orchards)
 python3 -m unittest test_simulator               # self-check
 ```
 

@@ -25,7 +25,7 @@ import tn.oliveconnect.orchard.Orchard;
 import tn.oliveconnect.settings.SettingsService;
 
 /**
- * Raises automatic field alerts after a dynamic import (docs/07 §4): heavy rain in a delegation,
+ * Raises automatic field alerts after a dynamic import (docs/07 §4): heavy rain in a delegation (the highest 24 h total of one of its stations),
  * and maturity inside the optimal window of the orchard's main variety. An orchard never gets a
  * second open alert of the same type.
  */
@@ -57,7 +57,8 @@ public class AutoAlertService {
         Instant since = Instant.now().minus(Duration.ofHours(24));
         Aggregation aggregation = Aggregation.newAggregation(
                 Aggregation.match(Criteria.where("timestamp").gte(since)),
-                Aggregation.group("meta.delegation").sum("rainfallMm").as("rainMm"));
+                Aggregation.group("meta.delegation", "meta.stationId").sum("rainfallMm").as("stationMm"),
+                Aggregation.group("_id.delegation").max("stationMm").as("rainMm"));
         AggregationResults<Map> results = mongoTemplate.aggregate(aggregation, "weather_readings", Map.class);
         for (Map<?, ?> row : results.getMappedResults()) {
             Object delegation = row.get("_id");

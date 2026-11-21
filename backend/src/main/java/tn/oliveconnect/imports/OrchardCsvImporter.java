@@ -30,8 +30,9 @@ import tn.oliveconnect.user.User;
 
 /**
  * orchards.csv (docs/07 §2): one line per plot, lines are grouped by externalRef into one orchard with its
- * plots[] (rule R2). Upsert on externalRef: the source owns name, location, delegation and plots; what was
- * entered by hand (harvest status, maturity, owner when the file gives no known member) is kept.
+ * plots[] (rule R2). Upsert on externalRef: the source owns name, location, delegation and the plots it lists
+ * (matched by plotCode); what was entered by hand (harvest status, maturity, plots missing from the file, owner
+ * when the file gives no known member) is kept.
  */
 @Component
 public class OrchardCsvImporter implements DatasetImporter<OrchardCsvImporter.OrchardLines> {
@@ -162,9 +163,9 @@ public class OrchardCsvImporter implements DatasetImporter<OrchardCsvImporter.Or
     @Override
     public Optional<ImportError> validate(Row<OrchardLines> row) {
         OrchardLines orchard = row.value();
-        ImportError outside = RowChecks.coordinates(row.line(), orchard.lng(), orchard.lat());
-        if (outside != null) {
-            return Optional.of(outside);
+        Optional<ImportError> outside = RowChecks.coordinates(row.line(), orchard.lng(), orchard.lat());
+        if (outside.isPresent()) {
+            return outside;
         }
         try {
             Delegation.valueOf(orchard.delegation());
@@ -261,7 +262,7 @@ public class OrchardCsvImporter implements DatasetImporter<OrchardCsvImporter.Or
             orchard.setName(record.name());
             orchard.setLocation(new GeoPoint(record.lng(), record.lat()));
             orchard.setDelegation(record.delegation());
-            orchard.setPlots(record.plots().stream().map(OrchardCsvImporter::toPlot).toList());
+            orchard.setPlots(mergePlots(orchard.getPlots(), record.plots()));
             orchard.recomputeTotals();
             User farmer = record.memberNumber() == null ? null : farmers.get(record.memberNumber());
             if (farmer != null) {   // an unknown member leaves the orchard unassigned (or keeps its manual owner)
@@ -291,8 +292,17 @@ public class OrchardCsvImporter implements DatasetImporter<OrchardCsvImporter.Or
         return (first + " " + last).trim();
     }
 
-    private static Plot toPlot(PlotLine line) {
-        Plot plot = new Plot();
+    /** Plots of the file update the stored plot with the same code; plots that are not in the file are kept. */
+    private static List<Plot> mergePlots(List<Plot> stored, List<PlotLine> lines) {
+        Map<String, Plot> merged = new LinkedHashMap<>();
+        stored.forEach(plot -> merged.put(plot.getCode(), plot));
+        for (PlotLine line : lines) {
+            merged.put(line.code(), fillPlot(merged.getOrDefault(line.code(), new Plot()), line));
+        }
+        return new ArrayList<>(merged.values());
+    }
+
+    private static Plot fillPlot(Plot plot, PlotLine line) {
         plot.setCode(line.code());
         plot.setVarietyCode(line.varietyCode());
         plot.setAreaHa(line.areaHa());
