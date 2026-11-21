@@ -25,6 +25,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in deploy/.env (at least 32 characters)}
       ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL in deploy/.env}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in deploy/.env}
+      IMPORT_INBOX_DIR: /data/inbox
+    volumes:
+      - inbox-data:/data/inbox   # files dropped here (by the simulator or the admin) are imported
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
       interval: 5s
@@ -76,3 +79,4 @@ networks:
 volumes:
   mongo-data:
   redis-data:
+  inbox-data:

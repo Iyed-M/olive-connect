@@ -181,12 +181,12 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 | GET | `/notifications` | any (own) | inbox, query `unread` |
 | POST | `/notifications/{id}/read` | own | mark one as read |
 | POST | `/notifications/read-all` | own | mark all as read |
-| GET | `/imports` | AD | import journal, query `dataset`, `status` |
-| GET | `/imports/{id}` | AD | details + rejected rows |
-| POST | `/imports/run` | AD | manual trigger, query `type=REFERENCE\|DYNAMIC` |
-| POST | `/imports/upload` | AD | upload a CSV/JSON into the inbox |
-| GET | `/settings` | AD | thresholds, parameters |
-| PUT | `/settings` | AD | update thresholds, parameters |
+| GET | `/imports` | AD | import journal (paged `PageResponse`, newest first, `errors` left empty), query `dataset` (e.g. `WEATHER`), `status`, `page`, `size` (max 100) |
+| GET | `/imports/{id}` | AD | details + rejected rows (`errors[]` of `{line, field, reason}`, at most 500, and `errorCount` for the total), 404 if unknown |
+| POST | `/imports/run` | AD | manual trigger, query `type=REFERENCE\|DYNAMIC`. Imports the matching files waiting in the inbox. Returns 200 `{ jobs, skippedFiles }` (`skippedFiles` counts files already imported, which create no job) |
+| POST | `/imports/upload` | AD | multipart field `file` (20 MB max), stored in the inbox and imported right away. Returns 200 `{ jobs, skippedFiles }` (a duplicate file gives no job and `skippedFiles: 1`). 400 `VALIDATION_FAILED` when the file name matches no dataset |
+| GET | `/settings` | AD | `{ rainAlertMm24h, defaultBinCapacityKg }` (defaults 20 and 4000 until saved) |
+| PUT | `/settings` | AD | replace both values (both required and greater than 0), returns the saved settings |
 | POST | `/events/ticket` | any authenticated | one-time SSE ticket (see §4.1) |
 
 **Actuator** (not under `/api`, same port 8080 as the API): `/actuator/health` and `/actuator/info` are exposed today. `/actuator/prometheus` is added in M10. Nginx only proxies `/api/`, so the Actuator is not reachable from outside, only from the `back` Docker network.

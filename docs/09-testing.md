@@ -125,6 +125,9 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-IM-3 | Import | same file twice | Alternative | API | second run skipped (checksum) |
 | T-IM-4 | Import | rain over threshold | Nominal | API | automatic RAIN alert created once |
 | T-IM-5 | Import | > 50 % invalid | Alternative | API | FAILED, nothing committed |
+| T-IM-6 | Import | two stations of a delegation, 12 mm each | Alternative | API | no RAIN alert (max per station, not the sum) |
+| T-IM-7 | Import | orchard re-import with a hand-added plot | Alternative | API | file plots updated by `plotCode`, manual plot kept |
+| T-IM-8 | Import | older `mill_capacity_*.json` arriving late | Alternative | API | `availableCapacityKg` keeps the newer value (`capacityUpdatedAt`) |
 | T-KPI-1 | Dashboard | fill rate per week on seeded data | Nominal | Repo | values equal to hand-computed fixture |
 | T-KPI-2 | Dashboard | second call served from cache | Nominal | API | repository called once (spy) |
 | T-MAP-1 | Map | bbox query | Nominal | Repo | only orchards inside bbox; `explain` shows 2dsphere IXSCAN |
