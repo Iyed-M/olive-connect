@@ -148,6 +148,7 @@ flowchart TB
     CQ --> CA["/collection/alerts"]
     CQ --> CMAP["/collection/map"]
     CQ --> IO
+    CQ --> LC
     CQ --> IR["/intranet/rounds<br/>correct a completed round"]
     IO --> IOE["/intranet/orchards/:id<br/>correct an orchard"]
     R -- TEAM_LEADER --> TR["/rounds/mine"]
@@ -158,7 +159,7 @@ flowchart TB
     LW --> LE["/logistics/equipment"]
     LE --> LEN["/logistics/equipment/new"]
     LE --> LEE["/logistics/equipment/:id"]
-    LW --> LC["/logistics/calendar<br/>week per resource"]
+    LW --> LC["/logistics/calendar<br/>day or week per resource"]
     LW --> LS["/logistics/supplies<br/>list, create, receive"]
     LW --> IO["/intranet/orchards<br/>staff data grid"]
     R -- MILL_MANAGER --> MI["/mill/incoming"]

@@ -61,7 +61,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | FR-6.1 (M9) | Registration request and approval / SD-REG | `POST /registrations`, `GET /registrations`, `POST /registrations/{id}/approve`, `/reject`, `PATCH /me/password` | T-REG-1..8 |
 | FR-6.2 | Accounts | `/users` | T-AUTH-* |
 | FR-6.3–6.4 (M10) | Import / SD-8 | `GET /imports`, `GET /imports/{id}`, `POST /imports/run`, `POST /imports/upload`, `GET` and `PUT /settings` | T-IM-1..8 |
-| FR-6.5 | Intranet | `/orchards`, `/equipment`, `/rounds`, `/rounds/{id}/correction`, `/imports` (ADMIN/LM) | T-RS-14, T-RS-15, E2E |
+| FR-6.5 | Intranet / SD-12 | `/orchards`, `/equipment`, `/rounds`, `/rounds/{id}/correction`, `/imports` (ADMIN/LM) | T-RS-14, T-RS-15, E2E |
 | NFR-4 | Performance | all reads | T-PERF-1, index tests |
 | NFR-5 | Security | all | T-SEC-*, T-AUTH-* |
 | NFR-6 | Availability / backups | — | restore drill, Kuma report |

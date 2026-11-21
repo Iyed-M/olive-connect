@@ -1207,6 +1207,29 @@ sequenceDiagram
     end
 ```
 
+### SD-12 Staff corrects the weight of a completed round (alternatives: not completed)
+
+```mermaid
+sequenceDiagram
+    actor CM as Collection manager or Admin
+    participant C as CollectionRoundController
+    participant S as CollectionRoundService
+    participant R as CollectionRoundRepository
+
+    CM->>C: PATCH /api/rounds/{id}/correction {totalHarvestedKg, comment}
+    C->>S: correct(id, dto, authentication)
+    S->>R: findById(id)
+    alt unknown round
+        S-->>CM: 404 NOT_FOUND
+    else status is not COMPLETED
+        S-->>CM: 422 ROUND_NOT_COMPLETED
+    else COMPLETED
+        S->>S: set totalHarvestedKg and add a Correction(now, userId, comment)
+        S->>R: save(round)
+        S-->>CM: 200 CollectionRoundDto
+    end
+```
+
 ## 3. State machines
 
 ### HarvestRequest
