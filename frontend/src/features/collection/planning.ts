@@ -93,6 +93,12 @@ export interface RoundStop {
   comment?: string | null
 }
 
+export interface RoundBin {
+  id: string
+  code: string
+  capacityKg: number | null
+}
+
 export interface RoundStopUpdateBody {
   status: RoundStopUpdateStatus
   harvestedKg?: number | null
@@ -119,6 +125,7 @@ export interface CollectionRound {
   estimatedTotalKg: number
   totalHarvestedKg: number
   version: number
+  bins?: RoundBin[]
 }
 
 export interface RoundWarning {

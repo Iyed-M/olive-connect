@@ -335,13 +335,26 @@ classDiagram
     }
     class MillReception {
         +String id
+        +String millId
+        +String roundId
+        +String binId
+        +String orchardId
+        +String farmerId
+        +String harvestRequestId
         +double grossWeightKg
         +double tareKg
         +double netWeightKg
         +double binCapacityKg
         +double fillRate
-        +Instant receivedAt
+        +QualityAssessment quality
         +String season
+        +String varietyCode
+        +String delegation
+        +double orchardAreaHa
+        +Instant requestValidatedAt
+        +double leadTimeHours
+        +Instant receivedAt
+        +String receivedById
         +computeNetAndFillRate()
     }
     class QualityAssessment {
@@ -349,6 +362,13 @@ classDiagram
         +double defectRatePct
         +double leafRatePct
         +double estimatedOilYieldPct
+    }
+    class QualityGrade {
+        <<enumeration>>
+        EXTRA
+        GOOD
+        AVERAGE
+        POOR
     }
 
     class FieldAlert {
@@ -400,6 +420,8 @@ classDiagram
         ROUND_CANCELLED
         ROUND_STARTED
         ROUND_COMPLETED
+        RECEPTION_RECORDED
+        MILL_SATURATED
     }
     class ImportJob {
         +String id
@@ -470,6 +492,7 @@ classDiagram
     MillReception "*" --> "1" Orchard
     MillReception "*" --> "1" HarvestRequest
     MillReception "1" *-- "1" QualityAssessment
+    QualityAssessment --> QualityGrade
 
     FieldAlert "*" --> "1" Orchard : about
     FieldAlert "*" --> "0..1" User : reported by
@@ -925,7 +948,9 @@ sequenceDiagram
     participant S as MillReceptionService
     participant RR as CollectionRoundRepository
     participant ER as EquipmentRepository
+    participant HR as HarvestRequestRepository
     participant MR as MillRepository
+    participant MT as MongoTemplate
     participant RCR as MillReceptionRepository
     participant NS as NotificationService
 
@@ -935,7 +960,7 @@ sequenceDiagram
         S-->>C: 403
     else
         S->>RR: findById(roundId)
-        alt round not delivering to this mill or bin not in round
+        alt round not delivering to this mill, orchard not in round, or bin not in round
             S-->>C: 422
         else
             S->>ER: findBin(binId) → capacityKg
@@ -943,8 +968,9 @@ sequenceDiagram
             alt net <= 0 or fillRate > 1.15
                 S-->>C: 422 "Check weighing values"
             else ok
+                S->>HR: findById(stop.harvestRequestId) → farmer and snapshot dimensions
                 S->>RCR: save(reception with denormalized variety, delegation, season)
-                S->>MR: $inc availableCapacityKg: −net
+                S->>MT: atomic $inc availableCapacityKg: −net and set capacityUpdatedAt
                 opt availableCapacityKg < 0
                     S-->>S: warning + notify collection manager (MILL_SATURATED)
                 end

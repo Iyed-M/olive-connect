@@ -26,9 +26,10 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | Unavailability | R2 | `workers/equipment.unavailabilities[]` | `resource.Unavailability` | — | `ResourceService` | `/…/{id}/unavailabilities` | `logistics/UnavailabilityPanel`, `logistics/ResourceCalendar` |
 | ResourceBooking | R6 | `resource_bookings` | `resource.ResourceBooking` | `ResourceBookingRepository` | `BookingService`, `ResourceAvailabilityService` | `/resources/calendar`, `/resources/availability` | `collection/RoundForm`, `logistics/ResourceCalendar` |
 | SupplyOrder | R1, R3 | `supply_orders` | `resource.SupplyOrder` | `SupplyOrderRepository` | `SupplyService` | `/supply-orders` | `logistics/SupplyOrders` |
-| Mill | R1, R10 | `mills` | `mill.Mill` | `MillRepository` | `MillService` | `MillController /mills` | `mill/CapacityPage` |
-| MillReception | R1, R3, R11, R13 | `mill_receptions` | `mill.MillReception` | `MillReceptionRepository` | `MillReceptionService` | `/mills/{id}/receptions`, `/receptions` | `mill/ReceptionForm`, `farmer/MyReceptions` |
+| Mill | R1, R10 | `mills` | `mill.Mill` | `MillRepository` | `MillService`, `MillReceptionService` | `MillController /mills`, `/mills/{id}/capacity`, `/mills/{id}/incoming` | `mill/CapacityPage`, `mill/IncomingRoundsPage` |
+| MillReception | R1, R3, R11, R13 | `mill_receptions` | `mill.MillReception` | `MillReceptionRepository` | `MillReceptionService` | `/mills/{id}/receptions`, `/receptions`, `/receptions/{id}` | `mill/ReceptionForm`, `farmer/MyReceptions` |
 | QualityAssessment | R2 | `mill_receptions.quality` | `mill.QualityAssessment` (embedded) | — | `MillReceptionService` | idem | idem |
+| QualityGrade | R2 | `mill_receptions.quality.grade` | `mill.QualityGrade` | — | — | — | `mill/ReceptionForm` |
 | FieldAlert | R1, R2, R10 | `field_alerts` (+ GridFS `alerts`) | `alert.FieldAlert` | `FieldAlertRepository` | `FieldAlertService`, `AutoAlertService` | `FieldAlertController /alerts` | `farmer/AlertForm`, `collection/AlertsBoard` |
 | WeatherReading | R7, R12 | `weather_readings` (time-series) | `telemetry.WeatherReading` (`@TimeSeries`) | `WeatherReadingRepository` | `TelemetryService` | (import only), `/dashboard` | dashboard charts |
 | MaturityReading | R7, R12 | `maturity_readings` (time-series) | `telemetry.MaturityReading` (`@TimeSeries`) | `MaturityReadingRepository` | `TelemetryService` | `/orchards/{id}/maturity` | orchard detail chart |

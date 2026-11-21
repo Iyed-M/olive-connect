@@ -24,12 +24,15 @@ public class JwtService {
 
     public AccessToken accessToken(User user) {
         Instant now = Instant.now();
-        JwtClaimsSet claims = JwtClaimsSet.builder()
+        JwtClaimsSet.Builder claimsBuilder = JwtClaimsSet.builder()
                 .subject(user.getId())
                 .claim("roles", user.getRoles().stream().map(Role::name).toList())
                 .issuedAt(now)
-                .expiresAt(now.plus(ACCESS_TOKEN_LIFETIME))
-                .build();
+                .expiresAt(now.plus(ACCESS_TOKEN_LIFETIME));
+        if (user.getAssignedMillId() != null) {
+            claimsBuilder.claim("millId", user.getAssignedMillId());
+        }
+        JwtClaimsSet claims = claimsBuilder.build();
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
         String token = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
         return new AccessToken(token, ACCESS_TOKEN_LIFETIME.toSeconds());
