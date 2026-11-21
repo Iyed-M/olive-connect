@@ -150,7 +150,8 @@ tn.oliveconnect
 │                      ImportScheduler, ImportService, ImportJournalService, DatasetImporter<T>,
 │                      one importer per dataset (OrchardCsvImporter, VarietiesJsonImporter,
 │                      MillsJsonImporter, ResourcesCsvImporter, WeatherJsonImporter,
-│                      MaturityCsvImporter, MillCapacityJsonImporter), CsvFile, JsonArrayFile,
+│                      MaturityCsvImporter, MillCapacityJsonImporter, MillReceptionCsvImporter),
+│                      CsvFile, JsonArrayFile,
 │                      FieldReader, AutoAlertService, WeatherReading, MaturityReading,
 │                      ImportController (admin)
 ├── settings/          SystemSettings, SystemSettingsRepository, SettingsService, SettingsDto,

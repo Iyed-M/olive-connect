@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AppChangePasswordRouteImport } from './routes/_app.change-password'
+import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppFarmerRouteImport } from './routes/_app.farmer'
 import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
 import { Route as AppAdminRegistrationsRouteImport } from './routes/_app.admin.registrations'
@@ -74,6 +75,11 @@ const RegisterRoute = RegisterRouteImport.update({
 const AppChangePasswordRoute = AppChangePasswordRouteImport.update({
   id: '/change-password',
   path: '/change-password',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
 const AppFarmerRoute = AppFarmerRouteImport.update({
@@ -271,6 +277,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/change-password': typeof AppChangePasswordRoute
+  '/dashboard': typeof AppDashboardRoute
   '/farmer': typeof AppFarmerRouteWithChildren
   '/notifications': typeof AppNotificationsRoute
   '/admin/registrations': typeof AppAdminRegistrationsRoute
@@ -314,6 +321,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/change-password': typeof AppChangePasswordRoute
+  '/dashboard': typeof AppDashboardRoute
   '/notifications': typeof AppNotificationsRoute
   '/admin/registrations': typeof AppAdminRegistrationsRoute
   '/collection/alerts': typeof AppCollectionAlertsRoute
@@ -358,6 +366,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/_app/change-password': typeof AppChangePasswordRoute
+  '/_app/dashboard': typeof AppDashboardRoute
   '/_app/farmer': typeof AppFarmerRouteWithChildren
   '/_app/notifications': typeof AppNotificationsRoute
   '/_app/admin/registrations': typeof AppAdminRegistrationsRoute
@@ -403,6 +412,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/change-password'
+    | '/dashboard'
     | '/farmer'
     | '/notifications'
     | '/admin/registrations'
@@ -446,6 +456,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/change-password'
+    | '/dashboard'
     | '/notifications'
     | '/admin/registrations'
     | '/collection/alerts'
@@ -489,6 +500,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/_app/change-password'
+    | '/_app/dashboard'
     | '/_app/farmer'
     | '/_app/notifications'
     | '/_app/admin/registrations'
@@ -570,6 +582,13 @@ declare module '@tanstack/react-router' {
       path: '/change-password'
       fullPath: '/change-password'
       preLoaderRoute: typeof AppChangePasswordRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/farmer': {
@@ -864,6 +883,7 @@ const AppFarmerRouteWithChildren = AppFarmerRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppChangePasswordRoute: typeof AppChangePasswordRoute
+  AppDashboardRoute: typeof AppDashboardRoute
   AppFarmerRoute: typeof AppFarmerRouteWithChildren
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppAdminRegistrationsRoute: typeof AppAdminRegistrationsRoute
@@ -896,6 +916,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppChangePasswordRoute: AppChangePasswordRoute,
+  AppDashboardRoute: AppDashboardRoute,
   AppFarmerRoute: AppFarmerRouteWithChildren,
   AppNotificationsRoute: AppNotificationsRoute,
   AppAdminRegistrationsRoute: AppAdminRegistrationsRoute,

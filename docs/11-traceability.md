@@ -28,17 +28,17 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | ResourceBooking | R6 | `resource_bookings` | `resource.ResourceBooking` | `ResourceBookingRepository` | `BookingService`, `ResourceAvailabilityService`, `ResourceCalendarService` | `/resources/calendar`, `/resources/availability` | `collection/RoundForm`, `logistics/ResourceCalendar` |
 | SupplyOrder | R1, R3 | `supply_orders` | `resource.SupplyOrder`, `resource.SupplyStatus` | `SupplyOrderRepository` | `SupplyService` | `SupplyController /supply-orders` | `logistics/SupplyOrders`, route `/logistics/supplies` |
 | Mill | R1, R10 | `mills` | `mill.Mill` | `MillRepository` | `MillService`, `MillsJsonImporter`, `MillCapacityJsonImporter`, `MillReceptionService` | `MillController /mills`, `/mills/{id}/capacity`, `/mills/{id}/incoming` | `mill/CapacityPage`, `mill/IncomingRoundsPage` |
-| MillReception | R1, R3, R11, R13 | `mill_receptions` | `mill.MillReception` | `MillReceptionRepository` | `MillReceptionService` | `/mills/{id}/receptions`, `/receptions`, `/receptions/{id}` | `mill/ReceptionForm`, `farmer/MyReceptions` |
+| MillReception | R1, R3, R11, R13 | `mill_receptions` | `mill.MillReception` | `MillReceptionRepository` | `MillReceptionService`, `MillReceptionCsvImporter` | `/mills/{id}/receptions`, `/receptions`, `/receptions/{id}` | `mill/ReceptionForm`, `farmer/MyReceptions` |
 | QualityAssessment | R2 | `mill_receptions.quality` | `mill.QualityAssessment` (embedded) | — | `MillReceptionService` | idem | idem |
 | QualityGrade | R2 | `mill_receptions.quality.grade` | `mill.QualityGrade` | — | — | — | `mill/ReceptionForm` |
 | FieldAlert | R1, R2, R10 | `field_alerts` (+ GridFS `alerts`) | `alert.FieldAlert`, `alert.AlertType`, `alert.AlertSeverity`, `alert.AlertSource`, `alert.AlertStatus` | `FieldAlertRepository` | `FieldAlertService`, `imports.AutoAlertService`, `harvest.HarvestRequestService` | `FieldAlertController /alerts`, `FieldAlertFileController /files/alerts`, `OrchardController /orchards/nearest` | `features/alerts/AlertForm`, `features/collection/AlertsBoard`, `features/alerts/AlertsMap` |
 | WeatherReading | R7, R12 | `weather_readings` (time-series) | `imports.WeatherReading` (`@TimeSeries`) | — (bulk writes through `MongoTemplate`) | `WeatherJsonImporter` | (import only), `/dashboard` | dashboard charts |
 | MaturityReading | R7, R12 | `maturity_readings` (time-series) | `imports.MaturityReading` (`@TimeSeries`) | — (bulk writes through `MongoTemplate`) | `MaturityCsvImporter` | `/orchards/{id}/maturity` (planned) | orchard detail chart (planned) |
 | Notification | R7 (+TTL) | `notifications` | `notification.Notification`, `notification.NotificationType` (including alert events) | `NotificationRepository` | `NotificationService`, `event.EventTicketService`, `event.RedisNotificationPublisher`, `event.RedisNotificationSubscriber` | `NotificationController /notifications`, `EventController /events` and `/events/ticket` | `features/notifications/NotificationBell`, `features/notifications/NotificationsPage`, `features/events/eventStream` |
-| ImportJob / ImportError | R1 / R2 | `import_jobs` | `imports.ImportJob`, `imports.ImportError` (embedded), `imports.ImportStatus`, `imports.ImportSource` | `ImportJobRepository` | `ImportService`, `ImportJournalService`, `ImportScheduler` | `ImportController /imports` | `features/imports/ImportJournalPage`, `features/imports/ImportDetailPage`, routes `/intranet/imports`, `/intranet/imports/$id` |
+| ImportJob / ImportError | R1 / R2 | `import_jobs` | `imports.ImportJob`, `imports.ImportError` (embedded), `imports.ImportStatus`, `imports.ImportSource` | `ImportJobRepository` | `ImportService`, `ImportJournalService`, `ImportScheduler`, dataset importers including `MillReceptionCsvImporter` | `ImportController /imports` | `features/imports/ImportJournalPage`, `features/imports/ImportDetailPage`, routes `/intranet/imports`, `/intranet/imports/$id` |
 | SystemSettings | R1 | `system_settings` (`_id: "global"`) | `settings.SystemSettings` | `SystemSettingsRepository` | `SettingsService` | `SettingsController /settings` | `features/imports/SettingsPage`, route `/intranet/settings` |
 | (System status — no class, read model) | — | none (pings MongoDB and Redis) | `system.SystemStatusDto` | — | `SystemStatusService` | `SystemStatusController /system` | `lib/api.ts` (`getSystemStatus`, no page calls it since M9 replaced the status page with the public map) |
-| (KPIs — no class, read model) | R13 | aggregation over `mill_receptions`, `collection_rounds` | DTOs `dashboard.dto.*` | `KpiRepositoryCustom` | `KpiService` | `DashboardController /dashboard` | `dashboard/` |
+| (KPIs — no class, read model) | R13 | aggregation over `mill_receptions` | `KpiSummaryDto`, `YieldPoint`, `LeadTimePoint`, `FillRatePoint`, `MillVolumePoint` (`dashboard.dto`) | `KpiRepositoryCustom` / `KpiRepositoryCustomImpl` | `KpiService` | `DashboardController /dashboard` | `features/dashboard/`, route `/dashboard` |
 
 ## 2. Requirement ⇄ use case ⇄ endpoint ⇄ test
 
@@ -58,7 +58,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | FR-2.x | Report & handle alert / SD-5 | `/alerts/**` | T-AL-1..6 |
 | FR-3.x | Resources | `/workers`, `/equipment`, `/resources/*`, `/supply-orders` | T-RS-1..2, T-RD-2 |
 | FR-4.x | Map | `/map/public`, `/map/private` | T-SEC-3, T-MAP-1..3, T-PERF-1 |
-| FR-5.x | Dashboard / SD-9 | `/dashboard/*` | T-KPI-1..2 |
+| FR-5.x | Dashboard / SD-9 | `/dashboard/*` | T-KPI-1..4 |
 | FR-6.1 (M9) | Registration request and approval / SD-REG | `POST /registrations`, `GET /registrations`, `POST /registrations/{id}/approve`, `/reject`, `PATCH /me/password` | T-REG-1..8 |
 | FR-6.2 | Accounts | `/users` | T-AUTH-* |
 | FR-6.3–6.4 (M10) | Import / SD-8 | `GET /imports`, `GET /imports/{id}`, `POST /imports/run`, `POST /imports/upload`, `GET` and `PUT /settings` | T-IM-1..8 |

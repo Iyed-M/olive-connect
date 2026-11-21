@@ -525,7 +525,7 @@ The latest maturity value is also copied onto `orchards.currentMaturityIndex` (R
 - `notifications` documents contain `recipientId`, `type`, `title`, `message`, optional `link`, `read` and `createdAt`.
   M3 uses `NEW_REQUEST`, `REQUEST_VALIDATED` and `REQUEST_REJECTED`; real-time fan-out is deferred to M8.
   Indexes are `{ recipientId: 1, read: 1, createdAt: -1 }`, plus a **TTL** index `{ createdAt: 1 }, expireAfterSeconds: 7776000` (90 days).
-- `import_jobs`: `{ checksum: 1 }` unique (idempotency), `{ startedAt: -1 }`, `{ dataset: 1, status: 1 }`. `dataset` is `ORCHARDS`, `VARIETIES`, `MILLS`, `RESOURCES`, `WEATHER`, `MATURITY` or `MILL_CAPACITY`. A file that is already imported (status `SUCCESS` or `PARTIAL`) creates no job. A `FAILED` file that is dropped again is retried on the same job (the checksum is unique). `errors[]` holds at most 500 entries and `errorCount` keeps the total (R2 bounded).
+- `import_jobs`: `{ checksum: 1 }` unique (idempotency), `{ startedAt: -1 }`, `{ dataset: 1, status: 1 }`. `dataset` is `ORCHARDS`, `VARIETIES`, `MILLS`, `RESOURCES`, `WEATHER`, `MATURITY`, `MILL_CAPACITY` or `RECEPTIONS`. A file that is already imported (status `SUCCESS` or `PARTIAL`) creates no job. A `FAILED` file that is dropped again is retried on the same job (the checksum is unique). `errors[]` holds at most 500 entries and `errorCount` keeps the total (R2 bounded).
 - `registration_requests`: `{ status: 1, createdAt: -1 }`, `{ email: 1 }`. Document: `{ firstName, lastName, email, phone, cin, message, status: PENDING|APPROVED|REJECTED, createdAt, processedById, createdUserId }`. `processedById` and `createdUserId` are set on approval; `processedById` alone on rejection. `users.mustChangePassword` is `true` for an account created by an approval until the Farmer changes the temporary password.
 - `system_settings`: a single document with `_id: "global"` and the fields `rainAlertMm24h` (default 20, mm of rain in 24 h that raises a `RAIN` alert) and `defaultBinCapacityKg` (default 4000, default bin capacity, editable by the admin and not read by any code yet). The document is created on the first `PUT /api/settings`, and the defaults are returned until then.
 
@@ -562,10 +562,14 @@ flowchart LR
 | Manager queue | `harvest_requests.find({status: "VALIDATED"}).sort({priorityScore: -1}).limit(50)` | `status_1_priorityScore_-1` | < 50 ms |
 | Nearby requests (grouping) | `$geoNear` on `orchard.location`, `maxDistance 10 000`, `query {status: VALIDATED}` | `orchard.location_2dsphere_status_1` | < 100 ms |
 | Booking conflicts | `resource_bookings.find({resourceId: {$in: ids}, start: {$lt: e}, end: {$gt: s}, status: "ACTIVE"})` | `resource_id_start_end_active` | < 20 ms |
-| Yield per orchard | aggregation below | `season_1_orchardId_1` | < 1 s for 10⁵ receptions |
+| KPI summary tiles | aggregation over the filtered season/date range | `season_received_at` | < 1 s for 10⁵ receptions |
+| Yield per orchard, variety or delegation | aggregation below | `season_orchard` (orchard grouping) | < 1 s for 10⁵ receptions |
+| Lead time by delegation or ISO week | aggregation with average and p90 | `season_received_at` | < 1 s for 10⁵ receptions |
+| Fill rate by ISO week, bin or round | aggregation with under-filled count | `season_received_at` | < 1 s for 10⁵ receptions |
+| Mill volume by day | aggregation by `millId` and `$dateTrunc` day | `mill_received_at` (mill filter) | < 1 s for 10⁵ receptions |
 | Latest maturity history | `maturity_readings.find({"meta.orchardId": X}).sort({timestamp: -1}).limit(30)` | `meta.orchardId_1_timestamp_-1` | < 50 ms |
 
-Each of these queries gets checked with `explain("executionStats")` (`IXSCAN`, never `COLLSCAN`), and the screenshots go in the report.
+Each of these queries gets checked with `explain("executionStats")`; the first `$match` is deliberately kept before the aggregation stages so the season/date indexes can be used. The explicit M11 evidence test is `KpiPerformanceEvidenceIT` (excluded from the normal `*Test` suite because it seeds 90,000 facts). In the final local MongoDB run, after warming the plan cache, it reported summary 311 ms, yield/orchard 338 ms, lead-time/delegation 242 ms, fill-rate/week 230 ms and mill-volumes/day 320 ms; the five corresponding explain outputs each reported 90,000 keys and 90,000 documents examined. This is the recorded baseline for further index tuning rather than an unverified claim of a covered query.
 
 ### KPI aggregation pipelines (F5)
 
@@ -605,6 +609,26 @@ db.mill_receptions.aggregate([
 ])
 ```
 
+**Daily mill volumes with quality counts:**
+```js
+db.mill_receptions.aggregate([
+  { $match: { season: "2026-2027", receivedAt: { $gte: from, $lt: to } } },
+  { $group: { _id: { millId: "$millId", day: { $dateTrunc: { date: "$receivedAt", unit: "day" } } },
+              totalNetKg: { $sum: "$netWeightKg" }, receptions: { $sum: 1 },
+              extra: { $sum: { $cond: [{ $eq: ["$quality.grade", "EXTRA"] }, 1, 0] } },
+              good: { $sum: { $cond: [{ $eq: ["$quality.grade", "GOOD"] }, 1, 0] } } } },
+  { $sort: { "_id.day": 1, "_id.millId": 1 } }
+])
+```
+
+The running implementation is `KpiRepositoryCustomImpl`: it uses
+`MongoTemplate` with a raw aggregation stage for the `$percentile`, `$dateTrunc`
+and conditional-count operators, then maps the results to
+`KpiSummaryDto`, `YieldPoint`, `LeadTimePoint`, `FillRatePoint` and
+`MillVolumePoint`. `KpiService` validates filters and performs the five-minute
+Redis read-through cache; it uses `StringRedisTemplate` explicitly so a Redis
+outage only disables the optimisation and does not make the dashboard fail.
+
 **Daily rainfall per delegation (time series):**
 ```js
 db.weather_readings.aggregate([
@@ -632,7 +656,7 @@ Eviction policy `allkeys-lru` with `maxmemory 256mb`. Persistence: RDB snapshot 
 
 ## 8. Persistence API and its justification
 
-**Chosen: Spring Data MongoDB, plus Spring Data Redis through the Spring Cache abstraction.**
+**Chosen: Spring Data MongoDB, plus Spring Data Redis through `StringRedisTemplate`.**
 
 | Criterion | Spring Data MongoDB | Alternatives |
 |---|---|---|
@@ -643,7 +667,7 @@ Eviction policy `allkeys-lru` with `maxmemory 256mb`. Persistence: RDB snapshot 
 | Transactions | `MongoTransactionManager` + `@Transactional` (replica set) | — |
 | Auditing | `@EnableMongoAuditing`: `@CreatedDate`, `@LastModifiedDate`, `@CreatedBy` | — |
 | Testing | `@DataMongoTest` + Testcontainers | — |
-| Redis | `@Cacheable`, `@CacheEvict` with `RedisCacheManager` (per-cache TTL); `StringRedisTemplate` for tokens, rate limits, locks, pub/sub (`RedisMessageListenerContainer`) | Caffeine (local only, not shared between instances) |
+| Redis | `StringRedisTemplate` for KPI JSON read-through caching, tokens, rate limits, locks and pub/sub (`RedisMessageListenerContainer`) | Caffeine (local only, not shared between instances) |
 
 ### Repository patterns (examples)
 

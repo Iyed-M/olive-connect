@@ -136,8 +136,10 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-IM-6 | Import | two stations of a delegation, 12 mm each | Alternative | API | no RAIN alert (max per station, not the sum) |
 | T-IM-7 | Import | orchard re-import with a hand-added plot | Alternative | API | file plots updated by `plotCode`, manual plot kept |
 | T-IM-8 | Import | older `mill_capacity_*.json` arriving late | Alternative | API | `availableCapacityKg` keeps the newer value (`capacityUpdatedAt`) |
-| T-KPI-1 | Dashboard | fill rate per week on seeded data | Nominal | Repo | values equal to hand-computed fixture |
-| T-KPI-2 | Dashboard | second call served from cache | Nominal | API | repository called once (spy) |
+| T-KPI-1 | Dashboard | fill rate per week on seeded data | Nominal | Repo | `KpiRepositoryTest.fillRateByWeekMatchesTheHandComputedFixture` matches the hand-computed fixture |
+| T-KPI-2 | Dashboard | role scope and second call served from cache | Nominal + alternative | API | `DashboardControllerTest` limits a mill manager to the assigned mill and verifies the repository is called once |
+| T-KPI-3 | Dashboard / import | historical reception CSV with invalid rows and duplicate key | Alternative | API | `HistoricalReceptionImportApiTest` returns `PARTIAL`, stores valid facts and skips a duplicate reception |
+| T-KPI-4 | Dashboard performance | 90,000 reception facts and all KPI pipelines | NFR | integration evidence | `KpiPerformanceEvidenceIT` prints `explain("executionStats")` counts and each measured pipeline remains below 1 s |
 | T-MAP-1 | Map | bbox query | Nominal | Repo | only orchards inside bbox; `explain` shows 2dsphere IXSCAN |
 | T-MAP-2 | Map | filters, low-zoom clustering, Redis cache, invalid `bbox` | Nominal + Alt | Web | filtered features, `cluster`/`count`, one `cache:mapPublic::*` key with TTL <= 60 s, 400 |
 | T-MAP-3 | Map | 1,500 orchards, one public request | NFR | Web | response in < 2 s |

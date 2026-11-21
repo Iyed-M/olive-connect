@@ -15,6 +15,7 @@ flowchart LR
         d1[weather_YYYYMMDDHHmm.json]
         d2[maturity_YYYYMMDDHHmm.csv]
         d3[mill_capacity_YYYYMMDD.json]
+        d4[receptions_YYYYMMDD.csv<br/>history mode]
     end
     subgraph S3["Manual entry"]
         m1[Intranet app<br/>admin / logistics]
@@ -33,8 +34,8 @@ flowchart LR
 | Source | Datasets | Frequency | Target collection | Write mode |
 |---|---|---|---|---|
 | 1 (reference) | varieties, mills, orchards + plots, workers, equipment | daily (cron `0 0 2 * * *`) + manual trigger | `olive_varieties`, `mills`, `orchards`, `workers`, `equipment` | **upsert** on natural key (`code`, `externalRef`) — preserves manual enrichments on fields not provided by the source |
-| 2 (dynamic) | weather, maturity, mill capacity | every 15 min (`fixedDelay`) | `weather_readings`, `maturity_readings` (insert), `mills.availableCapacityKg` (update), `orchards.currentMaturityIndex` (update, R11) | insert / targeted update |
-| Manual | everything else (requests, rounds, alerts, receptions, enrichment) | real time | all | via API |
+| 2 (dynamic) | weather, maturity, mill capacity, historical reception facts (`--history`) | every 15 min (`fixedDelay`) or manual history run | `weather_readings`, `maturity_readings` (insert), `mills.availableCapacityKg` (update), `orchards.currentMaturityIndex` (update, R11), `mill_receptions` (insert) | insert / targeted update |
+| Manual | operational requests, rounds, alerts, live receptions and enrichment | real time | all | via API |
 
 ## 2. File formats (contract with the simulator)
 
@@ -85,6 +86,21 @@ ORC-0001;2026-11-21T06:00:00Z;3.8;SENSOR
 { "date": "2026-11-21", "mills": [ { "millCode": "MIL-SFX-01", "dailyCapacityKg": 60000, "availableCapacityKg": 42000 } ] }
 ```
 
+**receptions_20251001.csv** (`;`-separated, generated only by `--history`)
+```text
+millId;roundId;binId;orchardId;farmerId;harvestRequestId;grossWeightKg;tareKg;netWeightKg;binCapacityKg;fillRate;qualityGrade;defectRatePct;leafRatePct;estimatedOilYieldPct;season;varietyCode;delegation;orchardAreaHa;requestValidatedAt;leadTimeHours;receivedAt;receivedById
+MIL-SFX-01;HIST-2025-0001-01;BIN-0001;ORC-0001;ADH-0042;REQ-2025-0001-01;3250.00;650.00;2600.00;4000;0.6500;GOOD;2.1;1.0;20.4;2025-2026;CHEMLALI;SAKIET_EZZIT;4.5;2025-10-03T06:00:00Z;24;2025-10-04T06:00:00Z;SIM-MANAGER-MIL-SFX-01
+```
+The importer validates the weight and fill-rate equations, quality and
+delegation enums, season, timestamps and lead time, then inserts valid facts in
+unordered batches of 1,000. The simulator writes 20 receptions per orchard for
+each of three past seasons (90,000 facts with the default 1,500 orchards).
+`millId` contains the stable code from `mills.json`; when the reference mills
+are already loaded, `MillReceptionCsvImporter` resolves that code to the
+MongoDB mill id used by live weighing and mill-manager scoping. These are
+stable synthetic fact references for dashboard history; they do not create
+operational rounds or harvest requests.
+
 ## 3. Conformity checks (validation rules)
 
 | Level | Rule | Example of rejection reason |
@@ -94,7 +110,7 @@ ORC-0001;2026-11-21T06:00:00Z;3.8;SENSOR
 | Record — types | number/date parsing, enum values | `line 14, maturityIndex: 'abc' is not a number` |
 | Record — ranges | lng ∈ [7, 12], lat ∈ [30, 38] (Tunisia bbox); maturityIndex ∈ [0, 7]; rainfall ≥ 0; humidity ∈ [0, 100]; areaHa > 0; capacity ≥ 0; timestamp not in the future (> 1 h) | `line 3, lat: 48.85 outside Tunisia` |
 | Record — references | `varietyCode` exists; `orchardExternalRef` exists; `memberNumber` matches a FARMER (or the orchard is created unassigned and flagged) | `line 7, varietyCode 'XYZ' unknown` |
-| Record — consistency | sum of plot areas ≤ declared orchard area + 5 %; duplicate (same meta + timestamp) | `duplicate reading` |
+| Record — consistency | sum of plot areas ≤ declared orchard area + 5 %; duplicate (same meta + timestamp); duplicate reception (`roundId`, `binId`, `orchardId`) | `duplicate reading` / `duplicate reception key` |
 
 `line` is the 1-based line of the CSV file (the header is line 1) or the 1-based index of the element in the JSON array. File-level failures use line 0 and field `file`. Each rejected record becomes an `ImportError {line, field, reason}`. The job ends with `SUCCESS` (0 rejects), `PARTIAL` (some rejects) or `FAILED` (the file is unusable or more than 50 % of records were rejected; in that case **nothing is committed**).
 
@@ -121,9 +137,9 @@ flowchart TD
 **Implementation**
 
 - `ImportScheduler` uses `@Scheduled` with **ShedLock**, backed by MongoDB (collection `shedLock`), so that only one instance runs a given import when the API is scaled: cron `0 0 2 * * *` for the reference files, `fixedDelay` of 15 minutes for the dynamic files.
-- `ImportService` (package `tn.oliveconnect.imports`) holds one `DatasetImporter<T>` strategy per dataset (`OrchardCsvImporter`, `VarietiesJsonImporter`, `MillsJsonImporter`, `ResourcesCsvImporter`, `WeatherJsonImporter`, `MaturityCsvImporter`, `MillCapacityJsonImporter`). Each one implements `accepts(fileName)`, `parse`, `validate`, `findDuplicates` and `persist`, so adding a dataset only means adding a bean (open/closed principle).
+- `ImportService` (package `tn.oliveconnect.imports`) holds one `DatasetImporter<T>` strategy per dataset (`OrchardCsvImporter`, `VarietiesJsonImporter`, `MillsJsonImporter`, `ResourcesCsvImporter`, `WeatherJsonImporter`, `MaturityCsvImporter`, `MillCapacityJsonImporter`, `MillReceptionCsvImporter`). Each one implements `accepts(fileName)`, `parse`, `validate`, `findDuplicates` and `persist`, so adding a dataset only means adding a bean (open/closed principle).
 - The inbox is `app.imports.inbox-dir` (`IMPORT_INBOX_DIR`, `/data/inbox`). Handled files move to `processed/` or `rejected/` inside it. `POST /api/imports/run` and the scheduler share `ImportService.run(source)`, and `POST /api/imports/upload` copies the file into the inbox before importing it.
-- Batch writes use `MongoTemplate.bulkOps(BulkMode.UNORDERED, …)` in batches of 1000, which handles 10⁵ readings in seconds.
+- Batch writes use `MongoTemplate.bulkOps(BulkMode.UNORDERED, …)` in batches of 1000, which handles 10⁵ readings or reception facts in seconds.
 - **Spring Batch** is a possible alternative: it brings restartable chunked steps, but more configuration. We keep the lighter design and mention Spring Batch in the report as a possible improvement.
 - Automatic alert rules come from `system_settings`: `rainAlertMm24h` (default 20, compared with the highest 24 h rainfall total of one station of the delegation), and maturity entering `[optimalMaturityMin, optimalMaturityMax]` of the variety. A rule creates a `FieldAlert` with `source = SENSOR` (`type` `RAIN` or `MATURITY`) only when no open alert of the same type exists for that orchard. The rules live in `AutoAlertService`, which runs after each successful dynamic import. Automatic alerts send no notification in M10.
 
@@ -134,7 +150,7 @@ A small **Python 3 script** using only the standard library: `python3 simulator.
 1. generates the reference set once: around 1 500 orchards around Sfax (random points inside polygons of the delegations: Sakiet Ezzit, Sakiet Eddaier, El Ain, Agareb, Menzel Chaker, Jebeniana…), 5 mills, 300 workers, 60 tractors, 200 bins, the varieties, and 500 farmers;
 2. writes dynamic files every N minutes into the shared inbox volume, with realistic patterns: maturity rises by about 0.05 per day and differs per variety, and rain events are random;
 3. injects about 2 % **invalid records** on purpose (out-of-range values, unknown variety) to demonstrate the conformity checks;
-4. offers a `--history` mode that generates 3 past seasons of weather, maturity and mill capacity readings files (10⁵–10⁶ documents), to show the index performance on massive data (about 220 000 readings with the default 1 500 orchards: weather every 3 h, maturity daily for half of the orchards). It does not generate `mill_receptions` (M7 data).
+4. offers a `--history` mode that generates 3 past seasons of weather, maturity, mill capacity and reception files (10⁵–10⁶ documents), to show index and aggregation performance on massive data. With the default 1,500 orchards it writes about 220,000 readings and 90,000 `mill_receptions` facts (20 per orchard per season). Reception facts share the deterministic orchard dimensions and are loaded through `POST /api/imports/run?type=DYNAMIC` or the scheduled dynamic import; live M7 weighing remains an API operation.
 
 ## 6. Intranet enrichment app
 
