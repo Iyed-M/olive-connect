@@ -114,7 +114,7 @@ flowchart TD
     I --> K{reject ratio > 50 %?}
     K -- yes --> G
     K -- no --> L[Persist valid records<br/>and update orchards.currentMaturityIndex,<br/>mills.availableCapacityKg]
-    L --> M[AutoAlertService.evaluate dynamic imports only:<br/>rain ≥ threshold in 24 h?<br/>maturity in optimal window?]
+    L --> M[AutoAlertService.evaluate dynamic imports only:<br/>a station ≥ threshold in 24 h?<br/>maturity in optimal window?]
     M --> N[SUCCESS / PARTIAL,<br/>move to processed/]
 ```
 
@@ -134,7 +134,7 @@ A small **Python 3 script** using only the standard library: `python3 simulator.
 1. generates the reference set once: around 1 500 orchards around Sfax (random points inside polygons of the delegations: Sakiet Ezzit, Sakiet Eddaier, El Ain, Agareb, Menzel Chaker, Jebeniana…), 5 mills, 300 workers, 60 tractors, 200 bins, the varieties, and 500 farmers;
 2. writes dynamic files every N minutes into the shared inbox volume, with realistic patterns: maturity rises by about 0.05 per day and differs per variety, and rain events are random;
 3. injects about 2 % **invalid records** on purpose (out-of-range values, unknown variety) to demonstrate the conformity checks;
-4. offers a `--history` mode that generates 3 past seasons of weather, maturity and mill capacity readings files (10⁵–10⁶ documents), to show the index performance on massive data. It does not generate `mill_receptions` (M7 data).
+4. offers a `--history` mode that generates 3 past seasons of weather, maturity and mill capacity readings files (10⁵–10⁶ documents), to show the index performance on massive data (about 220 000 readings with the default 1 500 orchards: weather every 3 h, maturity daily for half of the orchards). It does not generate `mill_receptions` (M7 data).
 
 ## 6. Intranet enrichment app
 

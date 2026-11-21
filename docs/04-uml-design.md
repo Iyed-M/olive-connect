@@ -984,7 +984,7 @@ sequenceDiagram
                     IS->>FS: move to rejected/
                 else
                     IS->>P: persist(valid rows, bulk unordered, batch 1000)
-                    IS->>AA: evaluate() thresholds (rain, maturity), creates FieldAlert SENSOR
+                    IS->>AA: evaluate() thresholds (rain = max 24 h total of one station, maturity), creates FieldAlert SENSOR
                     IS->>JR: status SUCCESS or PARTIAL (counts)
                     IS->>FS: move to processed/
                 end
