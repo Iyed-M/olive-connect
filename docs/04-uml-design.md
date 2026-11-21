@@ -100,6 +100,7 @@ classDiagram
         +double currentMaturityIndex
         +Instant maturityUpdatedAt
         +double lastSeasonYieldKgHa
+        +List~Correction~ corrections
         +Long version
         +recomputeTotals()
     }
@@ -186,6 +187,13 @@ classDiagram
         +String comment
     }
 
+    class Correction {
+        +Instant at
+        +String byUserId
+        +String comment
+        +now(userId, comment)$ Correction
+    }
+
     class CollectionRound {
         +String id
         +String code
@@ -205,6 +213,7 @@ classDiagram
         +Instant completedAt
         +List~StatusChange~ statusHistory
         +String season
+        +List~Correction~ corrections
         +Long version
         +start()
         +complete()
@@ -258,6 +267,7 @@ classDiagram
         +EquipmentType type
         +EquipmentStatus status
         +List~Unavailability~ unavailabilities
+        +List~Correction~ corrections
     }
     class Tractor {
         +String plateNumber
@@ -317,13 +327,20 @@ classDiagram
     }
     class SupplyOrder {
         +String id
+        +String toolId
         +int quantity
         +String supplier
         +LocalDate orderedAt
         +LocalDate expectedAt
         +LocalDate receivedAt
         +SupplyStatus status
+        +Long version
         +receive()
+    }
+    class SupplyStatus {
+        <<enumeration>>
+        ORDERED
+        RECEIVED
     }
 
     class Mill {
@@ -547,6 +564,10 @@ classDiagram
     ResourceBooking --> ResourceKind
     ResourceBooking --> BookingStatus
     SupplyOrder "*" --> "1" Tool : replenishes
+    SupplyOrder --> SupplyStatus
+    Orchard "1" *-- "*" Correction : corrections
+    CollectionRound "1" *-- "*" Correction : corrections
+    Equipment "1" *-- "*" Correction : corrections
 
     Mill "*" --> "*" User : managed by
     MillReception "*" --> "1" Mill
@@ -1213,6 +1234,64 @@ sequenceDiagram
     end
 ```
 
+### SD-11 Logistics orders and receives nets or shakers (alternatives: not a tool, already received)
+
+```mermaid
+sequenceDiagram
+    actor LM as Logistics manager
+    participant C as SupplyController
+    participant S as SupplyService
+    participant R as SupplyOrderRepository
+    participant E as EquipmentRepository
+    participant M as MongoDB
+
+    LM->>C: POST /api/supply-orders {toolId, quantity, supplier}
+    C->>S: create(dto)
+    S->>E: findById(toolId)
+    alt unknown tool
+        S-->>LM: 404 NOT_FOUND
+    else not a Tool
+        S-->>LM: 422 NOT_A_TOOL
+    else ok
+        S->>R: save(order ORDERED)
+        S-->>LM: 201 SupplyOrderDto
+    end
+    LM->>C: POST /api/supply-orders/{id}/receive
+    C->>S: receive(id)
+    S->>R: findById(id)
+    alt already RECEIVED
+        S-->>LM: 409 SUPPLY_ALREADY_RECEIVED
+    else ORDERED
+        Note over S,M: one transaction
+        S->>R: save(order RECEIVED)
+        S->>M: $inc stockQuantity on the Tool
+        S-->>LM: 200 SupplyOrderDto
+    end
+```
+
+### SD-12 Staff corrects the weight of a completed round (alternatives: not completed)
+
+```mermaid
+sequenceDiagram
+    actor CM as Collection manager or Admin
+    participant C as CollectionRoundController
+    participant S as CollectionRoundService
+    participant R as CollectionRoundRepository
+
+    CM->>C: PATCH /api/rounds/{id}/correction {totalHarvestedKg, comment}
+    C->>S: correct(id, dto, authentication)
+    S->>R: findById(id)
+    alt unknown round
+        S-->>CM: 404 NOT_FOUND
+    else status is not COMPLETED
+        S-->>CM: 422 ROUND_NOT_COMPLETED
+    else COMPLETED
+        S->>S: set totalHarvestedKg and add a Correction(now, userId, comment)
+        S->>R: save(round)
+        S-->>CM: 200 CollectionRoundDto
+    end
+```
+
 ## 3. State machines
 
 ### HarvestRequest
@@ -1321,6 +1400,15 @@ stateDiagram-v2
         it is derived from ResourceBooking
         for a given time slot.
     end note
+```
+
+### SupplyOrder
+
+```mermaid
+stateDiagram-v2
+    [*] --> ORDERED : logistics creates the order
+    ORDERED --> RECEIVED : goods received, stock incremented
+    RECEIVED --> [*]
 ```
 
 ## 4. Activity diagram — global collection process

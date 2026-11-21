@@ -27,7 +27,7 @@ public class OrchardController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('FARMER', 'COLLECTION_MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('FARMER', 'COLLECTION_MANAGER', 'LOGISTICS_MANAGER', 'ADMIN')")
     public List<OrchardDto> list(Authentication authentication) {
         return orchardService.list(authentication);
     }
@@ -40,7 +40,7 @@ public class OrchardController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('FARMER', 'COLLECTION_MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('FARMER', 'COLLECTION_MANAGER', 'LOGISTICS_MANAGER', 'ADMIN')")
     public OrchardDto get(@PathVariable String id, Authentication authentication) {
         return orchardService.get(id, authentication);
     }
@@ -53,7 +53,7 @@ public class OrchardController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('FARMER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('FARMER', 'COLLECTION_MANAGER', 'LOGISTICS_MANAGER', 'ADMIN')")
     public OrchardDto update(@PathVariable String id, @Valid @RequestBody OrchardWriteDto dto,
                              Authentication authentication) {
         return orchardService.update(id, dto, authentication);

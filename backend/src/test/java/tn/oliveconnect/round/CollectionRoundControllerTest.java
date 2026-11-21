@@ -201,6 +201,31 @@ class CollectionRoundControllerTest extends AbstractIntegrationTest {
                 .filter(booking -> booking.getStatus() == tn.oliveconnect.resource.BookingStatus.ACTIVE))
                 .hasSize(3)
                 .allMatch(booking -> booking.getEnd().equals(Instant.parse("2026-11-25T14:00:00Z")));
+        // An edit is not a staff correction: the history stays empty.
+        assertThat(roundRepository.findById(roundId).orElseThrow().getCorrections()).isEmpty();
+    }
+
+    @Test
+    void resourceCalendarShowsTheBookingsCreatedByPlanningARound() throws Exception {
+        User manager = saveUser("manager@round-calendar.tn", Role.COLLECTION_MANAGER);
+        User farmer = saveUser("farmer@round-calendar.tn", Role.FARMER);
+        User leader = saveUser("leader@round-calendar.tn", Role.TEAM_LEADER);
+        Worker worker = saveWorker("11111111");
+        Bin bin = saveBin("B-07");
+        Mill mill = saveMill("Sfax North", 10000);
+        HarvestRequest request = saveValidatedRequest(farmer, manager, "Calendar orchard", 900);
+        MvcResult created = mockMvc.perform(post("/api/rounds").header("Authorization", token(manager.getEmail()))
+                        .contentType(MediaType.APPLICATION_JSON).content(planJson(request, leader, worker, bin, mill)))
+                .andExpect(status().isCreated()).andReturn();
+        String roundId = JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+
+        mockMvc.perform(get("/api/resources/calendar?resourceId=" + bin.getId()
+                        + "&from=2026-11-23T00:00:00Z&to=2026-11-30T00:00:00Z")
+                        .header("Authorization", token(manager.getEmail())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.bookings.length()").value(1))
+                .andExpect(jsonPath("$.bookings[0].roundId").value(roundId))
+                .andExpect(jsonPath("$.bookings[0].start").value("2026-11-25T07:00:00Z"));
     }
 
     @Test

@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import tn.oliveconnect.common.Correction;
 import tn.oliveconnect.common.StatusChange;
 
 public record CollectionRoundDto(
@@ -25,6 +26,7 @@ public record CollectionRoundDto(
         Instant completedAt,
         List<StatusChange> history,
         String season,
+        List<Correction> corrections,
         Long version,
         List<PlanningWarningDto> warnings,
         List<RoundBinDto> bins) {
@@ -40,7 +42,8 @@ public record CollectionRoundDto(
                 round.getMillId(), List.copyOf(round.getWorkerIds()), List.copyOf(round.getEquipmentIds()),
                 round.getStops().stream().map(RoundStopDto::from).toList(), round.getEstimatedTotalKg(),
                 round.getTotalHarvestedKg(), round.getStartedAt(), round.getCompletedAt(),
-                List.copyOf(round.getStatusHistory()), round.getSeason(), round.getVersion(),
+                List.copyOf(round.getStatusHistory()), round.getSeason(),
+                List.copyOf(round.getCorrections()), round.getVersion(),
                 warnings == null ? List.of() : List.copyOf(warnings),
                 bins == null ? List.of() : List.copyOf(bins));
     }

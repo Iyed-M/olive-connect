@@ -10,6 +10,7 @@ import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import tn.oliveconnect.common.Correction;
 import tn.oliveconnect.common.StatusChange;
 
 @Document("collection_rounds")
@@ -41,6 +42,7 @@ public class CollectionRound {
     private Instant completedAt;
     private List<StatusChange> statusHistory = new ArrayList<>();
     private String season;
+    private List<Correction> corrections = new ArrayList<>();
     @Version
     private Long version;
 
@@ -85,6 +87,7 @@ public class CollectionRound {
     public void setStatusHistory(List<StatusChange> statusHistory) {
         this.statusHistory = statusHistory == null ? new ArrayList<>() : new ArrayList<>(statusHistory);
     }
+    public List<Correction> getCorrections() { return corrections; }
     public String getSeason() { return season; }
     public void setSeason(String season) { this.season = season; }
     public Long getVersion() { return version; }

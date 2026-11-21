@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/rounds")
-@PreAuthorize("hasAnyRole('COLLECTION_MANAGER', 'TEAM_LEADER')")
+@PreAuthorize("hasAnyRole('COLLECTION_MANAGER', 'TEAM_LEADER', 'ADMIN')")
 public class CollectionRoundController {
 
     private final CollectionRoundService roundService;
@@ -55,6 +55,13 @@ public class CollectionRoundController {
     public CollectionRoundDto update(@PathVariable String id, @Valid @RequestBody CollectionRoundUpdateDto dto,
                                      Authentication authentication) {
         return roundService.update(id, dto, authentication);
+    }
+
+    @PatchMapping("/{id}/correction")
+    @PreAuthorize("hasAnyRole('COLLECTION_MANAGER', 'ADMIN')")
+    public CollectionRoundDto correct(@PathVariable String id, @Valid @RequestBody RoundCorrectionDto dto,
+                                      Authentication authentication) {
+        return roundService.correct(id, dto, authentication);
     }
 
     @PostMapping("/{id}/cancel")

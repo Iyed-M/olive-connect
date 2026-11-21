@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Min;
 import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -51,8 +52,9 @@ public class EquipmentController {
     }
 
     @PutMapping("/{id}")
-    public EquipmentDto update(@PathVariable String id, @Valid @RequestBody EquipmentRequestDto dto) {
-        return resourceService.updateEquipment(id, dto);
+    public EquipmentDto update(@PathVariable String id, @Valid @RequestBody EquipmentRequestDto dto,
+                               Authentication authentication) {
+        return resourceService.updateEquipment(id, dto, authentication.getName());
     }
 
     @DeleteMapping("/{id}")

@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, Factory, FileUp, Gauge, HardHat, Map, Route, Scale, Settings, Sprout, TriangleAlert, Truck, UserPlus, Users, type LucideIcon } from 'lucide-react'
+import { CalendarDays, CalendarRange, ClipboardList, Factory, FileCheck, FileUp, Gauge, HardHat, Map, PackagePlus, Route, Scale, Settings, Sprout, TriangleAlert, Truck, UserPlus, Users, type LucideIcon } from 'lucide-react'
 import type { LinkProps } from '@tanstack/react-router'
 import type { Role } from './types'
 
@@ -21,12 +21,18 @@ export const NAV: Record<Role, NavItem[]> = {
   COLLECTION_MANAGER: [
     { to: '/collection/requests', label: 'Demandes', icon: ClipboardList },
     { to: '/collection/planning', label: 'Planification', icon: CalendarDays },
+    { to: '/logistics/calendar', label: 'Calendar', icon: CalendarRange },
+    { to: '/intranet/orchards', label: 'Orchards', icon: Map },
+    { to: '/intranet/rounds', label: 'Corrections', icon: FileCheck },
     { to: '/collection/alerts', label: 'Alertes', icon: TriangleAlert },
   ],
   TEAM_LEADER: [{ to: '/rounds/mine', label: 'Mes tournées', icon: Route }],
   LOGISTICS_MANAGER: [
     { to: '/logistics/workers', label: 'Ouvriers', icon: HardHat },
     { to: '/logistics/equipment', label: 'Équipements', icon: Truck },
+    { to: '/logistics/calendar', label: 'Calendar', icon: CalendarRange },
+    { to: '/logistics/supplies', label: 'Supplies', icon: PackagePlus },
+    { to: '/intranet/orchards', label: 'Orchards', icon: Map },
   ],
   MILL_MANAGER: [
     { to: '/mill/incoming', label: 'Réceptions', icon: Factory },
@@ -38,6 +44,10 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/admin/registrations', label: 'Inscriptions', icon: UserPlus },
     { to: '/logistics/workers', label: 'Ouvriers', icon: HardHat },
     { to: '/logistics/equipment', label: 'Équipements', icon: Truck },
+    { to: '/logistics/calendar', label: 'Calendar', icon: CalendarRange },
+    { to: '/logistics/supplies', label: 'Supplies', icon: PackagePlus },
+    { to: '/intranet/orchards', label: 'Orchards', icon: Map },
+    { to: '/intranet/rounds', label: 'Corrections', icon: FileCheck },
     { to: '/intranet/imports', label: 'Imports', icon: FileUp },
     { to: '/intranet/settings', label: 'Paramètres', icon: Settings },
   ],

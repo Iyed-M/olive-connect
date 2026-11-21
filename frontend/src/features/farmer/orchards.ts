@@ -1,4 +1,5 @@
 import { api } from '@/lib/api'
+import type { Correction } from '@/logistics/resources'
 
 export interface GeoPoint {
   type: 'Point'
@@ -29,6 +30,7 @@ export interface Orchard {
   currentMaturityIndex: number
   maturityUpdatedAt: string | null
   lastSeasonYieldKgHa: number
+  corrections?: Correction[]
   version: number | null
 }
 

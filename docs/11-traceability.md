@@ -18,14 +18,15 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | GeoPoint | R10 | `orchards.location` | `orchard.GeoPoint` (embedded GeoJSON) | — | `OrchardService` | `/orchards` | `features/farmer/OrchardMap` |
 | OliveVariety | R1 (natural key) | `olive_varieties` | `orchard.OliveVariety` | `OliveVarietyRepository` | `OrchardService` (Redis cached), `OliveVarietySeeder` | `OliveVarietyController /varieties` | `features/farmer/OrchardForm`, `intranet/Reference` |
 | HarvestRequest | R1, R3, R4, R11, R14 | `harvest_requests` | `harvest.HarvestRequest` (+ embedded `OrchardSnapshot`) | `HarvestRequestRepository` | `HarvestRequestService`, weighted `PriorityCalculator` | `HarvestRequestController /harvest-requests` (paged GET + actions) | `farmer/HarvestRequestForm`, `farmer/MyRequests`, `farmer/HarvestRequestDetail`, `farmer/RequestActions`, `farmer/harvestRequests`, `collection/RequestQueue` |
+| Correction | R2 | `orchards`, `equipment`, `collection_rounds` `.corrections[]` | `common.Correction` (embedded) | — | `OrchardService`, `ResourceService`, `CollectionRoundService` (only staff corrections, not the `PUT /rounds/{id}` edit) | in detail DTOs, `PATCH /rounds/{id}/correction` | `features/intranet/OrchardsGrid`, `features/intranet/RoundsGrid`, `components/CorrectionHistory` |
 | StatusChange | R2 | `*.statusHistory[]` | `common.StatusChange` (embedded) | — | each owning service | in detail DTOs | `components/Timeline` |
 | CollectionRound | R1, R5, R14 | `collection_rounds` | `round.CollectionRound` | `CollectionRoundRepository` | `CollectionRoundService`, `PlanningService` | `CollectionRoundController /rounds`, `PlanningController /planning` | `collection/PlanningBoard`, `teamleader/MyRounds`, `teamleader/RoundRunner` |
 | RoundStop | R2 | `collection_rounds.stops[]` | `round.RoundStop` (embedded) | — | `CollectionRoundService` | `/rounds/{id}/stops/{order}` | `teamleader/RoundRunner` |
 | Worker | R1, R2 | `workers` (+ `externalRef`, import key) | `resource.Worker` | `WorkerRepository` | `ResourceService`, `ResourcesCsvImporter` | `/workers` | `logistics/WorkerForm`, `routes/_app.logistics.workers.*` |
 | Equipment / Tractor / Bin / Tool | R1, R8 | `equipment` (`type`, `_class`) | `resource.Equipment` + subclasses | `EquipmentRepository` | `ResourceService` | `/equipment` | `logistics/EquipmentForm`, `routes/_app.logistics.equipment.*` |
 | Unavailability | R2 | `workers/equipment.unavailabilities[]` | `resource.Unavailability` | — | `ResourceService` | `/…/{id}/unavailabilities` | `logistics/UnavailabilityPanel`, `logistics/ResourceCalendar` |
-| ResourceBooking | R6 | `resource_bookings` | `resource.ResourceBooking` | `ResourceBookingRepository` | `BookingService`, `ResourceAvailabilityService` | `/resources/calendar`, `/resources/availability` | `collection/RoundForm`, `logistics/ResourceCalendar` |
-| SupplyOrder | R1, R3 | `supply_orders` | `resource.SupplyOrder` | `SupplyOrderRepository` | `SupplyService` | `/supply-orders` | `logistics/SupplyOrders` |
+| ResourceBooking | R6 | `resource_bookings` | `resource.ResourceBooking` | `ResourceBookingRepository` | `BookingService`, `ResourceAvailabilityService`, `ResourceCalendarService` | `/resources/calendar`, `/resources/availability` | `collection/RoundForm`, `logistics/ResourceCalendar` |
+| SupplyOrder | R1, R3 | `supply_orders` | `resource.SupplyOrder`, `resource.SupplyStatus` | `SupplyOrderRepository` | `SupplyService` | `SupplyController /supply-orders` | `logistics/SupplyOrders`, route `/logistics/supplies` |
 | Mill | R1, R10 | `mills` | `mill.Mill` | `MillRepository` | `MillService`, `MillsJsonImporter`, `MillCapacityJsonImporter`, `MillReceptionService` | `MillController /mills`, `/mills/{id}/capacity`, `/mills/{id}/incoming` | `mill/CapacityPage`, `mill/IncomingRoundsPage` |
 | MillReception | R1, R3, R11, R13 | `mill_receptions` | `mill.MillReception` | `MillReceptionRepository` | `MillReceptionService` | `/mills/{id}/receptions`, `/receptions`, `/receptions/{id}` | `mill/ReceptionForm`, `farmer/MyReceptions` |
 | QualityAssessment | R2 | `mill_receptions.quality` | `mill.QualityAssessment` (embedded) | — | `MillReceptionService` | idem | idem |
@@ -53,6 +54,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | FR-1.5 | Plan round / SD-3 | `POST /rounds`, `/planning/suggestions` | T-RD-1..5 |
 | FR-1.6 | Notifications | `/notifications` (M3), `/events/ticket` + `/events` (M8) | T-HR-1, T-RD-1, T-ML-1, `EventControllerTest` |
 | FR-1.7 | Update round / SD-6 | `/rounds/{id}/start`, `/stops/{order}`, `/complete` | T-RD-6..8 (`CollectionRoundExecutionControllerTest`) |
+| FR-3.5 | Supply orders / SD-11 | `/supply-orders` | T-RS-2 (`SupplyControllerTest`) |
 | FR-2.x | Report & handle alert / SD-5 | `/alerts/**` | T-AL-1..6 |
 | FR-3.x | Resources | `/workers`, `/equipment`, `/resources/*`, `/supply-orders` | T-RS-1..2, T-RD-2 |
 | FR-4.x | Map | `/map/public`, `/map/private` | T-SEC-3, T-MAP-1..3, T-PERF-1 |
@@ -60,7 +62,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | FR-6.1 (M9) | Registration request and approval / SD-REG | `POST /registrations`, `GET /registrations`, `POST /registrations/{id}/approve`, `/reject`, `PATCH /me/password` | T-REG-1..8 |
 | FR-6.2 | Accounts | `/users` | T-AUTH-* |
 | FR-6.3–6.4 (M10) | Import / SD-8 | `GET /imports`, `GET /imports/{id}`, `POST /imports/run`, `POST /imports/upload`, `GET` and `PUT /settings` | T-IM-1..8 |
-| FR-6.5 | Intranet | `/orchards`, `/equipment`, `/rounds`, `/imports` (ADMIN/LM) | E2E |
+| FR-6.5 | Intranet / SD-12 | `/orchards`, `/equipment`, `/rounds`, `/rounds/{id}/correction`, `/imports` (ADMIN/LM) | T-RS-14, T-RS-15, E2E |
 | NFR-4 | Performance | all reads | T-PERF-1, index tests |
 | NFR-5 | Security | all | T-SEC-*, T-AUTH-* |
 | NFR-6 | Availability / backups | — | restore drill, Kuma report |

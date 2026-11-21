@@ -22,7 +22,10 @@ import { Route as AppCollectionPlanningRouteImport } from './routes/_app.collect
 import { Route as AppCollectionRequestsRouteImport } from './routes/_app.collection.requests'
 import { Route as AppFarmerIndexRouteImport } from './routes/_app.farmer.index'
 import { Route as AppFarmerReceptionsRouteImport } from './routes/_app.farmer.receptions'
+import { Route as AppIntranetRoundsRouteImport } from './routes/_app.intranet.rounds'
 import { Route as AppIntranetSettingsRouteImport } from './routes/_app.intranet.settings'
+import { Route as AppLogisticsCalendarRouteImport } from './routes/_app.logistics.calendar'
+import { Route as AppLogisticsSuppliesRouteImport } from './routes/_app.logistics.supplies'
 import { Route as AppMillCapacityRouteImport } from './routes/_app.mill.capacity'
 import { Route as AppMillIncomingRouteImport } from './routes/_app.mill.incoming'
 import { Route as AppRoundsMineRouteImport } from './routes/_app.rounds.mine'
@@ -38,6 +41,8 @@ import { Route as AppFarmerRequestsIdRouteImport } from './routes/_app.farmer.re
 import { Route as AppFarmerRequestsNewRouteImport } from './routes/_app.farmer.requests.new'
 import { Route as AppIntranetImportsIndexRouteImport } from './routes/_app.intranet.imports.index'
 import { Route as AppIntranetImportsIdRouteImport } from './routes/_app.intranet.imports.$id'
+import { Route as AppIntranetOrchardsIndexRouteImport } from './routes/_app.intranet.orchards.index'
+import { Route as AppIntranetOrchardsIdRouteImport } from './routes/_app.intranet.orchards.$id'
 import { Route as AppLogisticsEquipmentIndexRouteImport } from './routes/_app.logistics.equipment.index'
 import { Route as AppLogisticsEquipmentIdRouteImport } from './routes/_app.logistics.equipment.$id'
 import { Route as AppLogisticsEquipmentNewRouteImport } from './routes/_app.logistics.equipment.new'
@@ -111,9 +116,24 @@ const AppFarmerReceptionsRoute = AppFarmerReceptionsRouteImport.update({
   path: '/receptions',
   getParentRoute: () => AppFarmerRoute,
 } as any)
+const AppIntranetRoundsRoute = AppIntranetRoundsRouteImport.update({
+  id: '/intranet/rounds',
+  path: '/intranet/rounds',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppIntranetSettingsRoute = AppIntranetSettingsRouteImport.update({
   id: '/intranet/settings',
   path: '/intranet/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLogisticsCalendarRoute = AppLogisticsCalendarRouteImport.update({
+  id: '/logistics/calendar',
+  path: '/logistics/calendar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLogisticsSuppliesRoute = AppLogisticsSuppliesRouteImport.update({
+  id: '/logistics/supplies',
+  path: '/logistics/supplies',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMillCapacityRoute = AppMillCapacityRouteImport.update({
@@ -191,6 +211,17 @@ const AppIntranetImportsIdRoute = AppIntranetImportsIdRouteImport.update({
   path: '/intranet/imports/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppIntranetOrchardsIndexRoute =
+  AppIntranetOrchardsIndexRouteImport.update({
+    id: '/intranet/orchards/',
+    path: '/intranet/orchards/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppIntranetOrchardsIdRoute = AppIntranetOrchardsIdRouteImport.update({
+  id: '/intranet/orchards/$id',
+  path: '/intranet/orchards/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppLogisticsEquipmentIndexRoute =
   AppLogisticsEquipmentIndexRouteImport.update({
     id: '/logistics/equipment/',
@@ -247,7 +278,10 @@ export interface FileRoutesByFullPath {
   '/collection/planning': typeof AppCollectionPlanningRoute
   '/collection/requests': typeof AppCollectionRequestsRoute
   '/farmer/receptions': typeof AppFarmerReceptionsRoute
+  '/intranet/rounds': typeof AppIntranetRoundsRoute
   '/intranet/settings': typeof AppIntranetSettingsRoute
+  '/logistics/calendar': typeof AppLogisticsCalendarRoute
+  '/logistics/supplies': typeof AppLogisticsSuppliesRoute
   '/mill/capacity': typeof AppMillCapacityRoute
   '/mill/incoming': typeof AppMillIncomingRoute
   '/rounds/mine': typeof AppRoundsMineRoute
@@ -260,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/farmer/requests/$id': typeof AppFarmerRequestsIdRoute
   '/farmer/requests/new': typeof AppFarmerRequestsNewRoute
   '/intranet/imports/$id': typeof AppIntranetImportsIdRoute
+  '/intranet/orchards/$id': typeof AppIntranetOrchardsIdRoute
   '/logistics/equipment/$id': typeof AppLogisticsEquipmentIdRoute
   '/logistics/equipment/new': typeof AppLogisticsEquipmentNewRoute
   '/logistics/workers/$id': typeof AppLogisticsWorkersIdRoute
@@ -270,6 +305,7 @@ export interface FileRoutesByFullPath {
   '/farmer/orchards/': typeof AppFarmerOrchardsIndexRoute
   '/farmer/requests/': typeof AppFarmerRequestsIndexRoute
   '/intranet/imports/': typeof AppIntranetImportsIndexRoute
+  '/intranet/orchards/': typeof AppIntranetOrchardsIndexRoute
   '/logistics/equipment/': typeof AppLogisticsEquipmentIndexRoute
   '/logistics/workers/': typeof AppLogisticsWorkersIndexRoute
 }
@@ -284,7 +320,10 @@ export interface FileRoutesByTo {
   '/collection/planning': typeof AppCollectionPlanningRoute
   '/collection/requests': typeof AppCollectionRequestsRoute
   '/farmer/receptions': typeof AppFarmerReceptionsRoute
+  '/intranet/rounds': typeof AppIntranetRoundsRoute
   '/intranet/settings': typeof AppIntranetSettingsRoute
+  '/logistics/calendar': typeof AppLogisticsCalendarRoute
+  '/logistics/supplies': typeof AppLogisticsSuppliesRoute
   '/mill/capacity': typeof AppMillCapacityRoute
   '/mill/incoming': typeof AppMillIncomingRoute
   '/rounds/mine': typeof AppRoundsMineRoute
@@ -297,6 +336,7 @@ export interface FileRoutesByTo {
   '/farmer/requests/$id': typeof AppFarmerRequestsIdRoute
   '/farmer/requests/new': typeof AppFarmerRequestsNewRoute
   '/intranet/imports/$id': typeof AppIntranetImportsIdRoute
+  '/intranet/orchards/$id': typeof AppIntranetOrchardsIdRoute
   '/logistics/equipment/$id': typeof AppLogisticsEquipmentIdRoute
   '/logistics/equipment/new': typeof AppLogisticsEquipmentNewRoute
   '/logistics/workers/$id': typeof AppLogisticsWorkersIdRoute
@@ -307,6 +347,7 @@ export interface FileRoutesByTo {
   '/farmer/orchards': typeof AppFarmerOrchardsIndexRoute
   '/farmer/requests': typeof AppFarmerRequestsIndexRoute
   '/intranet/imports': typeof AppIntranetImportsIndexRoute
+  '/intranet/orchards': typeof AppIntranetOrchardsIndexRoute
   '/logistics/equipment': typeof AppLogisticsEquipmentIndexRoute
   '/logistics/workers': typeof AppLogisticsWorkersIndexRoute
 }
@@ -324,7 +365,10 @@ export interface FileRoutesById {
   '/_app/collection/planning': typeof AppCollectionPlanningRoute
   '/_app/collection/requests': typeof AppCollectionRequestsRoute
   '/_app/farmer/receptions': typeof AppFarmerReceptionsRoute
+  '/_app/intranet/rounds': typeof AppIntranetRoundsRoute
   '/_app/intranet/settings': typeof AppIntranetSettingsRoute
+  '/_app/logistics/calendar': typeof AppLogisticsCalendarRoute
+  '/_app/logistics/supplies': typeof AppLogisticsSuppliesRoute
   '/_app/mill/capacity': typeof AppMillCapacityRoute
   '/_app/mill/incoming': typeof AppMillIncomingRoute
   '/_app/rounds/mine': typeof AppRoundsMineRoute
@@ -337,6 +381,7 @@ export interface FileRoutesById {
   '/_app/farmer/requests/$id': typeof AppFarmerRequestsIdRoute
   '/_app/farmer/requests/new': typeof AppFarmerRequestsNewRoute
   '/_app/intranet/imports/$id': typeof AppIntranetImportsIdRoute
+  '/_app/intranet/orchards/$id': typeof AppIntranetOrchardsIdRoute
   '/_app/logistics/equipment/$id': typeof AppLogisticsEquipmentIdRoute
   '/_app/logistics/equipment/new': typeof AppLogisticsEquipmentNewRoute
   '/_app/logistics/workers/$id': typeof AppLogisticsWorkersIdRoute
@@ -347,6 +392,7 @@ export interface FileRoutesById {
   '/_app/farmer/orchards/': typeof AppFarmerOrchardsIndexRoute
   '/_app/farmer/requests/': typeof AppFarmerRequestsIndexRoute
   '/_app/intranet/imports/': typeof AppIntranetImportsIndexRoute
+  '/_app/intranet/orchards/': typeof AppIntranetOrchardsIndexRoute
   '/_app/logistics/equipment/': typeof AppLogisticsEquipmentIndexRoute
   '/_app/logistics/workers/': typeof AppLogisticsWorkersIndexRoute
 }
@@ -364,7 +410,10 @@ export interface FileRouteTypes {
     | '/collection/planning'
     | '/collection/requests'
     | '/farmer/receptions'
+    | '/intranet/rounds'
     | '/intranet/settings'
+    | '/logistics/calendar'
+    | '/logistics/supplies'
     | '/mill/capacity'
     | '/mill/incoming'
     | '/rounds/mine'
@@ -377,6 +426,7 @@ export interface FileRouteTypes {
     | '/farmer/requests/$id'
     | '/farmer/requests/new'
     | '/intranet/imports/$id'
+    | '/intranet/orchards/$id'
     | '/logistics/equipment/$id'
     | '/logistics/equipment/new'
     | '/logistics/workers/$id'
@@ -387,6 +437,7 @@ export interface FileRouteTypes {
     | '/farmer/orchards/'
     | '/farmer/requests/'
     | '/intranet/imports/'
+    | '/intranet/orchards/'
     | '/logistics/equipment/'
     | '/logistics/workers/'
   fileRoutesByTo: FileRoutesByTo
@@ -401,7 +452,10 @@ export interface FileRouteTypes {
     | '/collection/planning'
     | '/collection/requests'
     | '/farmer/receptions'
+    | '/intranet/rounds'
     | '/intranet/settings'
+    | '/logistics/calendar'
+    | '/logistics/supplies'
     | '/mill/capacity'
     | '/mill/incoming'
     | '/rounds/mine'
@@ -414,6 +468,7 @@ export interface FileRouteTypes {
     | '/farmer/requests/$id'
     | '/farmer/requests/new'
     | '/intranet/imports/$id'
+    | '/intranet/orchards/$id'
     | '/logistics/equipment/$id'
     | '/logistics/equipment/new'
     | '/logistics/workers/$id'
@@ -424,6 +479,7 @@ export interface FileRouteTypes {
     | '/farmer/orchards'
     | '/farmer/requests'
     | '/intranet/imports'
+    | '/intranet/orchards'
     | '/logistics/equipment'
     | '/logistics/workers'
   id:
@@ -440,7 +496,10 @@ export interface FileRouteTypes {
     | '/_app/collection/planning'
     | '/_app/collection/requests'
     | '/_app/farmer/receptions'
+    | '/_app/intranet/rounds'
     | '/_app/intranet/settings'
+    | '/_app/logistics/calendar'
+    | '/_app/logistics/supplies'
     | '/_app/mill/capacity'
     | '/_app/mill/incoming'
     | '/_app/rounds/mine'
@@ -453,6 +512,7 @@ export interface FileRouteTypes {
     | '/_app/farmer/requests/$id'
     | '/_app/farmer/requests/new'
     | '/_app/intranet/imports/$id'
+    | '/_app/intranet/orchards/$id'
     | '/_app/logistics/equipment/$id'
     | '/_app/logistics/equipment/new'
     | '/_app/logistics/workers/$id'
@@ -463,6 +523,7 @@ export interface FileRouteTypes {
     | '/_app/farmer/orchards/'
     | '/_app/farmer/requests/'
     | '/_app/intranet/imports/'
+    | '/_app/intranet/orchards/'
     | '/_app/logistics/equipment/'
     | '/_app/logistics/workers/'
   fileRoutesById: FileRoutesById
@@ -567,11 +628,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFarmerReceptionsRouteImport
       parentRoute: typeof AppFarmerRoute
     }
+    '/_app/intranet/rounds': {
+      id: '/_app/intranet/rounds'
+      path: '/intranet/rounds'
+      fullPath: '/intranet/rounds'
+      preLoaderRoute: typeof AppIntranetRoundsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/intranet/settings': {
       id: '/_app/intranet/settings'
       path: '/intranet/settings'
       fullPath: '/intranet/settings'
       preLoaderRoute: typeof AppIntranetSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/logistics/calendar': {
+      id: '/_app/logistics/calendar'
+      path: '/logistics/calendar'
+      fullPath: '/logistics/calendar'
+      preLoaderRoute: typeof AppLogisticsCalendarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/logistics/supplies': {
+      id: '/_app/logistics/supplies'
+      path: '/logistics/supplies'
+      fullPath: '/logistics/supplies'
+      preLoaderRoute: typeof AppLogisticsSuppliesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/mill/capacity': {
@@ -679,6 +761,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIntranetImportsIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/intranet/orchards/': {
+      id: '/_app/intranet/orchards/'
+      path: '/intranet/orchards'
+      fullPath: '/intranet/orchards/'
+      preLoaderRoute: typeof AppIntranetOrchardsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/intranet/orchards/$id': {
+      id: '/_app/intranet/orchards/$id'
+      path: '/intranet/orchards/$id'
+      fullPath: '/intranet/orchards/$id'
+      preLoaderRoute: typeof AppIntranetOrchardsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/logistics/equipment/': {
       id: '/_app/logistics/equipment/'
       path: '/logistics/equipment'
@@ -774,13 +870,17 @@ interface AppRouteChildren {
   AppCollectionAlertsRoute: typeof AppCollectionAlertsRoute
   AppCollectionPlanningRoute: typeof AppCollectionPlanningRoute
   AppCollectionRequestsRoute: typeof AppCollectionRequestsRoute
+  AppIntranetRoundsRoute: typeof AppIntranetRoundsRoute
   AppIntranetSettingsRoute: typeof AppIntranetSettingsRoute
+  AppLogisticsCalendarRoute: typeof AppLogisticsCalendarRoute
+  AppLogisticsSuppliesRoute: typeof AppLogisticsSuppliesRoute
   AppMillCapacityRoute: typeof AppMillCapacityRoute
   AppMillIncomingRoute: typeof AppMillIncomingRoute
   AppRoundsMineRoute: typeof AppRoundsMineRoute
   AppAdminUsersIdRoute: typeof AppAdminUsersIdRoute
   AppAdminUsersNewRoute: typeof AppAdminUsersNewRoute
   AppIntranetImportsIdRoute: typeof AppIntranetImportsIdRoute
+  AppIntranetOrchardsIdRoute: typeof AppIntranetOrchardsIdRoute
   AppLogisticsEquipmentIdRoute: typeof AppLogisticsEquipmentIdRoute
   AppLogisticsEquipmentNewRoute: typeof AppLogisticsEquipmentNewRoute
   AppLogisticsWorkersIdRoute: typeof AppLogisticsWorkersIdRoute
@@ -789,6 +889,7 @@ interface AppRouteChildren {
   AppRoundsIdRunRoute: typeof AppRoundsIdRunRoute
   AppAdminUsersIndexRoute: typeof AppAdminUsersIndexRoute
   AppIntranetImportsIndexRoute: typeof AppIntranetImportsIndexRoute
+  AppIntranetOrchardsIndexRoute: typeof AppIntranetOrchardsIndexRoute
   AppLogisticsEquipmentIndexRoute: typeof AppLogisticsEquipmentIndexRoute
   AppLogisticsWorkersIndexRoute: typeof AppLogisticsWorkersIndexRoute
 }
@@ -801,13 +902,17 @@ const AppRouteChildren: AppRouteChildren = {
   AppCollectionAlertsRoute: AppCollectionAlertsRoute,
   AppCollectionPlanningRoute: AppCollectionPlanningRoute,
   AppCollectionRequestsRoute: AppCollectionRequestsRoute,
+  AppIntranetRoundsRoute: AppIntranetRoundsRoute,
   AppIntranetSettingsRoute: AppIntranetSettingsRoute,
+  AppLogisticsCalendarRoute: AppLogisticsCalendarRoute,
+  AppLogisticsSuppliesRoute: AppLogisticsSuppliesRoute,
   AppMillCapacityRoute: AppMillCapacityRoute,
   AppMillIncomingRoute: AppMillIncomingRoute,
   AppRoundsMineRoute: AppRoundsMineRoute,
   AppAdminUsersIdRoute: AppAdminUsersIdRoute,
   AppAdminUsersNewRoute: AppAdminUsersNewRoute,
   AppIntranetImportsIdRoute: AppIntranetImportsIdRoute,
+  AppIntranetOrchardsIdRoute: AppIntranetOrchardsIdRoute,
   AppLogisticsEquipmentIdRoute: AppLogisticsEquipmentIdRoute,
   AppLogisticsEquipmentNewRoute: AppLogisticsEquipmentNewRoute,
   AppLogisticsWorkersIdRoute: AppLogisticsWorkersIdRoute,
@@ -816,6 +921,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppRoundsIdRunRoute: AppRoundsIdRunRoute,
   AppAdminUsersIndexRoute: AppAdminUsersIndexRoute,
   AppIntranetImportsIndexRoute: AppIntranetImportsIndexRoute,
+  AppIntranetOrchardsIndexRoute: AppIntranetOrchardsIndexRoute,
   AppLogisticsEquipmentIndexRoute: AppLogisticsEquipmentIndexRoute,
   AppLogisticsWorkersIndexRoute: AppLogisticsWorkersIndexRoute,
 }

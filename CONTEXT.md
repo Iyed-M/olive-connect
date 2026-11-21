@@ -45,3 +45,7 @@ _Avoid_: Sign-up, pending farmer
 **Delegation**:
 An administrative district of the Sfax governorate (for example Sakiet Ezzit). Farmers and orchards each belong to one Delegation.
 _Avoid_: Zone, region, area
+
+**Correction**:
+A manual fix made by staff on an orchard, an equipment or a COMPLETED round, kept with its date, author and comment in the history of the corrected document. A normal edit of a PLANNED round, or the owner editing their own orchard, is not a Correction.
+_Avoid_: Amendment, audit log

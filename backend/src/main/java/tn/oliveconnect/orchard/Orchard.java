@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.core.index.GeoSpatialIndexType;
 import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import tn.oliveconnect.common.Correction;
 
 @Document("orchards")
 @CompoundIndex(name = "harvest_status_variety_delegation",
@@ -39,6 +40,7 @@ public class Orchard {
     private double currentMaturityIndex;
     private Instant maturityUpdatedAt;
     private double lastSeasonYieldKgHa;
+    private List<Correction> corrections = new ArrayList<>();
     @Version
     private Long version;
 
@@ -144,6 +146,10 @@ public class Orchard {
 
     public void setLastSeasonYieldKgHa(double lastSeasonYieldKgHa) {
         this.lastSeasonYieldKgHa = lastSeasonYieldKgHa;
+    }
+
+    public List<Correction> getCorrections() {
+        return corrections;
     }
 
     public Long getVersion() {

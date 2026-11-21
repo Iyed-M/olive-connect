@@ -3,6 +3,7 @@ package tn.oliveconnect.orchard;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import tn.oliveconnect.common.Correction;
 
 public record OrchardDto(
         String id,
@@ -19,6 +20,7 @@ public record OrchardDto(
         double currentMaturityIndex,
         Instant maturityUpdatedAt,
         double lastSeasonYieldKgHa,
+        List<Correction> corrections,
         Long version) {
 
     static OrchardDto from(Orchard orchard) {
@@ -26,6 +28,7 @@ public record OrchardDto(
                 GeoPointDto.from(orchard.getLocation()), orchard.getDelegation(),
                 orchard.getPlots().stream().map(PlotDto::from).toList(), orchard.getAreaHa(), orchard.getTreeCount(),
                 orchard.getMainVarietyCode(), orchard.getHarvestStatus(), orchard.getCurrentMaturityIndex(),
-                orchard.getMaturityUpdatedAt(), orchard.getLastSeasonYieldKgHa(), orchard.getVersion());
+                orchard.getMaturityUpdatedAt(), orchard.getLastSeasonYieldKgHa(),
+                List.copyOf(orchard.getCorrections()), orchard.getVersion());
     }
 }

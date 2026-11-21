@@ -12,6 +12,7 @@ import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import tn.oliveconnect.common.Correction;
 
 /**
  * Root of the equipment hierarchy (rule R8): one collection, the subclass is told by "type" and by Spring's "_class".
@@ -27,6 +28,7 @@ public abstract class Equipment {
     private EquipmentType type;
     private EquipmentStatus status = EquipmentStatus.AVAILABLE;
     private List<Unavailability> unavailabilities = new ArrayList<>();
+    private List<Correction> corrections = new ArrayList<>();
 
     @CreatedDate
     private Instant createdAt;
@@ -47,6 +49,7 @@ public abstract class Equipment {
     public EquipmentStatus getStatus() { return status; }
     public void setStatus(EquipmentStatus status) { this.status = status; }
     public List<Unavailability> getUnavailabilities() { return unavailabilities; }
+    public List<Correction> getCorrections() { return corrections; }
     public Instant getCreatedAt() { return createdAt; }
     public String getCreatedBy() { return createdBy; }
     public Instant getLastModifiedAt() { return lastModifiedAt; }
