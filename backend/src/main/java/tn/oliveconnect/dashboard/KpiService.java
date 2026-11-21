@@ -285,10 +285,10 @@ public class KpiService {
     }
 
     private String summaryCsv(KpiSummaryDto summary) {
-        return csv(List.of("season", "receptions", "totalNetKg", "estOilKg", "avgLeadTimeH", "p90LeadTimeH",
-                        "avgFillRate"),
-                List.of(List.of(summary.season(), summary.receptions(), summary.totalNetKg(), summary.estOilKg(),
-                        summary.avgLeadTimeH(), summary.p90LeadTimeH(), summary.avgFillRate())));
+        return csv(List.of("season", "receptions", "totalNetKg", "avgYieldKgHa", "estOilKg", "avgLeadTimeH",
+                        "p90LeadTimeH", "avgFillRate"),
+                List.of(List.of(summary.season(), summary.receptions(), summary.totalNetKg(), summary.avgYieldKgHa(),
+                        summary.estOilKg(), summary.avgLeadTimeH(), summary.p90LeadTimeH(), summary.avgFillRate())));
     }
 
     private String yieldCsv(List<YieldPoint> points) {

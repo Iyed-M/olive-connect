@@ -90,8 +90,8 @@ describe('dashboard DTO normalization', () => {
     ])
 
     expect(
-      normalizeMillVolumePoints([{ date: '2026-11-21', millName: 'Sfax North', totalNetKg: 3_200 }]),
-    ).toEqual([{ date: '2026-11-21', millName: 'Sfax North', volumeKg: 3_200 }])
+      normalizeMillVolumePoints([{ date: '2026-11-21', millId: 'mill-1', totalNetKg: 3_200 }]),
+    ).toEqual([{ date: '2026-11-21', millName: 'mill-1', volumeKg: 3_200 }])
   })
 })
 

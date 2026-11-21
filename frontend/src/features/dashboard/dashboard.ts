@@ -160,7 +160,7 @@ export function normalizeMillVolumePoints(raw: unknown): MillVolumePoint[] {
     const value = asRecord(item)
     return {
       date: stringValue(value, ['date', 'day', 'receivedDate']) || dimensionLabel(value) || '—',
-      millName: stringValue(value, ['millName', 'mill', 'name']) || 'Mill',
+      millName: stringValue(value, ['millName', 'mill', 'name', 'millId']) || 'Mill',
       volumeKg: numberValue(value, ['volumeKg', 'totalNetKg', 'netWeightKg', 'millVolumeKg']),
     }
   })

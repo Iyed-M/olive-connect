@@ -79,7 +79,8 @@ class DashboardControllerTest extends AbstractIntegrationTest {
                         .header("Authorization", token(manager.getEmail())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.receptions").value(2))
-                .andExpect(jsonPath("$.totalNetKg").value(5_600));
+                .andExpect(jsonPath("$.totalNetKg").value(5_600))
+                .andExpect(jsonPath("$.avgYieldKgHa").value(1_400.0));
 
         String token = token(manager.getEmail());
         mockMvc.perform(get("/api/dashboard/yield").param("season", SEASON).param("groupBy", "orchard")

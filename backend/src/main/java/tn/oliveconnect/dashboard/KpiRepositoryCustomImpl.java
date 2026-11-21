@@ -36,22 +36,32 @@ public class KpiRepositoryCustomImpl implements KpiRepositoryCustom {
                 .append("estOilKg", new Document("$sum", estimatedOilExpression()))
                 .append("avgLeadTimeH", new Document("$avg", "$leadTimeHours"))
                 .append("avgFillRate", new Document("$avg", "$fillRate"))
-                .append("p90LeadTimeH", percentile("$leadTimeHours"));
+                .append("p90LeadTimeH", percentile("$leadTimeHours"))
+                .append("orchards", new Document("$addToSet", new Document("id", "$orchardId")
+                        .append("areaHa", "$orchardAreaHa")));
         Document project = new Document("_id", 0)
                 .append("receptions", 1)
                 .append("totalNetKg", 1)
                 .append("estOilKg", 1)
                 .append("avgLeadTimeH", 1)
                 .append("avgFillRate", 1)
-                .append("p90LeadTimeH", new Document("$arrayElemAt", List.of("$p90LeadTimeH", 0)));
-        List<Document> rows = aggregate(filter, new Document("$group", group), new Document("$project", project));
+                .append("p90LeadTimeH", new Document("$arrayElemAt", List.of("$p90LeadTimeH", 0)))
+                .append("areaHa", new Document("$reduce", new Document("input", "$orchards")
+                        .append("initialValue", 0)
+                        .append("in", new Document("$add", List.of("$$value", "$$this.areaHa")))));
+        Document set = new Document("avgYieldKgHa", new Document("$cond", Arrays.asList(
+                new Document("$gt", List.of("$areaHa", 0)),
+                new Document("$divide", List.of("$totalNetKg", "$areaHa")),
+                0)));
+        List<Document> rows = aggregate(filter, new Document("$group", group), new Document("$project", project),
+                new Document("$set", set));
         if (rows.isEmpty()) {
-            return new KpiSummaryDto(filter.season(), 0, 0, 0, 0, 0, 0);
+            return new KpiSummaryDto(filter.season(), 0, 0, 0, 0, 0, 0, 0);
         }
         Document row = rows.get(0);
         return new KpiSummaryDto(filter.season(), integer(row.get("receptions")), number(row.get("totalNetKg")),
-                number(row.get("estOilKg")), number(row.get("avgLeadTimeH")), number(row.get("p90LeadTimeH")),
-                number(row.get("avgFillRate")));
+                number(row.get("avgYieldKgHa")), number(row.get("estOilKg")), number(row.get("avgLeadTimeH")),
+                number(row.get("p90LeadTimeH")), number(row.get("avgFillRate")));
     }
 
     @Override
