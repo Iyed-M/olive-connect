@@ -44,7 +44,7 @@ externalRef;name;memberNumber;lng;lat;delegation;plotCode;varietyCode;areaHa;tre
 ORC-0001;Henchir El Mezraa;ADH-0421;10.7603;34.7998;Sakiet Ezzit;P1;CHEMLALI;4.5;450;1998;false
 ORC-0001;Henchir El Mezraa;ADH-0421;10.7603;34.7998;Sakiet Ezzit;P2;CHETOUI;1.2;180;2015;true
 ```
-Rows are grouped by `externalRef`, and each group becomes one orchard document with its `plots[]` (rule R2). The delegation name is normalised to the `Delegation` code (`Sakiet Ezzit` becomes `SAKIET_EZZIT`). The orchard is upserted on `orchards.externalRef`, and fields entered by hand are kept.
+Rows are grouped by `externalRef`, and each group becomes one orchard document with its `plots[]` (rule R2). The delegation name is normalised to the `Delegation` code (`Sakiet Ezzit` becomes `SAKIET_EZZIT`). The orchard is upserted on `orchards.externalRef`, and fields entered by hand are kept (including plots that the file does not list: the plots of the file are matched by `plotCode`).
 
 **varieties.json** (upsert on `code`)
 ```json
@@ -125,7 +125,7 @@ flowchart TD
 - The inbox is `app.imports.inbox-dir` (`IMPORT_INBOX_DIR`, `/data/inbox`). Handled files move to `processed/` or `rejected/` inside it. `POST /api/imports/run` and the scheduler share `ImportService.run(source)`, and `POST /api/imports/upload` copies the file into the inbox before importing it.
 - Batch writes use `MongoTemplate.bulkOps(BulkMode.UNORDERED, …)` in batches of 1000, which handles 10⁵ readings in seconds.
 - **Spring Batch** is a possible alternative: it brings restartable chunked steps, but more configuration. We keep the lighter design and mention Spring Batch in the report as a possible improvement.
-- Automatic alert rules come from `system_settings`: `rainAlertMm24h` (default 20), and maturity entering `[optimalMaturityMin, optimalMaturityMax]` of the variety. A rule creates a `FieldAlert` with `source = SENSOR` (`type` `RAIN` or `MATURITY`) only when no open alert of the same type exists for that orchard. The rules live in `AutoAlertService`, which runs after each successful dynamic import. Automatic alerts send no notification in M10.
+- Automatic alert rules come from `system_settings`: `rainAlertMm24h` (default 20, compared with the highest 24 h rainfall total of one station of the delegation), and maturity entering `[optimalMaturityMin, optimalMaturityMax]` of the variety. A rule creates a `FieldAlert` with `source = SENSOR` (`type` `RAIN` or `MATURITY`) only when no open alert of the same type exists for that orchard. The rules live in `AutoAlertService`, which runs after each successful dynamic import. Automatic alerts send no notification in M10.
 
 ## 5. Data simulator (`data-simulator/`)
 

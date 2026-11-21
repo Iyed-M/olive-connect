@@ -1,5 +1,6 @@
 package tn.oliveconnect.mill;
 
+import java.time.Instant;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.GeoSpatialIndexType;
 import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
@@ -20,6 +21,8 @@ public class Mill {
     private GeoPoint location;
     private double dailyCapacityKg;
     private double availableCapacityKg;
+    // date of the capacity file that set availableCapacityKg: an older file never overwrites a newer one
+    private Instant capacityUpdatedAt;
 
     public String getId() {
         return id;
@@ -63,5 +66,13 @@ public class Mill {
 
     public void setAvailableCapacityKg(double availableCapacityKg) {
         this.availableCapacityKg = availableCapacityKg;
+    }
+
+    public Instant getCapacityUpdatedAt() {
+        return capacityUpdatedAt;
+    }
+
+    public void setCapacityUpdatedAt(Instant capacityUpdatedAt) {
+        this.capacityUpdatedAt = capacityUpdatedAt;
     }
 }

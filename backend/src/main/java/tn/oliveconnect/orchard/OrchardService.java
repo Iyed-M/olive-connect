@@ -21,7 +21,7 @@ import tn.oliveconnect.user.UserRepository;
 @Service
 public class OrchardService {
 
-    static final String VARIETY_CACHE_KEY = "cache:varieties::all";
+    public static final String VARIETY_CACHE_KEY = "cache:varieties::all";
     private static final double MIN_TUNISIA_LONGITUDE = 7.4;
     private static final double MAX_TUNISIA_LONGITUDE = 11.7;
     private static final double MIN_TUNISIA_LATITUDE = 30.1;

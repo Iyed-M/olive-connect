@@ -66,10 +66,10 @@ public class MillsJsonImporter implements DatasetImporter<Mill> {
     @Override
     public Optional<ImportError> validate(Row<Mill> row) {
         Mill mill = row.value();
-        ImportError outside = RowChecks.coordinates(row.line(), mill.getLocation().longitude(),
+        Optional<ImportError> outside = RowChecks.coordinates(row.line(), mill.getLocation().longitude(),
                 mill.getLocation().latitude());
-        if (outside != null) {
-            return Optional.of(outside);
+        if (outside.isPresent()) {
+            return outside;
         }
         if (mill.getDailyCapacityKg() < 0) {
             return Optional.of(new ImportError(row.line(), "dailyCapacityKg", mill.getDailyCapacityKg() + " is negative"));

@@ -218,7 +218,8 @@ class ImportApiTest extends AbstractIntegrationTest {
     @Test
     void weatherReadingsIsATimeSeriesCollection() {
         var info = mongoTemplate.executeCommand("{ listCollections: 1, filter: { name: 'weather_readings' } }");
-        assertThat(info.toJson()).contains("timeseries").contains("\"metaField\": \"meta\"");
+        assertThat(info.toJson()).contains("timeseries").contains("\"timeField\": \"timestamp\"")
+                .contains("\"metaField\": \"meta\"");
     }
 
     @Test

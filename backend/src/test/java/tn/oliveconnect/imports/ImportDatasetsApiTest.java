@@ -215,6 +215,28 @@ class ImportDatasetsApiTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void reimportKeepsPlotsThatAreNotInTheFile() throws Exception {
+        drop("orchards.csv", ORCHARD_HEADER
+                + "IMP-ORC-1;Henchir;;10.76;34.80;Sakiet Ezzit;P1;CHEMLALI;2.0;200;1998;false\n");
+        run("REFERENCE");
+        Orchard stored = orchardRepository.findAllByExternalRefIn(List.of("IMP-ORC-1")).get(0);
+        tn.oliveconnect.orchard.Plot manual = new tn.oliveconnect.orchard.Plot();
+        manual.setCode("MANUAL");
+        manual.setVarietyCode("CHEMLALI");
+        manual.setAreaHa(0.5);
+        stored.getPlots().add(manual);
+        orchardRepository.save(stored);
+
+        drop("orchards.csv", ORCHARD_HEADER
+                + "IMP-ORC-1;Henchir;;10.76;34.80;Sakiet Ezzit;P1;CHEMLALI;2.1;210;1998;false\n");
+        run("REFERENCE");
+
+        Orchard updated = orchardRepository.findAllByExternalRefIn(List.of("IMP-ORC-1")).get(0);
+        assertThat(updated.getPlots()).extracting(tn.oliveconnect.orchard.Plot::getCode).containsExactly("P1", "MANUAL");
+        assertThat(updated.getPlots().get(0).getAreaHa()).isEqualTo(2.1);
+    }
+
+    @Test
     void areaGrowingMoreThanFivePercentIsRejected() throws Exception {
         drop("orchards.csv", ORCHARD_HEADER + "IMP-ORC-1;Henchir;;10.76;34.80;Agareb;P1;CHEMLALI;4.0;400;1998;false\n"
                 + "IMP-ORC-2;Autre;;10.60;34.70;Agareb;P1;CHEMLALI;2.0;200;2005;false\n");
@@ -340,7 +362,8 @@ class ImportDatasetsApiTest extends AbstractIntegrationTest {
     @Test
     void maturityReadingsIsATimeSeriesCollection() {
         var info = mongoTemplate.executeCommand("{ listCollections: 1, filter: { name: 'maturity_readings' } }");
-        assertThat(info.toJson()).contains("timeseries").contains("\"metaField\": \"meta\"");
+        assertThat(info.toJson()).contains("timeseries").contains("\"timeField\": \"timestamp\"")
+                .contains("\"metaField\": \"meta\"");
     }
 
     // ---------- mill_capacity_*.json ----------
@@ -356,6 +379,21 @@ class ImportDatasetsApiTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.jobs[0].status").value("SUCCESS"))
                 .andExpect(jsonPath("$.jobs[0].updatedRows").value(1));
         assertThat(millRepository.findByCode("IMP-M1").orElseThrow().getAvailableCapacityKg()).isEqualTo(42000);
+    }
+
+    @Test
+    void olderMillCapacityFileArrivingLateDoesNotOverwriteNewerData() throws Exception {
+        drop("mills.json", millsJson(60000, 10.76, 34.82));
+        run("REFERENCE");
+        drop("mill_capacity_20251122.json", """
+                { "date": "2025-11-22", "mills": [
+                  { "millCode": "IMP-M1", "dailyCapacityKg": 60000, "availableCapacityKg": 30000 } ] }""");
+        run("DYNAMIC");
+        drop("mill_capacity_20251121.json", """
+                { "date": "2025-11-21", "mills": [
+                  { "millCode": "IMP-M1", "dailyCapacityKg": 60000, "availableCapacityKg": 42000 } ] }""");
+        run("DYNAMIC");
+        assertThat(millRepository.findByCode("IMP-M1").orElseThrow().getAvailableCapacityKg()).isEqualTo(30000);
     }
 
     @Test
