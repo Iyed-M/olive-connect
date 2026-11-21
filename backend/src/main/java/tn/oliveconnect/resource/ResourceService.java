@@ -1,6 +1,5 @@
 package tn.oliveconnect.resource;
 
-import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -130,7 +129,7 @@ public class ResourceService {
             throw new BusinessRuleException("EQUIPMENT_TYPE_IMMUTABLE", "The type of an equipment cannot change");
         }
         applyEquipment(equipment, dto);
-        equipment.getCorrections().add(new Correction(Instant.now(), userId, "Equipment corrected by staff"));
+        equipment.getCorrections().add(Correction.now(userId, "Equipment corrected by staff"));
         return EquipmentDto.from(equipmentRepository.save(equipment));
     }
 

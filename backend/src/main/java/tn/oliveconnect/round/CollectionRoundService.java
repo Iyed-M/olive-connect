@@ -173,7 +173,6 @@ public class CollectionRoundService {
         round.setStops(buildStops(requests, startTime));
         round.setEstimatedTotalKg(requests.stream().mapToDouble(HarvestRequest::getEstimatedQuantityKg).sum());
         round.setSeason(seasonFor(date));
-        round.getCorrections().add(new Correction(Instant.now(), authentication.getName(), "Round edited"));
         roundRepository.save(round);
 
         bookingService.releaseByRoundId(round.getId());
@@ -191,7 +190,7 @@ public class CollectionRoundService {
             throw new BusinessRuleException("ROUND_NOT_COMPLETED", "Only a COMPLETED round can be corrected");
         }
         round.setTotalHarvestedKg(dto.totalHarvestedKg());
-        round.getCorrections().add(new Correction(Instant.now(), authentication.getName(), dto.comment()));
+        round.getCorrections().add(Correction.now(authentication.getName(), dto.comment()));
         return CollectionRoundDto.from(roundRepository.save(round), List.of());
     }
 

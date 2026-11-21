@@ -18,7 +18,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | GeoPoint | R10 | `orchards.location` | `orchard.GeoPoint` (embedded GeoJSON) | — | `OrchardService` | `/orchards` | `features/farmer/OrchardMap` |
 | OliveVariety | R1 (natural key) | `olive_varieties` | `orchard.OliveVariety` | `OliveVarietyRepository` | `OrchardService` (Redis cached), `OliveVarietySeeder` | `OliveVarietyController /varieties` | `features/farmer/OrchardForm`, `intranet/Reference` |
 | HarvestRequest | R1, R3, R4, R11, R14 | `harvest_requests` | `harvest.HarvestRequest` (+ embedded `OrchardSnapshot`) | `HarvestRequestRepository` | `HarvestRequestService`, weighted `PriorityCalculator` | `HarvestRequestController /harvest-requests` (paged GET + actions) | `farmer/HarvestRequestForm`, `farmer/MyRequests`, `farmer/HarvestRequestDetail`, `farmer/RequestActions`, `farmer/harvestRequests`, `collection/RequestQueue` |
-| Correction | R2 | `orchards`, `equipment`, `collection_rounds` `.corrections[]` | `common.Correction` (embedded) | — | `OrchardService`, `ResourceService`, `CollectionRoundService` | in detail DTOs, `PATCH /rounds/{id}/correction` | `features/intranet/OrchardsGrid`, `features/intranet/RoundsGrid`, `components/CorrectionHistory` |
+| Correction | R2 | `orchards`, `equipment`, `collection_rounds` `.corrections[]` | `common.Correction` (embedded) | — | `OrchardService`, `ResourceService`, `CollectionRoundService` (only staff corrections, not the `PUT /rounds/{id}` edit) | in detail DTOs, `PATCH /rounds/{id}/correction` | `features/intranet/OrchardsGrid`, `features/intranet/RoundsGrid`, `components/CorrectionHistory` |
 | StatusChange | R2 | `*.statusHistory[]` | `common.StatusChange` (embedded) | — | each owning service | in detail DTOs | `components/Timeline` |
 | CollectionRound | R1, R5, R14 | `collection_rounds` | `round.CollectionRound` | `CollectionRoundRepository` | `CollectionRoundService`, `PlanningService` | `CollectionRoundController /rounds`, `PlanningController /planning` | `collection/PlanningBoard`, `teamleader/MyRounds`, `teamleader/RoundRunner` |
 | RoundStop | R2 | `collection_rounds.stops[]` | `round.RoundStop` (embedded) | — | `CollectionRoundService` | `/rounds/{id}/stops/{order}` | `teamleader/RoundRunner` |
@@ -54,6 +54,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | FR-1.6 | Notifications | `/notifications` (M3), `/events` (M8) | T-HR-1, T-RD-1, T-ML-1 |
 | FR-1.7 | Update round / SD-6 | `/rounds/{id}/start`, `/stops/{order}`, `/complete` | T-RD-6..8 (`CollectionRoundExecutionControllerTest`) |
 | FR-2.x | Report & handle alert / SD-5 | `/alerts/**` | T-AL-1..4 |
+| FR-3.5 | Supply orders / SD-11 | `/supply-orders` | T-RS-2 (`SupplyControllerTest`) |
 | FR-3.x | Resources | `/workers`, `/equipment`, `/resources/*`, `/supply-orders` | T-RS-1..2, T-RD-2 |
 | FR-4.x | Map | `/map/public`, `/map/private` | T-SEC-3, T-MAP-1..3, T-PERF-1 |
 | FR-5.x | Dashboard / SD-9 | `/dashboard/*` | T-KPI-1..2 |

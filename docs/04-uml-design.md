@@ -191,6 +191,7 @@ classDiagram
         +Instant at
         +String byUserId
         +String comment
+        +now(userId, comment)$ Correction
     }
 
     class CollectionRound {
@@ -1108,41 +1109,6 @@ sequenceDiagram
     C-->>CM: 200 JSON → Recharts
 ```
 
-### SD-SUPPLY Logistics orders and receives nets or shakers (alternatives: not a tool, already received)
-
-```mermaid
-sequenceDiagram
-    actor LM as Logistics manager
-    participant C as SupplyController
-    participant S as SupplyService
-    participant R as SupplyOrderRepository
-    participant E as EquipmentRepository
-    participant M as MongoDB
-
-    LM->>C: POST /api/supply-orders {toolId, quantity, supplier}
-    C->>S: create(dto)
-    S->>E: findById(toolId)
-    alt unknown tool
-        S-->>LM: 404 NOT_FOUND
-    else not a Tool
-        S-->>LM: 422 NOT_A_TOOL
-    else ok
-        S->>R: save(order ORDERED)
-        S-->>LM: 201 SupplyOrderDto
-    end
-    LM->>C: POST /api/supply-orders/{id}/receive
-    C->>S: receive(id)
-    S->>R: findById(id)
-    alt already RECEIVED
-        S-->>LM: 409 SUPPLY_ALREADY_RECEIVED
-    else ORDERED
-        Note over S,M: one transaction
-        S->>R: save(order RECEIVED)
-        S->>M: $inc stockQuantity on the Tool
-        S-->>LM: 200 SupplyOrderDto
-    end
-```
-
 ### SD-10 Admin creates, edits and disables a User (alternatives: validation, duplicate email or member number, Farmer without profile, self-lockout)
 
 ```mermaid
@@ -1203,6 +1169,41 @@ sequenceDiagram
         US->>UR: save(user with enabled = false)
         US->>RT: revokeAll(userId)
         UC-->>FE: 204
+    end
+```
+
+### SD-11 Logistics orders and receives nets or shakers (alternatives: not a tool, already received)
+
+```mermaid
+sequenceDiagram
+    actor LM as Logistics manager
+    participant C as SupplyController
+    participant S as SupplyService
+    participant R as SupplyOrderRepository
+    participant E as EquipmentRepository
+    participant M as MongoDB
+
+    LM->>C: POST /api/supply-orders {toolId, quantity, supplier}
+    C->>S: create(dto)
+    S->>E: findById(toolId)
+    alt unknown tool
+        S-->>LM: 404 NOT_FOUND
+    else not a Tool
+        S-->>LM: 422 NOT_A_TOOL
+    else ok
+        S->>R: save(order ORDERED)
+        S-->>LM: 201 SupplyOrderDto
+    end
+    LM->>C: POST /api/supply-orders/{id}/receive
+    C->>S: receive(id)
+    S->>R: findById(id)
+    alt already RECEIVED
+        S-->>LM: 409 SUPPLY_ALREADY_RECEIVED
+    else ORDERED
+        Note over S,M: one transaction
+        S->>R: save(order RECEIVED)
+        S->>M: $inc stockQuantity on the Tool
+        S-->>LM: 200 SupplyOrderDto
     end
 ```
 

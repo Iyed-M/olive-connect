@@ -298,7 +298,7 @@ authenticated Farmer id and `owner.displayName` is the extended-reference snapsh
 staff searches. `areaHa`, `treeCount` and `mainVarietyCode` are recomputed from `plots` before
 the document is saved. A future boundary polygon remains part of the design but is not accepted
 by the M2 form yet.
-`corrections` (embedded, bounded by manual use) is appended when a staff member (not the owner) edits the orchard (FR-6.5).
+`corrections` (embedded, bounded by manual use) is appended when a staff member (not the owner) edits the orchard (FR-6.5). On `collection_rounds` only `PATCH /rounds/{id}/correction` appends to it, a normal `PUT /rounds/{id}` edit does not.
 | Index | Purpose |
 |---|---|
 | `{ location: "2dsphere" }` | map bbox `$geoWithin`, nearest orchard, `$geoNear` grouping |

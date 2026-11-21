@@ -3,7 +3,6 @@ package tn.oliveconnect.orchard;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -69,8 +68,7 @@ public class OrchardService {
         User owner = findOwner(orchard.getOwnerId());
         apply(orchard, dto, owner);
         if (!authentication.getName().equals(orchard.getOwnerId())) {
-            orchard.getCorrections().add(new Correction(Instant.now(), authentication.getName(),
-                    "Orchard corrected by staff"));
+            orchard.getCorrections().add(Correction.now(authentication.getName(), "Orchard corrected by staff"));
         }
         return OrchardDto.from(orchardRepository.save(orchard));
     }

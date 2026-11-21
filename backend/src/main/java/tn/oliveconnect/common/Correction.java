@@ -18,6 +18,11 @@ public class Correction {
         this.comment = comment;
     }
 
+    /** A correction made right now by the given user. */
+    public static Correction now(String userId, String comment) {
+        return new Correction(Instant.now(), userId, comment);
+    }
+
     public Instant getAt() { return at; }
     public String getByUserId() { return byUserId; }
     public String getComment() { return comment; }

@@ -117,7 +117,7 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 | POST | `/rounds` | CM | plan round (transaction + bookings) | FR-1.5 |
 | GET | `/rounds` | CM, AD, TL (own) | calendar/list, query `from`, `to`, `status`, `teamLeaderId` | FR-1.5 |
 | GET | `/rounds/{id}` | CM, AD, TL own | detail | FR-1.5 |
-| PUT | `/rounds/{id}` | CM (PLANNED only) | modify stops/resources; appends a `corrections` entry | FR-1.5 |
+| PUT | `/rounds/{id}` | CM (PLANNED only) | modify stops/resources; not a correction, `corrections` is unchanged | FR-1.5 |
 | PATCH | `/rounds/{id}/correction` | CM, AD | body `{totalHarvestedKg, comment}`: correct the weight of a COMPLETED round, 422 `ROUND_NOT_COMPLETED` otherwise; appends a `corrections` entry | FR-6.5 |
 | POST | `/rounds/{id}/cancel` | CM | cancel + release bookings | — |
 | POST | `/rounds/{id}/start` | TL own | start on the round date; cascades requests/orchards to `IN_PROGRESS`, generic 403 for another leader, 409 `ROUND_NOT_TODAY` for the wrong date | FR-1.7 |

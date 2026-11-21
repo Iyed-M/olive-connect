@@ -12,10 +12,21 @@ import {
   startOfWeek,
 } from './resources'
 
-// Week calendar of one worker or one equipment (FR-3.3): bookings of rounds and unavailabilities.
+// Day or week calendar of one worker or one equipment (FR-3.3): bookings of rounds and unavailabilities.
 export function ResourceCalendar() {
   const [resourceId, setResourceId] = useState('')
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
+  const [view, setView] = useState<'day' | 'week'>('week')
+  // First displayed day: a Monday in week view, any day in day view.
+  const [start, setStart] = useState(() => startOfWeek(new Date()))
+  const span = view === 'week' ? 7 : 1
+
+  function changeView(next: 'day' | 'week') {
+    setView(next)
+    if (next === 'week') setStart(startOfWeek(start))
+  }
+  function today() {
+    setStart(view === 'week' ? startOfWeek(new Date()) : new Date(new Date().toDateString()))
+  }
 
   const workers = useQuery({
     queryKey: ['workers', 'all'],
@@ -26,14 +37,14 @@ export function ResourceCalendar() {
     queryFn: () => listEquipment({ type: '', status: '', page: 0 }),
   })
 
-  const weekEnd = addDays(weekStart, 7)
+  const end = addDays(start, span)
   const calendar = useQuery({
-    queryKey: ['calendar', resourceId, weekStart.toISOString()],
-    queryFn: () => getResourceCalendar(resourceId, weekStart.toISOString(), weekEnd.toISOString()),
+    queryKey: ['calendar', resourceId, start.toISOString(), span],
+    queryFn: () => getResourceCalendar(resourceId, start.toISOString(), end.toISOString()),
     enabled: resourceId !== '',
   })
 
-  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  const days = Array.from({ length: span }, (_, i) => addDays(start, i))
 
   return (
     <>
@@ -63,24 +74,41 @@ export function ResourceCalendar() {
       </select>
       <p className="text-xs text-muted-foreground">The lists show the first 20 resources of each kind.</p>
 
+      <div className="flex gap-2">
+        {(['day', 'week'] as const).map((v) => (
+          <Button
+            key={v}
+            type="button"
+            variant={view === v ? 'default' : 'outline'}
+            className="h-11"
+            aria-pressed={view === v}
+            onClick={() => changeView(v)}
+          >
+            {v === 'day' ? 'Day' : 'Week'}
+          </Button>
+        ))}
+      </div>
+
       <div className="flex items-center justify-between gap-2">
-        <Button variant="outline" className="h-11" aria-label="Previous week" onClick={() => setWeekStart(addDays(weekStart, -7))}>
+        <Button variant="outline" className="h-11" aria-label={`Previous ${view}`} onClick={() => setStart(addDays(start, -span))}>
           <ChevronLeft aria-hidden />
         </Button>
         <div className="flex flex-col items-center">
           <span className="font-medium">
-            {weekStart.toLocaleDateString()} - {addDays(weekStart, 6).toLocaleDateString()}
+            {view === 'week'
+              ? `${start.toLocaleDateString()} - ${addDays(start, 6).toLocaleDateString()}`
+              : start.toLocaleDateString()}
           </span>
-          <button type="button" className="text-sm text-primary hover:underline" onClick={() => setWeekStart(startOfWeek(new Date()))}>
-            This week
+          <button type="button" className="text-sm text-primary hover:underline" onClick={today}>
+            {view === 'week' ? 'This week' : 'Today'}
           </button>
         </div>
-        <Button variant="outline" className="h-11" aria-label="Next week" onClick={() => setWeekStart(addDays(weekStart, 7))}>
+        <Button variant="outline" className="h-11" aria-label={`Next ${view}`} onClick={() => setStart(addDays(start, span))}>
           <ChevronRight aria-hidden />
         </Button>
       </div>
 
-      {resourceId === '' && <p className="text-muted-foreground">Choose a resource to see its week.</p>}
+      {resourceId === '' && <p className="text-muted-foreground">Choose a resource to see its calendar.</p>}
       {calendar.isPending && resourceId !== '' && <p className="text-muted-foreground">Loading...</p>}
       {calendar.isError && (
         <p role="alert" className="text-sm text-destructive">
@@ -91,7 +119,7 @@ export function ResourceCalendar() {
       {calendar.data && (
         <>
           <p className="text-sm text-muted-foreground">{calendar.data.label}</p>
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-7">
+          <div className={view === 'week' ? 'grid grid-cols-1 gap-2 md:grid-cols-7' : 'grid grid-cols-1 gap-2'}>
             {days.map((day) => {
               const slots = daySlots(day, calendar.data)
               return (

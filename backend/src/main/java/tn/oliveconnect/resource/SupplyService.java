@@ -80,7 +80,8 @@ public class SupplyService {
     private Tool findTool(String toolId) {
         Equipment equipment = equipmentRepository.findById(toolId)
                 .orElseThrow(() -> new NotFoundException("Tool not found"));
-        if (!(equipment instanceof Tool tool)) {
+        Tool tool = asTool(equipment);
+        if (tool == null) {
             throw new BusinessRuleException("NOT_A_TOOL", "Only nets and shakers can be ordered");
         }
         return tool;
