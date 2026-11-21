@@ -136,18 +136,23 @@ tn.oliveconnect
 │                      CollectionRoundService, PlanningService, CollectionRoundController
 ├── resource/          Worker, Equipment, EquipmentType, ResourceBooking, SupplyOrder,
 │                      repositories, ResourceService, BookingService, SupplyService, controllers
-├── alert/             FieldAlert, AlertType, AlertStatus, FieldAlertRepository, FieldAlertService,
-│                      AutoAlertRule, FieldAlertController
-├── mill/              Mill, MillReception, QualityGrade, repositories, MillService,
-│                      MillReceptionService, MillController
-├── telemetry/         WeatherReading, MaturityReading (time-series), repositories, TelemetryService
+├── alert/             FieldAlert, AlertType, AlertSeverity, AlertSource, AlertStatus,
+│                      FieldAlertRepository (M10), FieldAlertService, FieldAlertController (M8)
+├── mill/              Mill, MillRepository (M10), MillReception, QualityGrade, MillService,
+│                      MillReceptionService, MillController (M7)
 ├── notification/      Notification, NotificationType, NotificationRepository, NotificationService,
 │                      NotificationController (M3 inbox; SSE fan-out planned for M8),
 │                      SseEmitterRegistry, RedisNotificationPublisher/Subscriber
 ├── dashboard/         KpiService, KpiRepositoryCustom(+Impl with Aggregation), DashboardController, dto/
-├── dataimport/        ImportJob, ImportJobRepository, ImportScheduler, ImportService,
-│                      parsers/ (CsvParser, JsonParser), validators/, ImportController (admin)
-├── settings/          SystemSettings, SettingsService, SettingsController
+├── imports/           ImportJob, ImportError, ImportStatus, ImportSource, ImportJobRepository,
+│                      ImportScheduler, ImportService, ImportJournalService, DatasetImporter<T>,
+│                      one importer per dataset (OrchardCsvImporter, VarietiesJsonImporter,
+│                      MillsJsonImporter, ResourcesCsvImporter, WeatherJsonImporter,
+│                      MaturityCsvImporter, MillCapacityJsonImporter), CsvFile, JsonArrayFile,
+│                      FieldReader, AutoAlertService, WeatherReading, MaturityReading,
+│                      ImportController (admin)
+├── settings/          SystemSettings, SystemSettingsRepository, SettingsService, SettingsDto,
+│                      SettingsController (admin)
 └── system/            SystemStatusController, SystemStatusService, SystemStatusDto  (M0: GET /api/system/status)
 ```
 

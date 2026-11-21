@@ -86,6 +86,7 @@ classDiagram
     class Orchard {
         +String id
         +String name
+        +String externalRef
         +String ownerId
         +Map~String,String~ owner
         +GeoPoint location
@@ -240,6 +241,7 @@ classDiagram
 
     class Worker {
         +String id
+        +String externalRef
         +String firstName
         +String lastName
         +String cin
@@ -326,6 +328,7 @@ classDiagram
 
     class Mill {
         +String id
+        +String code
         +String name
         +GeoPoint location
         +String address
@@ -377,11 +380,41 @@ classDiagram
         +AlertSeverity severity
         +AlertStatus status
         +AlertSource source
+        +String orchardId
+        +String orchardName
+        +String farmerId
         +GeoPoint location
         +String description
         +List~String~ photoUrls
         +String resolution
+        +List~StatusChange~ statusHistory
         +Instant createdAt
+    }
+    class AlertType {
+        <<enumeration>>
+        MATURITY
+        RAIN
+        PEST
+        DISEASE
+        OTHER
+    }
+    class AlertSeverity {
+        <<enumeration>>
+        LOW
+        MEDIUM
+        HIGH
+    }
+    class AlertSource {
+        <<enumeration>>
+        FARMER
+        SENSOR
+    }
+    class AlertStatus {
+        <<enumeration>>
+        NEW
+        ACKNOWLEDGED
+        RESOLVED
+        DISMISSED
     }
 
     class WeatherReading {
@@ -395,8 +428,10 @@ classDiagram
     }
     class MaturityReading {
         +Instant timestamp
+        +String orchardId
+        +String source
         +double maturityIndex
-        +ReadingSource source
+        +String varietyCode
     }
 
     class Notification {
@@ -434,6 +469,8 @@ classDiagram
         +int insertedRows
         +int updatedRows
         +int rejectedRows
+        +int errorCount
+        +List~ImportError~ errors
         +Instant startedAt
         +Instant finishedAt
     }
@@ -441,6 +478,23 @@ classDiagram
         +int line
         +String field
         +String reason
+    }
+    class ImportStatus {
+        <<enumeration>>
+        RUNNING
+        SUCCESS
+        PARTIAL
+        FAILED
+    }
+    class ImportSource {
+        <<enumeration>>
+        REFERENCE
+        DYNAMIC
+    }
+    class SystemSettings {
+        +String id
+        +double rainAlertMm24h
+        +int defaultBinCapacityKg
     }
 
     %% ---- relationships ----
@@ -499,6 +553,10 @@ classDiagram
     FieldAlert "*" --> "0..1" User : handled by
     FieldAlert "*" --> "0..1" HarvestRequest : led to
     FieldAlert "1" *-- "*" StatusChange : history
+    FieldAlert --> AlertType
+    FieldAlert --> AlertSeverity
+    FieldAlert --> AlertSource
+    FieldAlert --> AlertStatus
 
     WeatherReading "*" --> "0..1" Orchard : near
     MaturityReading "*" --> "1" Orchard : measures
@@ -506,6 +564,8 @@ classDiagram
     Notification "*" --> "1" User : recipient
     Notification --> NotificationType
     ImportJob "1" *-- "*" ImportError
+    ImportJob --> ImportStatus
+    ImportJob --> ImportSource
 ```
 
 > **For the report:** this full diagram is dense once rendered. Keep it as an appendix, and in the body show three focused views made by copying the relevant classes: (1) users, orchards and harvest requests; (2) rounds, resources and bookings; (3) mill, alerts and telemetry.
@@ -986,42 +1046,42 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     autonumber
-    participant SCH as ImportScheduler (@Scheduled)
+    participant SCH as ImportScheduler
     participant IS as ImportService
     participant FS as Inbox folder
-    participant P as Parser (CSV/JSON)
-    participant V as Validator
-    participant REPO as Target repositories
+    participant P as DatasetImporter
     participant JR as ImportJobRepository
     participant AA as AutoAlertService
-    participant NS as NotificationService
 
-    SCH->>IS: runDynamicImport() every 15 min
+    SCH->>IS: run(DYNAMIC) every 15 min, ShedLock
     IS->>FS: list new files (weather_*.json, maturity_*.csv, mill_capacity_*.json)
     loop each file
         IS->>JR: findByChecksum(sha256)
         alt already imported
-            IS->>FS: move to /processed (skip)
+            IS->>FS: move to processed/ (skip, no new job)
         else new
             IS->>JR: save(ImportJob RUNNING)
             IS->>P: parse(file)
             alt unreadable / wrong format
                 IS->>JR: status FAILED + error
-                IS->>FS: move to /rejected
-                IS->>NS: notifyRole(ADMIN, IMPORT_FAILED)
+                IS->>FS: move to rejected/
             else parsed
                 loop each record
-                    IS->>V: validate (types, ranges, references, duplicates)
-                    alt valid
-                        IS->>REPO: bulk upsert / insert (batch 1000)
-                    else invalid
+                    IS->>P: validate (types, ranges, references)
+                    opt invalid
                         IS->>IS: add ImportError(line, field, reason)
                     end
                 end
-                IS->>AA: evaluate thresholds (rain, maturity)
-                AA-->>NS: auto FieldAlerts + notifications
-                IS->>JR: status SUCCESS or PARTIAL (counts)
-                IS->>FS: move to /processed
+                IS->>P: findDuplicates(valid rows)
+                alt more than 50 percent rejected
+                    IS->>JR: status FAILED, nothing committed
+                    IS->>FS: move to rejected/
+                else
+                    IS->>P: persist(valid rows, bulk unordered, batch 1000)
+                    IS->>AA: evaluate() thresholds (rain = max 24 h total of one station, maturity), creates FieldAlert SENSOR
+                    IS->>JR: status SUCCESS or PARTIAL (counts)
+                    IS->>FS: move to processed/
+                end
             end
         end
     end
