@@ -68,6 +68,7 @@ export interface EquipmentDto {
   toolType: ToolType | null // NET, SHAKER
   stockQuantity: number | null // NET, SHAKER
   unavailabilities: Unavailability[]
+  corrections?: Correction[]
   createdAt: string
   version: number
 }
@@ -173,4 +174,107 @@ export function equipmentSummary(e: EquipmentDto): string {
     default:
       return `Stock: ${e.stockQuantity ?? '-'}`
   }
+}
+
+// ---- M12: calendar and supply orders (docs/06 GET /resources/calendar, /supply-orders) ----
+
+export interface CalendarBooking {
+  id: string
+  roundId: string
+  start: string
+  end: string
+}
+
+export interface ResourceCalendarDto {
+  resourceId: string
+  resourceKind: 'WORKER' | 'EQUIPMENT'
+  label: string
+  bookings: CalendarBooking[]
+  unavailabilities: Unavailability[]
+}
+
+export const getResourceCalendar = (resourceId: string, from: string, to: string) =>
+  api<ResourceCalendarDto>(`/resources/calendar?${new URLSearchParams({ resourceId, from, to })}`)
+
+// Monday 00:00 (local time) of the week of `date`.
+export function startOfWeek(date: Date): Date {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
+  return d
+}
+
+export function addDays(date: Date, days: number): Date {
+  const d = new Date(date)
+  d.setDate(d.getDate() + days)
+  return d
+}
+
+export interface DaySlot {
+  label: string // "08:00 - 12:00" (clipped to the day)
+  text: string
+  kind: 'booking' | 'unavailable'
+}
+
+// What happens on one local day: bookings and unavailabilities overlapping it, clipped to the day.
+export function daySlots(day: Date, cal: ResourceCalendarDto): DaySlot[] {
+  const dayStart = day.getTime()
+  const dayEnd = addDays(day, 1).getTime()
+  const hhmm = (ms: number) =>
+    new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+  const slots: (DaySlot & { at: number })[] = []
+  const add = (start: string, end: string, kind: DaySlot['kind'], text: string) => {
+    const s = new Date(start).getTime()
+    const e = new Date(end).getTime()
+    if (s >= dayEnd || e <= dayStart) return
+    const from = Math.max(s, dayStart)
+    const to = Math.min(e, dayEnd)
+    const toLabel = to === dayEnd ? '24:00' : hhmm(to)
+    slots.push({ at: from, label: `${hhmm(from)} - ${toLabel}`, text, kind })
+  }
+  for (const b of cal.bookings) add(b.start, b.end, 'booking', 'Round')
+  for (const u of cal.unavailabilities) add(u.from, u.to, 'unavailable', u.reason ?? 'Unavailable')
+  return slots.sort((a, b) => a.at - b.at).map(({ label, text, kind }) => ({ label, text, kind }))
+}
+
+export const SUPPLY_STATUS_LABEL = { ORDERED: 'Ordered', RECEIVED: 'Received' } as const
+export type SupplyStatus = keyof typeof SUPPLY_STATUS_LABEL
+
+// Dates are ISO local dates (2026-11-21).
+export interface SupplyOrderDto {
+  id: string
+  toolId: string
+  toolCode: string | null
+  toolType: ToolType | null
+  quantity: number
+  supplier: string
+  orderedAt: string
+  expectedAt: string | null
+  receivedAt: string | null
+  status: SupplyStatus
+}
+
+export interface SupplyOrderBody {
+  toolId: string
+  quantity: number
+  supplier: string
+  expectedAt: string | null
+}
+
+export function listSupplyOrders(status: SupplyStatus | '', page: number) {
+  const params = pageParams(page)
+  if (status) params.set('status', status)
+  return api<PageResponse<SupplyOrderDto>>(`/supply-orders?${params}`)
+}
+export const createSupplyOrder = (body: SupplyOrderBody) =>
+  api<SupplyOrderDto>('/supply-orders', { method: 'POST', body: JSON.stringify(body) })
+export const receiveSupplyOrder = (id: string) =>
+  api<SupplyOrderDto>(`/supply-orders/${id}/receive`, { method: 'POST' })
+// NETs and SHAKERs: the tools of the supply order form.
+export const listTools = (type: ToolType) => api<PageResponse<EquipmentDto>>(`/equipment?type=${type}&size=100`)
+
+// One staff correction kept in the history of a document (FR-6.5).
+export interface Correction {
+  at: string
+  byUserId: string
+  comment: string
 }

@@ -99,13 +99,14 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-RD-6 | Run round | start by another team leader | Alternative | API | 403 (`CollectionRoundExecutionControllerTest`) |
 | T-RD-7 | Run round | complete with pending stops | Alternative | API | 422 `STOPS_PENDING` (`CollectionRoundExecutionControllerTest`) |
 | T-RD-8 | Run round | full run: start → stops → complete | Nominal | API | statuses cascade to requests & orchards (`CollectionRoundExecutionControllerTest`) |
+| T-RS-1 | Resources | calendar of a bin for a week (released and out-of-range bookings left out) | Nominal | API | ACTIVE bookings + unavailabilities returned (`ResourceCalendarTest`) |
+| T-RS-1b | Resources | calendar with unknown resource, `to` before `from`, missing parameter, farmer | Alternative | API | 404, 400 `VALIDATION_FAILED`, 400, 403 (`ResourceCalendarTest`) |
 | T-AL-1 | Report alert | with GPS near orchard | Nominal | API + SSE | 201, persisted `FieldAlert`, and an `alert` event received by the manager (`FieldAlertControllerTest`, `EventControllerTest`) |
 | T-AL-2 | Report alert | GPS 5 km away | Alternative | Unit + API | `locationMismatch=true` while the alert is kept (`FieldAlertServiceTest`, `FieldAlertControllerTest`) |
 | T-AL-3 | Report alert | photo too large / wrong type | Alternative | API + Web | 400 and no alert is persisted (`FieldAlertControllerTest`) |
 | T-AL-4 | Handle alert | create urgent request from MATURITY alert | Nominal | API | request URGENT created, alert RESOLVED (`FieldAlertControllerTest`) |
 | T-AL-5 | SSE authentication | ticket is one-time and expires after 30 seconds | Alternative | API | reused or missing ticket returns 401; recipient-only fan-out (`EventControllerTest`) |
 | T-AL-6 | Report alert | two concurrent reports of the same type for one orchard | Alternative | API + unit | exactly one 201, one 409, and one open alert (`FieldAlertControllerTest`, `FieldAlertServiceTest`) |
-| T-RS-1 | Resources | calendar of a bin for a week | Nominal | Repo | bookings + unavailabilities returned |
 | T-RS-3 | Workers | logistics manager creates, reads, updates, filters and deletes a worker | Nominal | API | 201 with `Location`, 200, 204 then 404 (`ResourceControllerTest`) |
 | T-RS-4 | Workers | worker with an existing `cin` | Alternative | API | 409 `CIN_TAKEN` (`ResourceControllerTest`) |
 | T-RS-5 | Equipment | `GET /equipment` with a tractor, a bin and a tool | Nominal | API | each item has its own fields, `type` filter works (`ResourceControllerTest`) |
@@ -117,7 +118,12 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-RS-11 | Unavailability | `to` not after `from` | Alternative | API | 400 `VALIDATION_FAILED` on field `to`, nothing stored (`ResourceControllerTest`; the rule itself in `ResourceServiceTest`) |
 | T-RS-12 | Workers / equipment | collection manager | Alternative | API | GET 200, POST/PUT/DELETE 403 (`ResourceControllerTest`) |
 | T-RS-13 | Workers / equipment | farmer and admin | Alternative | API | farmer 403 on every route, admin full access, no token 401 (`ResourceControllerTest`) |
-| T-RS-2 | Supply order | receive → stock incremented | Nominal | API | `stockQuantity` += qty |
+| T-RS-2 | Supply order | receive → stock incremented | Nominal | API | `stockQuantity` += qty, status `RECEIVED` (`SupplyControllerTest`) |
+| T-RS-2b | Supply order | receive twice | Alternative | API | 409 `SUPPLY_ALREADY_RECEIVED`, stock incremented once (`SupplyControllerTest`) |
+| T-RS-2c | Supply order | unknown order or tool, a bin instead of a tool, `quantity` 0 | Alternative | API | 404, 404, 422 `NOT_A_TOOL`, 400 `VALIDATION_FAILED` (`SupplyControllerTest`) |
+| T-RS-2d | Supply order | admin, collection manager, farmer, no token | Alternative | API | admin reads but cannot write (403), 403, 403, 401 (`SupplyControllerTest`) |
+| T-RS-14 | Corrections (FR-6.5) | logistics corrects an orchard, equipment update, admin corrects a completed round | Nominal | API | `corrections` entry added, owner's own orchard edit and a PUT of a PLANNED round add none (`OrchardControllerTest`, `SupplyControllerTest`, `CollectionRoundCorrectionTest`, `CollectionRoundControllerTest`) |
+| T-RS-15 | Corrections (FR-6.5) | correct a PLANNED round, no comment, logistics, unknown round | Alternative | API | 422 `ROUND_NOT_COMPLETED`, 400, 403, 404 (`CollectionRoundCorrectionTest`) |
 | T-ML-1 | Reception | valid weighing | Nominal | API | `MillReceptionControllerTest.managerRecordsWeighingAndFarmerSeesTheReception`: net & fillRate computed, atomic capacity decrement, farmer notified |
 | T-ML-2 | Reception | orchard/bin not part of round or absurd weight | Alternative | API | `MillReceptionControllerTest.invalidBinAndWeightsAreRejected`: 422 (`ORCHARD_NOT_IN_ROUND` / `BIN_NOT_IN_ROUND` / `INVALID_WEIGHING`) |
 | T-ML-3 | Reception | same bin/orchard twice | Alternative | API + unique index | `MillReceptionControllerTest.duplicateReceptionReturnsConflict`: duplicate key → 409 `RECEPTION_EXISTS` |

@@ -3,6 +3,7 @@ package tn.oliveconnect.orchard;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -116,6 +117,26 @@ class OrchardControllerTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/orchards").header("Authorization", token("manager@example.tn")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    void staffCorrectionIsRecordedButTheOwnersOwnEditIsNot() throws Exception {
+        createFarmer("ali@example.tn", "M-001");
+        String orchardId = createOrchard("ali@example.tn");
+        userRepository.save(user("logistics@example.tn", EnumSet.of(Role.LOGISTICS_MANAGER), null));
+        String renamed = orchardJson().replace("Henchir El Mezraa", "Henchir Corrected");
+
+        mockMvc.perform(put("/api/orchards/" + orchardId).header("Authorization", token("logistics@example.tn"))
+                        .contentType(MediaType.APPLICATION_JSON).content(renamed))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Henchir Corrected"))
+                .andExpect(jsonPath("$.corrections.length()").value(1))
+                .andExpect(jsonPath("$.corrections[0].byUserId").exists());
+
+        mockMvc.perform(put("/api/orchards/" + orchardId).header("Authorization", token("ali@example.tn"))
+                        .contentType(MediaType.APPLICATION_JSON).content(orchardJson()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.corrections.length()").value(1));
     }
 
     @Test

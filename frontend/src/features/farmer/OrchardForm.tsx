@@ -71,7 +71,10 @@ function setServerErrors(
   }
 }
 
-export function OrchardForm({ orchard }: { orchard?: Orchard }) {
+// `staff`: a Logistics manager, Collection manager or Admin corrects someone else's orchard
+// (FR-6.5): they go back to the intranet grid and cannot delete.
+export function OrchardForm({ orchard, staff = false }: { orchard?: Orchard; staff?: boolean }) {
+  const listPath = staff ? '/intranet/orchards' : '/farmer/orchards'
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const {
@@ -109,7 +112,8 @@ export function OrchardForm({ orchard }: { orchard?: Orchard }) {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['orchards'] })
-      await navigate({ to: '/farmer/orchards' })
+      await queryClient.invalidateQueries({ queryKey: ['orchard'] })
+      await navigate({ to: listPath })
     },
     onError: (error) => {
       if (error instanceof ApiError) setServerErrors(error.errors, setError)
@@ -119,7 +123,7 @@ export function OrchardForm({ orchard }: { orchard?: Orchard }) {
     mutationFn: () => deleteOrchard(orchard!.id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['orchards'] })
-      await navigate({ to: '/farmer/orchards' })
+      await navigate({ to: listPath })
     },
   })
 
@@ -153,7 +157,7 @@ export function OrchardForm({ orchard }: { orchard?: Orchard }) {
           <h1 className="font-heading text-2xl font-bold text-primary">{orchard ? 'Edit orchard' : 'Add orchard'}</h1>
           <p className="text-sm text-muted-foreground">Choose the position, then add each plot.</p>
         </div>
-        <Link to="/farmer/orchards" className="text-sm text-primary underline">Cancel</Link>
+        <Link to={listPath} className="text-sm text-primary underline">Cancel</Link>
       </div>
 
       <Card>
@@ -283,8 +287,8 @@ export function OrchardForm({ orchard }: { orchard?: Orchard }) {
       {deleteMutation.isError && <p role="alert" className="text-sm text-destructive">Could not delete the orchard.</p>}
       <div className="flex gap-2">
         <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Saving...' : 'Save orchard'}</Button>
-        <Link to="/farmer/orchards" className="inline-flex h-11 items-center rounded-lg border px-4 text-sm">Back to orchards</Link>
-        {orchard && <Button
+        <Link to={listPath} className="inline-flex h-11 items-center rounded-lg border px-4 text-sm">Back to orchards</Link>
+        {orchard && !staff && <Button
           type="button"
           variant="destructive"
           disabled={deleteMutation.isPending}
