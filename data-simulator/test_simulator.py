@@ -68,6 +68,34 @@ class SimulatorTest(unittest.TestCase):
         years = {p.name[8:12] for p in self.out.glob("weather_*.json")}
         self.assertEqual(years, {"2023", "2024", "2025"})
 
+    def test_history_writes_deterministic_reception_facts(self):
+        sim.write_history(self.out, random.Random(4), "t", 4, self.now)
+
+        reception_files = sorted(self.out.glob("receptions_*.csv"))
+        self.assertEqual([path.name for path in reception_files], [
+            "receptions_20231001.csv",
+            "receptions_20241001.csv",
+            "receptions_20251001.csv",
+        ])
+        rows = read_csv(reception_files[0])
+        self.assertEqual(len(rows), 4 * sim.HISTORY_RECEPTIONS_PER_ORCHARD)
+        self.assertEqual(set(rows[0]), set(sim.RECEPTION_COLUMNS))
+        self.assertEqual(rows[0]["season"], "2023-2024")
+        valid_delegations = {sim.delegation_code(v[0]) for v in sim.DELEGATIONS}
+        self.assertIn(rows[0]["delegation"], valid_delegations)
+        self.assertEqual(rows[0]["varietyCode"], "CHEMLALI")
+        self.assertGreater(float(rows[0]["grossWeightKg"]), float(rows[0]["tareKg"]))
+        self.assertAlmostEqual(float(rows[0]["netWeightKg"]),
+                               float(rows[0]["grossWeightKg"]) - float(rows[0]["tareKg"]), places=2)
+        self.assertGreater(float(rows[0]["fillRate"]), 0)
+        self.assertLessEqual(float(rows[0]["fillRate"]), 1.15)
+
+        other = Path(self.tmp.name) / "same-seed"
+        other.mkdir()
+        sim.write_history(other, random.Random(4), "t", 4, self.now)
+        for first, second in zip(reception_files, sorted(other.glob("receptions_*.csv"))):
+            self.assertEqual(first.read_bytes(), second.read_bytes())
+
 
 if __name__ == "__main__":
     unittest.main()

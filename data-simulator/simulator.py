@@ -46,6 +46,14 @@ STATIONS = [("SFX-%02d" % (i + 1), d[0]) for i, d in enumerate(DELEGATIONS)]
 FIRST_NAMES = ["Ahmed", "Mohamed", "Ali", "Salah", "Karim", "Fatma", "Amel", "Sami", "Nabil", "Hedi"]
 LAST_NAMES = ["Ben Salah", "Trabelsi", "Jebali", "Mezghani", "Chaabane", "Gharbi", "Kammoun", "Ayadi"]
 
+HISTORY_RECEPTIONS_PER_ORCHARD = 20
+RECEPTION_COLUMNS = [
+    "millId", "roundId", "binId", "orchardId", "farmerId", "harvestRequestId", "grossWeightKg", "tareKg",
+    "netWeightKg", "binCapacityKg", "fillRate", "qualityGrade", "defectRatePct", "leafRatePct",
+    "estimatedOilYieldPct", "season", "varietyCode", "delegation", "orchardAreaHa", "requestValidatedAt",
+    "leadTimeHours", "receivedAt", "receivedById",
+]
+
 
 def fmt_ts(dt):
     return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -69,6 +77,13 @@ def write_json(path, data):
 
 def pick_invalid(rng):
     return rng.random() < INVALID_RATE
+
+
+def delegation_code(name):
+    """Return the stable delegation code stored in MongoDB."""
+    code = name.strip().upper().replace("'", "_").replace("-", "_")
+    code = "_".join(code.split())
+    return "JEBINIANA" if code == "JEBENIANA" else code
 
 
 # ---------- reference data ----------
@@ -212,6 +227,68 @@ def write_mill_capacity(out, rng, at):
     write_json(out / ("mill_capacity_%s.json" % stamp(at, "%Y%m%d")), {"date": at.strftime("%Y-%m-%d"), "mills": mills})
 
 
+# ---------- historical reception facts ----------
+
+def orchard_area(p):
+    """Reproduce the area generated for an orchard in orchards.csv."""
+    r = p["rng"]
+    total = 0.0
+    for n in range(r.choice([1, 1, 2, 3])):
+        r.choice(VARIETIES)
+        area = round(r.uniform(0.5, 6), 1)
+        r.randint(1960, 2020)
+        r.random()
+        total += area
+    return round(total, 1)
+
+
+def reception_rows(rng, seed, count, season_start):
+    """Create deterministic reception facts for one past season."""
+    rows = []
+    season = "%d-%d" % (season_start.year, season_start.year + 1)
+    minutes_in_season = 92 * 24 * 60
+    for i in range(1, count + 1):
+        profile = orchard_profile(i, seed)
+        area = orchard_area(profile)
+        for sequence in range(1, HISTORY_RECEPTIONS_PER_ORCHARD + 1):
+            received_at = season_start + timedelta(minutes=rng.randrange(minutes_in_season))
+            lead_time_hours = rng.randint(8, 120)
+            validated_at = received_at - timedelta(hours=lead_time_hours)
+            mill = rng.choice(MILLS)
+            bin_capacity = rng.choice([3000, 4000, 5000])
+            net = round(bin_capacity * rng.uniform(0.55, 1.0), 2)
+            tare = round(rng.uniform(500, 900), 2)
+            gross = round(net + tare, 2)
+            fill_rate = round(net / bin_capacity, 4)
+            grade = rng.choice(["EXTRA", "GOOD", "AVERAGE", "POOR"])
+            defect_rate = round(rng.uniform(0, 8), 1)
+            leaf_rate = round(rng.uniform(0, 5), 1)
+            oil_yield = round(max(0, min(100, profile["variety"][2] + rng.uniform(-1.2, 1.2))), 1)
+            if pick_invalid(rng):
+                invalid = rng.choice(["weight", "fill", "grade"])
+                if invalid == "weight":
+                    gross = -1.0
+                elif invalid == "fill":
+                    fill_rate = 1.5
+                else:
+                    grade = "UNKNOWN"
+            round_id = "HIST-%d-%04d-%02d" % (season_start.year, i, sequence)
+            rows.append([
+                mill[0], round_id, "BIN-%04d" % (((i - 1) % 200) + 1), profile["ref"], profile["member"],
+                "REQ-%d-%04d-%02d" % (season_start.year, i, sequence), gross, tare, net, bin_capacity, fill_rate,
+                grade, defect_rate, leaf_rate, oil_yield, season, profile["variety"][0],
+                delegation_code(profile["delegation"]), area, fmt_ts(validated_at), lead_time_hours,
+                fmt_ts(received_at), "SIM-MANAGER-%s" % mill[0],
+            ])
+    return rows
+
+
+def write_receptions(out, rng, seed, count, season_start):
+    """Write one historical mill-reception file for a season."""
+    write_csv(out / ("receptions_%s.csv" % stamp(season_start, "%Y%m%d")), RECEPTION_COLUMNS,
+              reception_rows(rng, seed, count, season_start))
+
+
 def write_dynamic(out, rng, seed, count, now):
     # about one tick in four is a rain event, so the heavy-rain alert gets triggered
     write_weather(out, rng, now, rainy=rng.random() < 0.25)
@@ -221,8 +298,10 @@ def write_dynamic(out, rng, seed, count, now):
 
 def write_history(out, rng, seed, count, now):
     """3 past seasons (1 Oct - 31 Dec): one weather file per 3 h, one maturity file per day (half of the orchards)."""
+    reception_rng = random.Random("%s-history-receptions" % seed)
     for back in (3, 2, 1):
         start = datetime(season_start_of(now).year - back, 10, 1, tzinfo=timezone.utc)
+        write_receptions(out, reception_rng, seed, count, start)
         day = start
         rainy_until = start
         while day < start + timedelta(days=92):
