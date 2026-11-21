@@ -15,6 +15,7 @@ import tn.oliveconnect.common.StatusChange;
 @Document("collection_rounds")
 @CompoundIndex(name = "date_status", def = "{ 'date': 1, 'status': 1 }")
 @CompoundIndex(name = "team_leader_date", def = "{ 'teamLeaderId': 1, 'date': -1 }")
+@CompoundIndex(name = "mill_date_start_time", def = "{ 'millId': 1, 'date': 1, 'startTime': 1 }")
 @CompoundIndex(name = "stops_harvest_request_id", def = "{ 'stops.harvestRequestId': 1 }")
 @CompoundIndex(name = "worker_ids", def = "{ 'workerIds': 1 }")
 @CompoundIndex(name = "equipment_ids", def = "{ 'equipmentIds': 1 }")

@@ -1,7 +1,7 @@
 import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm, useWatch } from 'react-hook-form'
 import { useNavigate } from '@tanstack/react-router'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ROLE_LABEL, ROLE_PRIORITY } from '@/auth/roles'
 import type { Role } from '@/auth/types'
 import { ApiError } from '@/lib/api'
@@ -20,6 +20,7 @@ import {
   type UserDto,
   type UserWriteBody,
 } from './users'
+import { listMills } from '@/features/collection/planning'
 
 // The values of the inputs. The farmer profile fields are only sent when the FARMER role is checked.
 interface UserValues {
@@ -29,6 +30,7 @@ interface UserValues {
   phone: string
   password: string
   roles: Role[]
+  assignedMillId: string
   memberNumber: string
   cin: string
   delegation: Delegation | ''
@@ -55,6 +57,7 @@ export function UserForm({ user }: { user?: UserDto }) {
       phone: user?.phone ?? '',
       password: '',
       roles: user?.roles ?? [],
+      assignedMillId: user?.assignedMillId ?? '',
       memberNumber: user?.farmerProfile?.memberNumber ?? '',
       cin: user?.farmerProfile?.cin ?? '',
       delegation: user?.farmerProfile?.delegation ?? '',
@@ -65,6 +68,8 @@ export function UserForm({ user }: { user?: UserDto }) {
   const [saved, setSaved] = useState(false)
 
   const isFarmer = useWatch({ control, name: 'roles' }).includes('FARMER')
+  const isMillManager = useWatch({ control, name: 'roles' }).includes('MILL_MANAGER')
+  const millsQuery = useQuery({ queryKey: ['mills'], queryFn: listMills, enabled: isMillManager, staleTime: 30_000 })
 
   const save = useMutation({
     mutationFn: (v: UserValues) => {
@@ -74,6 +79,7 @@ export function UserForm({ user }: { user?: UserDto }) {
         lastName: v.lastName,
         phone: v.phone.trim() || null,
         roles: v.roles,
+        assignedMillId: isMillManager ? v.assignedMillId.trim() || null : null,
         // empty password on edit = keep the current one
         ...(v.password ? { password: v.password } : {}),
         farmerProfile: v.roles.includes('FARMER')
@@ -230,6 +236,35 @@ export function UserForm({ user }: { user?: UserDto }) {
                 {errors.delegation && <p className="text-sm text-destructive">{errors.delegation.message}</p>}
               </div>
               <Field id="address" label="Address (optional)" error={errors.address?.message} {...register('address')} />
+            </CardContent>
+          </Card>
+        )}
+
+        {isMillManager && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Mill assignment</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <Label htmlFor="assignedMillId">Assigned mill</Label>
+              <select
+                id="assignedMillId"
+                aria-invalid={!!errors.assignedMillId}
+                className={selectClass}
+                {...register('assignedMillId', { required: 'Choose a mill.' })}
+              >
+                <option value="">Choose...</option>
+                {millsQuery.data?.map((mill) => (
+                  <option key={mill.id} value={mill.id}>
+                    {mill.name}
+                  </option>
+                ))}
+                {user?.assignedMillId && !millsQuery.data?.some((mill) => mill.id === user.assignedMillId) && (
+                  <option value={user.assignedMillId}>{user.assignedMillId}</option>
+                )}
+              </select>
+              {errors.assignedMillId && <p className="text-sm text-destructive">{errors.assignedMillId.message}</p>}
+              {millsQuery.isError && <p className="text-sm text-destructive">Unable to load mills.</p>}
             </CardContent>
           </Card>
         )}

@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, Factory, FileUp, HardHat, Map, Route, Settings, Sprout, Truck, UserPlus, Users, type LucideIcon } from 'lucide-react'
+import { CalendarDays, ClipboardList, Factory, FileUp, Gauge, HardHat, Map, Route, Scale, Settings, Sprout, Truck, UserPlus, Users, type LucideIcon } from 'lucide-react'
 import type { LinkProps } from '@tanstack/react-router'
 import type { Role } from './types'
 
@@ -15,6 +15,7 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/farmer', label: 'Accueil', icon: Sprout },
     { to: '/farmer/requests', label: 'Demandes', icon: ClipboardList },
     { to: '/farmer/orchards', label: 'Vergers', icon: Map },
+    { to: '/farmer/receptions', label: 'Réceptions', icon: Scale },
   ],
   COLLECTION_MANAGER: [
     { to: '/collection/requests', label: 'Demandes', icon: ClipboardList },
@@ -25,7 +26,10 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/logistics/workers', label: 'Ouvriers', icon: HardHat },
     { to: '/logistics/equipment', label: 'Équipements', icon: Truck },
   ],
-  MILL_MANAGER: [{ to: '/mill/incoming', label: 'Réceptions', icon: Factory }],
+  MILL_MANAGER: [
+    { to: '/mill/incoming', label: 'Réceptions', icon: Factory },
+    { to: '/mill/capacity', label: 'Capacité', icon: Gauge },
+  ],
   // The Admin has full access to Workers and Equipment too (same pages as the Logistics manager).
   ADMIN: [
     { to: '/admin/users', label: 'Utilisateurs', icon: Users },

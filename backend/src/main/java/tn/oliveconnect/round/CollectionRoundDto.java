@@ -26,15 +26,22 @@ public record CollectionRoundDto(
         List<StatusChange> history,
         String season,
         Long version,
-        List<PlanningWarningDto> warnings) {
+        List<PlanningWarningDto> warnings,
+        List<RoundBinDto> bins) {
 
     public static CollectionRoundDto from(CollectionRound round, List<PlanningWarningDto> warnings) {
+        return from(round, warnings, List.of());
+    }
+
+    public static CollectionRoundDto from(CollectionRound round, List<PlanningWarningDto> warnings,
+                                          List<RoundBinDto> bins) {
         return new CollectionRoundDto(round.getId(), round.getCode(), round.getDate(), round.getStartTime(),
                 round.getEndTime(), round.getStatus(), round.getPlannedById(), round.getTeamLeaderId(),
                 round.getMillId(), List.copyOf(round.getWorkerIds()), List.copyOf(round.getEquipmentIds()),
                 round.getStops().stream().map(RoundStopDto::from).toList(), round.getEstimatedTotalKg(),
                 round.getTotalHarvestedKg(), round.getStartedAt(), round.getCompletedAt(),
                 List.copyOf(round.getStatusHistory()), round.getSeason(), round.getVersion(),
-                warnings == null ? List.of() : List.copyOf(warnings));
+                warnings == null ? List.of() : List.copyOf(warnings),
+                bins == null ? List.of() : List.copyOf(bins));
     }
 }

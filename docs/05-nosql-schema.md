@@ -133,12 +133,24 @@ erDiagram
         ObjectId _id
         ObjectId millId
         ObjectId roundId
+        ObjectId binId
         ObjectId orchardId
+        ObjectId farmerId
+        ObjectId harvestRequestId
+        double grossWeightKg
+        double tareKg
         double netWeightKg
+        double binCapacityKg
         double fillRate "computed"
         object quality "embedded"
         string season
         string varietyCode "denormalized"
+        string delegation "denormalized"
+        double orchardAreaHa "denormalized"
+        date requestValidatedAt
+        double leadTimeHours "computed"
+        date receivedAt
+        ObjectId receivedById
     }
     weather_readings {
         date timestamp "timeField"
@@ -362,6 +374,7 @@ by the M2 form yet.
 | `{ code: 1 }` unique | human reference |
 | `{ date: 1, status: 1 }` | calendar of the day/week |
 | `{ teamLeaderId: 1, date: -1 }` | team leader's "my rounds" |
+| `{ millId: 1, date: 1, startTime: 1 }` | mill's incoming rounds for a day, ordered by start time |
 | `{ "stops.harvestRequestId": 1 }` (multikey) | find the round of a request |
 | `{ workerIds: 1 }`, `{ equipmentIds: 1 }` (multikey) | rounds of a resource |
 

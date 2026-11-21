@@ -15,6 +15,7 @@ export interface Me {
   lastName: string
   roles: Role[]
   onboardingDone: boolean
+  assignedMillId?: string | null
   // true after an Admin approved a registration or reset the password: the User must change it first.
   mustChangePassword?: boolean
 }

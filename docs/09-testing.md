@@ -116,10 +116,10 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-RS-12 | Workers / equipment | collection manager | Alternative | API | GET 200, POST/PUT/DELETE 403 (`ResourceControllerTest`) |
 | T-RS-13 | Workers / equipment | farmer and admin | Alternative | API | farmer 403 on every route, admin full access, no token 401 (`ResourceControllerTest`) |
 | T-RS-2 | Supply order | receive → stock incremented | Nominal | API | `stockQuantity` += qty |
-| T-ML-1 | Reception | valid weighing | Nominal | API | net & fillRate computed, capacity decremented, farmer notified |
-| T-ML-2 | Reception | bin not part of round | Alternative | API | 422 |
-| T-ML-3 | Reception | same bin/orchard twice | Alternative | Repo | duplicate key → 409 |
-| T-ML-4 | Reception | mill manager of another mill | Alternative | API | 403 |
+| T-ML-1 | Reception | valid weighing | Nominal | API | `MillReceptionControllerTest.managerRecordsWeighingAndFarmerSeesTheReception`: net & fillRate computed, atomic capacity decrement, farmer notified |
+| T-ML-2 | Reception | orchard/bin not part of round or absurd weight | Alternative | API | `MillReceptionControllerTest.invalidBinAndWeightsAreRejected`: 422 (`ORCHARD_NOT_IN_ROUND` / `BIN_NOT_IN_ROUND` / `INVALID_WEIGHING`) |
+| T-ML-3 | Reception | same bin/orchard twice | Alternative | API + unique index | `MillReceptionControllerTest.duplicateReceptionReturnsConflict`: duplicate key → 409 `RECEPTION_EXISTS` |
+| T-ML-4 | Reception | mill manager of another mill | Alternative | API | `MillReceptionControllerTest.managerOfAnotherMillIsForbidden`: 403 |
 | T-IM-1 | Import | valid weather file | Nominal | API | SUCCESS, readings inserted |
 | T-IM-2 | Import | file with 3 invalid lines | Alternative | Unit + API | PARTIAL, 3 ImportErrors with line numbers |
 | T-IM-3 | Import | same file twice | Alternative | API | second run skipped (checksum) |
