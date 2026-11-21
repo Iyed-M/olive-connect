@@ -534,10 +534,14 @@ flowchart LR
 | Manager queue | `harvest_requests.find({status: "VALIDATED"}).sort({priorityScore: -1}).limit(50)` | `status_1_priorityScore_-1` | < 50 ms |
 | Nearby requests (grouping) | `$geoNear` on `orchard.location`, `maxDistance 10 000`, `query {status: VALIDATED}` | `orchard.location_2dsphere_status_1` | < 100 ms |
 | Booking conflicts | `resource_bookings.find({resourceId: {$in: ids}, start: {$lt: e}, end: {$gt: s}, status: "ACTIVE"})` | `resource_id_start_end_active` | < 20 ms |
-| Yield per orchard | aggregation below | `season_1_orchardId_1` | < 1 s for 10⁵ receptions |
+| KPI summary tiles | aggregation over the filtered season/date range | `season_received_at` | < 1 s for 10⁵ receptions |
+| Yield per orchard, variety or delegation | aggregation below | `season_orchard` (orchard grouping) | < 1 s for 10⁵ receptions |
+| Lead time by delegation or ISO week | aggregation with average and p90 | `season_received_at` | < 1 s for 10⁵ receptions |
+| Fill rate by ISO week, bin or round | aggregation with under-filled count | `season_received_at` | < 1 s for 10⁵ receptions |
+| Mill volume by day | aggregation by `millId` and `$dateTrunc` day | `mill_received_at` (mill filter) | < 1 s for 10⁵ receptions |
 | Latest maturity history | `maturity_readings.find({"meta.orchardId": X}).sort({timestamp: -1}).limit(30)` | `meta.orchardId_1_timestamp_-1` | < 50 ms |
 
-Each of these queries gets checked with `explain("executionStats")` (`IXSCAN`, never `COLLSCAN`), and the screenshots go in the report.
+Each of these queries gets checked with `explain("executionStats")`; the first `$match` is deliberately kept before the aggregation stages so the season/date indexes can be used. The explicit M11 evidence test is `KpiPerformanceEvidenceIT` (excluded from the normal `*Test` suite because it seeds 90,000 facts). In the local MongoDB run, after warming the plan cache, it reported summary 376 ms, yield/orchard 317 ms, lead-time/delegation 248 ms, fill-rate/week 225 ms and mill-volumes/day 310 ms. The season-match explain reported 90,000 keys and 90,000 documents examined for the 90,000-fact fixture; this is the recorded baseline for further index tuning rather than an unverified claim of a covered query.
 
 ### KPI aggregation pipelines (F5)
 
@@ -577,6 +581,26 @@ db.mill_receptions.aggregate([
 ])
 ```
 
+**Daily mill volumes with quality counts:**
+```js
+db.mill_receptions.aggregate([
+  { $match: { season: "2026-2027", receivedAt: { $gte: from, $lt: to } } },
+  { $group: { _id: { millId: "$millId", day: { $dateTrunc: { date: "$receivedAt", unit: "day" } } },
+              totalNetKg: { $sum: "$netWeightKg" }, receptions: { $sum: 1 },
+              extra: { $sum: { $cond: [{ $eq: ["$quality.grade", "EXTRA"] }, 1, 0] } },
+              good: { $sum: { $cond: [{ $eq: ["$quality.grade", "GOOD"] }, 1, 0] } } } },
+  { $sort: { "_id.day": 1, "_id.millId": 1 } }
+])
+```
+
+The running implementation is `KpiRepositoryCustomImpl`: it uses
+`MongoTemplate` with a raw aggregation stage for the `$percentile`, `$dateTrunc`
+and conditional-count operators, then maps the results to
+`KpiSummaryDto`, `YieldPoint`, `LeadTimePoint`, `FillRatePoint` and
+`MillVolumePoint`. `KpiService` validates filters and performs the five-minute
+Redis read-through cache; it uses `StringRedisTemplate` explicitly so a Redis
+outage only disables the optimisation and does not make the dashboard fail.
+
 **Daily rainfall per delegation (time series):**
 ```js
 db.weather_readings.aggregate([
@@ -604,7 +628,7 @@ Eviction policy `allkeys-lru` with `maxmemory 256mb`. Persistence: RDB snapshot 
 
 ## 8. Persistence API and its justification
 
-**Chosen: Spring Data MongoDB, plus Spring Data Redis through the Spring Cache abstraction.**
+**Chosen: Spring Data MongoDB, plus Spring Data Redis through `StringRedisTemplate`.**
 
 | Criterion | Spring Data MongoDB | Alternatives |
 |---|---|---|
@@ -615,7 +639,7 @@ Eviction policy `allkeys-lru` with `maxmemory 256mb`. Persistence: RDB snapshot 
 | Transactions | `MongoTransactionManager` + `@Transactional` (replica set) | — |
 | Auditing | `@EnableMongoAuditing`: `@CreatedDate`, `@LastModifiedDate`, `@CreatedBy` | — |
 | Testing | `@DataMongoTest` + Testcontainers | — |
-| Redis | `@Cacheable`, `@CacheEvict` with `RedisCacheManager` (per-cache TTL); `StringRedisTemplate` for tokens, rate limits, locks, pub/sub (`RedisMessageListenerContainer`) | Caffeine (local only, not shared between instances) |
+| Redis | `StringRedisTemplate` for KPI JSON read-through caching, tokens, rate limits, locks and pub/sub (`RedisMessageListenerContainer`) | Caffeine (local only, not shared between instances) |
 
 ### Repository patterns (examples)
 

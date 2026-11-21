@@ -37,7 +37,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | ImportJob / ImportError | R1 / R2 | `import_jobs` | `imports.ImportJob`, `imports.ImportError` (embedded), `imports.ImportStatus`, `imports.ImportSource` | `ImportJobRepository` | `ImportService`, `ImportJournalService`, `ImportScheduler` | `ImportController /imports` | `features/imports/ImportJournalPage`, `features/imports/ImportDetailPage`, routes `/intranet/imports`, `/intranet/imports/$id` |
 | SystemSettings | R1 | `system_settings` (`_id: "global"`) | `settings.SystemSettings` | `SystemSettingsRepository` | `SettingsService` | `SettingsController /settings` | `features/imports/SettingsPage`, route `/intranet/settings` |
 | (System status — no class, read model) | — | none (pings MongoDB and Redis) | `system.SystemStatusDto` | — | `SystemStatusService` | `SystemStatusController /system` | `lib/api.ts` (`getSystemStatus`, no page calls it since M9 replaced the status page with the public map) |
-| (KPIs — no class, read model) | R13 | aggregation over `mill_receptions`, `collection_rounds` | DTOs `dashboard.dto.*` | `KpiRepositoryCustom` | `KpiService` | `DashboardController /dashboard` | `dashboard/` |
+| (KPIs — no class, read model) | R13 | aggregation over `mill_receptions` | `KpiSummaryDto`, `YieldPoint`, `LeadTimePoint`, `FillRatePoint`, `MillVolumePoint` (`dashboard.dto`) | `KpiRepositoryCustom` / `KpiRepositoryCustomImpl` | `KpiService` | `DashboardController /dashboard` | `features/dashboard/`, route `/dashboard` |
 
 ## 2. Requirement ⇄ use case ⇄ endpoint ⇄ test
 
@@ -56,7 +56,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | FR-2.x | Report & handle alert / SD-5 | `/alerts/**` | T-AL-1..6 |
 | FR-3.x | Resources | `/workers`, `/equipment`, `/resources/*`, `/supply-orders` | T-RS-1..2, T-RD-2 |
 | FR-4.x | Map | `/map/public`, `/map/private` | T-SEC-3, T-MAP-1..3, T-PERF-1 |
-| FR-5.x | Dashboard / SD-9 | `/dashboard/*` | T-KPI-1..2 |
+| FR-5.x | Dashboard / SD-9 | `/dashboard/*` | T-KPI-1..4 |
 | FR-6.1 (M9) | Registration request and approval / SD-REG | `POST /registrations`, `GET /registrations`, `POST /registrations/{id}/approve`, `/reject`, `PATCH /me/password` | T-REG-1..8 |
 | FR-6.2 | Accounts | `/users` | T-AUTH-* |
 | FR-6.3–6.4 (M10) | Import / SD-8 | `GET /imports`, `GET /imports/{id}`, `POST /imports/run`, `POST /imports/upload`, `GET` and `PUT /settings` | T-IM-1..8 |

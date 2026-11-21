@@ -815,7 +815,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     autonumber
-    actor CM as Collection manager
+    actor CM as Collection or mill manager
     participant FE as React
     participant C as CollectionRoundController
     participant S as CollectionRoundService
@@ -1135,20 +1135,26 @@ sequenceDiagram
     participant KR as KpiRepositoryCustom
     participant M as MongoDB
 
-    CM->>C: GET /api/dashboard/fill-rate?season=2026-2027&groupBy=week
+    CM->>C: GET /api/dashboard/fill-rate?season=2026-2027&from=2026-10-01&to=2027-01-01&groupBy=week
     C->>K: fillRate(filter)
-    K->>RC: GET kpi::fillRate:{hash(filter)}
+    K->>RC: GET cache:kpi::fill-rate:{sha256(filter)}
     alt cache hit
         RC-->>K: cached result
     else miss
         K->>KR: aggregateFillRate(filter)
-        KR->>M: aggregate([$match season, $group by week, $avg fillRate, ...])
-        M-->>KR: rows (uses index season+receivedAt)
+        KR->>M: aggregate([$match filters, $group by week, $avg fillRate, ...])
+        M-->>KR: FillRatePoint rows (uses season+receivedAt index)
         K->>RC: SET TTL 300 s
     end
-    K-->>C: KpiSeriesDto
+    K-->>C: FillRatePoint[]
     C-->>CM: 200 JSON → Recharts
 ```
+
+The same controller exposes `summary`, `yield`, `lead-time`, `fill-rate` and
+`mill-volumes` read models, plus `/{kpi}/export.csv`. All accept the normalised
+season, date range, variety, delegation and mill filters; the series endpoints
+also accept their documented `groupBy`. A `MILL_MANAGER` filter is intersected
+with the authenticated user's assigned mill before the repository is called.
 
 ### SD-10 Admin creates, edits and disables a User (alternatives: validation, duplicate email or member number, Farmer without profile, self-lockout)
 

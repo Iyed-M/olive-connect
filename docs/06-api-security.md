@@ -177,12 +177,12 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 ### Dashboard (F5)
 | Method | Path | Roles | Description | FR |
 |---|---|---|---|---|
-| GET | `/dashboard/summary` | CM, MM, AD | KPI tiles, query `season` | — |
-| GET | `/dashboard/yield` | CM, AD | yield, query `season`, `groupBy=orchard\|variety\|delegation` | FR-5.1 |
-| GET | `/dashboard/lead-time` | CM, AD | lead time, query `season`, `groupBy=delegation\|week` | FR-5.2 |
-| GET | `/dashboard/fill-rate` | CM, MM, AD | fill rate, query `season`, `groupBy=week\|bin\|round` | FR-5.3 |
-| GET | `/dashboard/mill-volumes` | MM (own), CM, AD | mill volumes, query `millId`, `from`, `to` | FR-5.4 |
-| GET | `/dashboard/{kpi}/export.csv` | same as KPI | CSV export of a KPI | FR-5.6 |
+| GET | `/dashboard/summary` | CM, MM, AD | KPI tiles, query `season`, optional `from`, `to`, `variety`, `delegation`, `millId` | — |
+| GET | `/dashboard/yield` | CM, AD | yield, query filters `season`, `from`, `to`, `variety`, `delegation`, `millId`, `groupBy=orchard\|variety\|delegation` | FR-5.1 |
+| GET | `/dashboard/lead-time` | CM, AD | lead time average and p90, same filters, `groupBy=delegation\|week` | FR-5.2 |
+| GET | `/dashboard/fill-rate` | CM, MM, AD | fill rate and under-filled count, same filters, `groupBy=week\|bin\|round` | FR-5.3 |
+| GET | `/dashboard/mill-volumes` | MM (own), CM, AD | daily mill volumes and quality counts, query `season`, optional `from`, `to`, `variety`, `delegation`, `millId` | FR-5.4 |
+| GET | `/dashboard/{kpi}/export.csv` | same as KPI | CSV export of `summary`, `yield`, `lead-time`, `fill-rate` or `mill-volumes` with the same filters | FR-5.6 |
 
 ### Notifications, imports, settings
 | Method | Path | Roles | Description |
@@ -323,6 +323,15 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 { "type": "https://oliveconnect.tn/errors/booking-conflict", "title": "Resource already booked",
   "status": 409, "code": "BOOKING_CONFLICT",
   "detail": "Bin B-07 is already booked by round T-2026-118 (07:00–15:00)." }
+```
+
+```jsonc
+// GET /api/dashboard/summary?season=2026-2027 — KpiSummaryDto
+{ "season": "2026-2027", "receptions": 90000, "totalNetKg": 241500000,
+  "avgYieldKgHa": 1421.4, "estOilKg": 48230000, "avgLeadTimeH": 61.2,
+  "p90LeadTimeH": 108.0, "avgFillRate": 0.79 }
+// Series endpoints return arrays of YieldPoint, LeadTimePoint, FillRatePoint or
+// MillVolumePoint. `/dashboard/{kpi}/export.csv` uses the same filter and role scope.
 ```
 
 ## 4. Security design
