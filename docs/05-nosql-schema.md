@@ -541,7 +541,7 @@ flowchart LR
 | Mill volume by day | aggregation by `millId` and `$dateTrunc` day | `mill_received_at` (mill filter) | < 1 s for 10⁵ receptions |
 | Latest maturity history | `maturity_readings.find({"meta.orchardId": X}).sort({timestamp: -1}).limit(30)` | `meta.orchardId_1_timestamp_-1` | < 50 ms |
 
-Each of these queries gets checked with `explain("executionStats")`; the first `$match` is deliberately kept before the aggregation stages so the season/date indexes can be used. The explicit M11 evidence test is `KpiPerformanceEvidenceIT` (excluded from the normal `*Test` suite because it seeds 90,000 facts). In the local MongoDB run, after warming the plan cache, it reported summary 376 ms, yield/orchard 317 ms, lead-time/delegation 248 ms, fill-rate/week 225 ms and mill-volumes/day 310 ms. The season-match explain reported 90,000 keys and 90,000 documents examined for the 90,000-fact fixture; this is the recorded baseline for further index tuning rather than an unverified claim of a covered query.
+Each of these queries gets checked with `explain("executionStats")`; the first `$match` is deliberately kept before the aggregation stages so the season/date indexes can be used. The explicit M11 evidence test is `KpiPerformanceEvidenceIT` (excluded from the normal `*Test` suite because it seeds 90,000 facts). In the final local MongoDB run, after warming the plan cache, it reported summary 311 ms, yield/orchard 338 ms, lead-time/delegation 242 ms, fill-rate/week 230 ms and mill-volumes/day 320 ms; the five corresponding explain outputs each reported 90,000 keys and 90,000 documents examined. This is the recorded baseline for further index tuning rather than an unverified claim of a covered query.
 
 ### KPI aggregation pipelines (F5)
 
