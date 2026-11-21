@@ -99,10 +99,12 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-RD-6 | Run round | start by another team leader | Alternative | API | 403 (`CollectionRoundExecutionControllerTest`) |
 | T-RD-7 | Run round | complete with pending stops | Alternative | API | 422 `STOPS_PENDING` (`CollectionRoundExecutionControllerTest`) |
 | T-RD-8 | Run round | full run: start → stops → complete | Nominal | API | statuses cascade to requests & orchards (`CollectionRoundExecutionControllerTest`) |
-| T-AL-1 | Report alert | with GPS near orchard | Nominal | API | 201, SSE event received by manager |
-| T-AL-2 | Report alert | GPS 5 km away | Alternative | Unit | `locationMismatch=true` |
-| T-AL-3 | Report alert | photo too large / wrong type | Alternative | Web | 400 |
-| T-AL-4 | Handle alert | create urgent request from MATURITY alert | Nominal | API | request URGENT created, alert RESOLVED |
+| T-AL-1 | Report alert | with GPS near orchard | Nominal | API + SSE | 201, persisted `FieldAlert`, and an `alert` event received by the manager (`FieldAlertControllerTest`, `EventControllerTest`) |
+| T-AL-2 | Report alert | GPS 5 km away | Alternative | Unit + API | `locationMismatch=true` while the alert is kept (`FieldAlertServiceTest`, `FieldAlertControllerTest`) |
+| T-AL-3 | Report alert | photo too large / wrong type | Alternative | API + Web | 400 and no alert is persisted (`FieldAlertControllerTest`) |
+| T-AL-4 | Handle alert | create urgent request from MATURITY alert | Nominal | API | request URGENT created, alert RESOLVED (`FieldAlertControllerTest`) |
+| T-AL-5 | SSE authentication | ticket is one-time and expires after 30 seconds | Alternative | API | reused or missing ticket returns 401; recipient-only fan-out (`EventControllerTest`) |
+| T-AL-6 | Report alert | two concurrent reports of the same type for one orchard | Alternative | API + unit | exactly one 201, one 409, and one open alert (`FieldAlertControllerTest`, `FieldAlertServiceTest`) |
 | T-RS-1 | Resources | calendar of a bin for a week | Nominal | Repo | bookings + unavailabilities returned |
 | T-RS-3 | Workers | logistics manager creates, reads, updates, filters and deletes a worker | Nominal | API | 201 with `Location`, 200, 204 then 404 (`ResourceControllerTest`) |
 | T-RS-4 | Workers | worker with an existing `cin` | Alternative | API | 409 `CIN_TAKEN` (`ResourceControllerTest`) |

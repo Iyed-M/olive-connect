@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, Factory, FileUp, Gauge, HardHat, Map, Route, Scale, Settings, Sprout, Truck, UserPlus, Users, type LucideIcon } from 'lucide-react'
+import { CalendarDays, ClipboardList, Factory, FileUp, Gauge, HardHat, Map, Route, Scale, Settings, Sprout, TriangleAlert, Truck, UserPlus, Users, type LucideIcon } from 'lucide-react'
 import type { LinkProps } from '@tanstack/react-router'
 import type { Role } from './types'
 
@@ -15,11 +15,13 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/farmer', label: 'Accueil', icon: Sprout },
     { to: '/farmer/requests', label: 'Demandes', icon: ClipboardList },
     { to: '/farmer/orchards', label: 'Vergers', icon: Map },
+    { to: '/farmer/alerts/new', label: 'Alerte', icon: TriangleAlert },
     { to: '/farmer/receptions', label: 'Réceptions', icon: Scale },
   ],
   COLLECTION_MANAGER: [
     { to: '/collection/requests', label: 'Demandes', icon: ClipboardList },
     { to: '/collection/planning', label: 'Planification', icon: CalendarDays },
+    { to: '/collection/alerts', label: 'Alertes', icon: TriangleAlert },
   ],
   TEAM_LEADER: [{ to: '/rounds/mine', label: 'Mes tournées', icon: Route }],
   LOGISTICS_MANAGER: [

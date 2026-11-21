@@ -34,6 +34,9 @@ Base URL: `/api`. Format: JSON, dates in ISO-8601 UTC, GeoJSON for positions. AP
 | `TOO_MANY_ATTEMPTS` | 429 | 5 failed logins in 15 min, with `Retry-After` | M1a |
 | `STALE_VERSION` | 409 | optimistic locking conflict (stale `version`) | M1b |
 | `ACTIVE_REQUEST_EXISTS` | 409 | an orchard already has an active harvest request | M3 |
+| `ACTIVE_ALERT_EXISTS` | 409 | an orchard already has an open field alert of the same type | M8 |
+| `URGENT_REQUEST_NOT_ALLOWED` | 409 | an urgent harvest request can only be created from an acknowledged maturity alert | M8 |
+| `URGENT_REQUEST_EXISTS` | 409 | an urgent harvest request was already created for this field alert | M8 |
 | `INVALID_TRANSITION` | 409 | the requested HarvestRequest or RoundStop state transition is not allowed | M3–M6 |
 | `BOOKING_CONFLICT` | 409 | a team leader, worker or equipment item is already booked for the requested slot | M5 |
 | `ROUND_NOT_PLANNED`, `ROUND_STARTED` | 409 | a round action requires `PLANNED`, or a started round cannot be cancelled | M5–M6 |
@@ -153,12 +156,13 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 | Method | Path | Roles | Description | FR |
 |---|---|---|---|---|
 | POST | `/alerts` | F | report (multipart: JSON + photo) | FR-2.1, 2.2 |
-| GET | `/alerts` | F (own), CM | list, query `status`, `type`, `mine` | FR-2.3 |
+| GET | `/alerts` | F (own), CM, AD | list, query `status`, `type`, `mine` | FR-2.3 |
+| GET | `/alerts/{id}` | F own, CM, AD | detail; another Farmer's alert is indistinguishable from missing and returns 404 | FR-2.3 |
 | POST | `/alerts/{id}/acknowledge` | CM | acknowledge | FR-2.4 |
 | POST | `/alerts/{id}/resolve` | CM | resolve | FR-2.4 |
 | POST | `/alerts/{id}/dismiss` | CM | dismiss | FR-2.4 |
 | POST | `/alerts/{id}/create-urgent-request` | CM | one-click urgent request | FR-2.5 |
-| GET | `/files/alerts/{fileId}` | F own, CM | photo (GridFS) | — |
+| GET | `/files/alerts/{fileId}` | F own, CM, AD | photo (GridFS bucket `alerts`) | — |
 
 ### Mills (F1, F5)
 | Method | Path | Roles | Description | FR |
@@ -183,7 +187,7 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 ### Notifications, imports, settings
 | Method | Path | Roles | Description |
 |---|---|---|---|
-| GET | `/events` | any authenticated | real-time SSE stream (`text/event-stream`), authenticated with the short-lived `ticket` query parameter |
+| GET | `/events` | any authenticated ticket | real-time SSE stream (`text/event-stream`), authenticated with the short-lived one-time `ticket` query parameter |
 | GET | `/notifications` | any (own) | inbox, query `unread` |
 | POST | `/notifications/{id}/read` | own | mark one as read |
 | POST | `/notifications/read-all` | own | mark all as read |
@@ -341,6 +345,7 @@ flowchart LR
 - JWT claims: `sub` = userId, `roles` (mapped to `ROLE_*` authorities), `millId` (for mill managers, from M7), `exp`. The secret comes from the `JWT_SECRET` environment variable (at least 32 characters, the API refuses to start otherwise) and is never committed. The seeded Admin comes from `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
 - **Login rate limiting** through Redis, key `ratelimit:login:{email}:{ip}`: every failed login (unknown email, wrong password, disabled User) adds 1; the 15 min window starts at the first failure. With 5 failures, every attempt gets 429 `TOO_MANY_ATTEMPTS` with `Retry-After` and `retryAfterSeconds`, even with the right password. A success clears the counter. The client IP comes from Nginx's `X-Forwarded-For` (`server.forward-headers-strategy: native`).
 - **SSE authentication**: `EventSource` cannot send headers, so the client first calls `POST /api/events/ticket`. That returns a one-time ticket stored in Redis for 30 s, which is then passed as `?ticket=`.
+  `GET /api/events` is deliberately permit-all at the bearer-token filter because the controller authenticates it by atomically consuming the ticket with Redis `GETDEL`; reusing or omitting the ticket returns 401 `UNAUTHENTICATED`. `notification` and `alert` event names carry the persisted `NotificationDto` payload.
 
 ### 4.2 Authorisation: three levels
 

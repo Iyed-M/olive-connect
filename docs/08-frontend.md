@@ -36,13 +36,15 @@ frontend/
 │   │   └── ui/                # (M0) shadcn/ui components: badge, button, card, input, label (more are added with the CLI when needed)
 │   ├── features/
 │   │   ├── public/            # PublicMapPage, RegistrationPage, AboutPage
-│   │   ├── farmer/            # FarmerHome, OrchardsPage, OrchardForm, OrchardMap, orchard API (M2); HarvestRequestForm, MyRequests, HarvestRequestDetail, RequestActions, harvest request API/tests (M3); AlertForm; MyReceptions (M7)
+│   │   ├── farmer/            # FarmerHome, OrchardsPage, OrchardForm, OrchardMap, orchard API (M2); HarvestRequestForm, MyRequests, HarvestRequestDetail, RequestActions, harvest request API/tests (M3); MyReceptions (M7)
+│   │   ├── alerts/            # AlertForm, AlertsMap, alert API/tests (M8)
 │   │   ├── collection/        # RequestQueue, PlanningBoard, RoundForm, AlertsBoard, OperationsMap
 │   │   ├── teamleader/        # MyRounds, RoundRunner (stop-by-stop)
 │   │   ├── logistics/         # ResourceCalendar, SupplyOrders (Workers and Equipment: see src/logistics/, M4)
 │   │   ├── mill/              # IncomingRounds, ReceptionForm, CapacityPage
 │   │   ├── dashboard/         # DashboardPage + KPI charts (Recharts)
-│   │   ├── notifications/     # NotificationBell, NotificationsPage, notification API/tests (M3); useEventStream (SSE, M8)
+│   │   ├── notifications/     # NotificationBell, NotificationsPage, notification API/tests (M3)
+│   │   ├── events/            # useEventStream and event helpers/tests (SSE, M8)
 │   │   ├── imports/           # (M10) ImportJournalPage, ImportDetailPage, SettingsPage, imports.ts (API calls, CSV export of rejected rows)
 │   │   └── intranet/          # data grids (planned)
 │   ├── help/                  # contextual help Markdown
@@ -96,7 +98,7 @@ M3 makes the harvest flow real. Farmers use `/farmer/requests` to review status 
 request while the API reports the action rules. Collection managers review the priority-sorted
 queue at `/collection/requests` and validate or reject submitted requests with a required reason.
 The header contains a notification bell for every authenticated role, and `/notifications`
-polls the in-app inbox every 30 seconds; SSE remains a later M8 concern. M3 labels and validation
+polls the in-app inbox every 30 seconds until M8 enables the authenticated SSE stream. M3 labels and validation
 messages are French, quantity fields stay text-backed until the mutation parses them, the rejection
 form uses React Hook Form, and action buttons are rendered only from the API's `allowedActions`.
 
@@ -129,6 +131,13 @@ and tare weights and a quality grade, and see the computed net weight/fill rate 
 own recorded receptions, including the final weight, fill rate, quality and traceability fields.
 The UI keeps the API authoritative for round/bin ownership, duplicate weighing and weight limits;
 the forms remain French, mobile-first and usable at the 360 px baseline.
+
+M8 makes `/farmer/alerts/new` real for Farmers and `/collection/alerts` real for Collection managers.
+The farmer form requests browser geolocation, preselects the nearest own orchard, falls back to the
+orchard position when permission is denied, validates JPEG/PNG photos up to 5 MB, and submits a
+multipart report. The manager board combines the live alert map with the queue and exposes the
+acknowledge, resolve, dismiss and urgent-request actions. `AppLayout` opens `useEventStream()`
+after login; the notification bell disables its 30-second polling while the SSE connection is active.
 
 ```mermaid
 flowchart TB
@@ -225,4 +234,10 @@ The runner first records `IN_PROGRESS` when the team arrives, so the documented
 
 ## 6. Real-time
 
-The `useEventStream()` hook opens an `EventSource('/api/events?ticket=…')` after login. On each event it invalidates the matching TanStack Query keys (`['alerts']`, `['requests']`…) and shows a toast. It reconnects with backoff, and on reconnect it re-fetches unread notifications.
+The `useEventStream()` hook obtains a one-time ticket and opens an `EventSource('/api/events?ticket=…')`
+after login. The backend emits the event name `alert` for `NEW_ALERT`, `ALERT_ACKNOWLEDGED`,
+`ALERT_RESOLVED` and `ALERT_DISMISSED` notifications, so `alert` events invalidate both
+`['alerts']` and `['notifications']`; the generic `notification` event invalidates
+`['notifications']`. The client retains defensive mappings for future request/round event
+names. It reconnects with capped exponential backoff, and on reconnect it re-fetches unread
+notifications.

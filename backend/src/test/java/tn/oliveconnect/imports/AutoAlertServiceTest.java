@@ -57,6 +57,7 @@ class AutoAlertServiceTest extends AbstractIntegrationTest {
         assertThat(alert.getSource()).isEqualTo(AlertSource.SENSOR);
         assertThat(alert.getStatus()).isEqualTo(AlertStatus.NEW);
         assertThat(alert.getOrchardId()).isEqualTo(inside.getId());
+        assertThat(alert.getOpenAlertKey()).isEqualTo(inside.getId() + ":RAIN");
     }
 
     @Test
@@ -96,6 +97,7 @@ class AutoAlertServiceTest extends AbstractIntegrationTest {
 
         FieldAlert closed = alerts.get(0);
         closed.setStatus(AlertStatus.RESOLVED);
+        assertThat(closed.getOpenAlertKey()).isNull();
         alertRepository.save(closed);
         autoAlertService.evaluate();
         assertThat(alertRepository.findAll()).hasSize(2);

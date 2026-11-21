@@ -11,7 +11,7 @@ public record NotificationDto(
         boolean read,
         Instant createdAt) {
 
-    static NotificationDto from(Notification notification) {
+    public static NotificationDto from(Notification notification) {
         return new NotificationDto(notification.getId(), notification.getType(), notification.getTitle(),
                 notification.getMessage(), notification.getLink(), notification.isRead(), notification.getCreatedAt());
     }

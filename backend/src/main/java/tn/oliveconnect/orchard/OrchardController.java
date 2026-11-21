@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -42,6 +43,13 @@ public class OrchardController {
     @PreAuthorize("hasAnyRole('FARMER', 'COLLECTION_MANAGER', 'ADMIN')")
     public OrchardDto get(@PathVariable String id, Authentication authentication) {
         return orchardService.get(id, authentication);
+    }
+
+    @GetMapping("/nearest")
+    @PreAuthorize("hasRole('FARMER')")
+    public OrchardDto nearest(@RequestParam double lng, @RequestParam double lat,
+                              Authentication authentication) {
+        return orchardService.nearest(lng, lat, authentication);
     }
 
     @PutMapping("/{id}")

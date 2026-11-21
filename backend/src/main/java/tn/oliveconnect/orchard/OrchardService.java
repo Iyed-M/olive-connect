@@ -7,7 +7,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.springframework.data.geo.GeoResults;
+import org.springframework.data.geo.Metrics;
+import org.springframework.data.geo.Point;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.NearQuery;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -32,14 +39,17 @@ public class OrchardService {
     private final UserRepository userRepository;
     private final StringRedisTemplate redis;
     private final ObjectMapper objectMapper;
+    private final MongoTemplate mongoTemplate;
 
     public OrchardService(OrchardRepository orchardRepository, OliveVarietyRepository varietyRepository,
-                          UserRepository userRepository, StringRedisTemplate redis, ObjectMapper objectMapper) {
+                          UserRepository userRepository, StringRedisTemplate redis, ObjectMapper objectMapper,
+                          MongoTemplate mongoTemplate) {
         this.orchardRepository = orchardRepository;
         this.varietyRepository = varietyRepository;
         this.userRepository = userRepository;
         this.redis = redis;
         this.objectMapper = objectMapper;
+        this.mongoTemplate = mongoTemplate;
     }
 
     public List<OrchardDto> list(Authentication authentication) {
@@ -51,6 +61,20 @@ public class OrchardService {
 
     public OrchardDto get(String id, Authentication authentication) {
         return OrchardDto.from(findVisible(id, authentication));
+    }
+
+    public OrchardDto nearest(double longitude, double latitude, Authentication authentication) {
+        validateCoordinates(longitude, latitude);
+        NearQuery query = NearQuery.near(new Point(longitude, latitude), Metrics.KILOMETERS)
+                .spherical(true)
+                .query(Query.query(Criteria.where("ownerId").is(authentication.getName())))
+                .limit(1);
+        GeoResults<Orchard> results = mongoTemplate.geoNear(query, Orchard.class);
+        Orchard nearest = results.getContent().stream()
+                .findFirst()
+                .map(result -> result.getContent())
+                .orElseThrow(() -> new NotFoundException("Orchard not found"));
+        return OrchardDto.from(nearest);
     }
 
     public OrchardDto create(OrchardWriteDto dto, Authentication authentication) {
@@ -181,6 +205,13 @@ public class OrchardService {
                 || longitude < MIN_TUNISIA_LONGITUDE || longitude > MAX_TUNISIA_LONGITUDE
                 || latitude < MIN_TUNISIA_LATITUDE || latitude > MAX_TUNISIA_LATITUDE) {
             throw new FieldValidationException("location.coordinates", "must be a position inside Tunisia");
+        }
+    }
+
+    private void validateCoordinates(double longitude, double latitude) {
+        if (!Double.isFinite(longitude) || !Double.isFinite(latitude)
+                || longitude < -180 || longitude > 180 || latitude < -90 || latitude > 90) {
+            throw new FieldValidationException("coordinates", "must contain valid coordinates");
         }
     }
 
