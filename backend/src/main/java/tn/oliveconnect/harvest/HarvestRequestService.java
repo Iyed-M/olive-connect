@@ -96,6 +96,34 @@ public class HarvestRequestService {
         return toDto(saved, authentication);
     }
 
+    /** Creates the one-click urgent request launched from a manager's maturity alert action. */
+    public HarvestRequest createUrgentFromAlert(String orchardId, String farmerId, String managerId, String alertId) {
+        Orchard orchard = orchardRepository.findById(orchardId)
+                .orElseThrow(() -> new NotFoundException("Orchard not found"));
+        if (harvestRequestRepository.existsByOrchardIdAndStatusIn(orchardId, ACTIVE_STATUSES)) {
+            throw new ConflictException("ACTIVE_REQUEST_EXISTS", "A request is already open for this orchard");
+        }
+
+        LocalDate desiredFrom = LocalDate.now(ZoneOffset.UTC);
+        HarvestRequest request = new HarvestRequest();
+        request.setFarmerId(farmerId);
+        request.setOrchardId(orchard.getId());
+        request.setOrchard(snapshot(orchard));
+        request.setType(HarvestType.URGENT);
+        request.setDesiredFrom(desiredFrom);
+        request.setDesiredTo(desiredFrom.plusDays(7));
+        request.setEstimatedQuantityKg(estimatedQuantity(orchard));
+        request.setComment("Created from field alert " + alertId);
+        request.setSeason(seasonFor(desiredFrom));
+        request.setPriorityScore(priorityFor(HarvestType.URGENT, orchard, null));
+        request.transitionTo(HarvestRequestStatus.SUBMITTED, managerId, request.getComment());
+
+        HarvestRequest saved = harvestRequestRepository.save(request);
+        notificationService.notifyCollectionManagers(NotificationType.NEW_REQUEST, "New urgent harvest request",
+                "An urgent harvest request was created for " + orchard.getName(), linkFor(saved));
+        return saved;
+    }
+
     @Transactional(readOnly = true)
     public PageResponse<HarvestRequestDto> list(Authentication authentication, HarvestRequestStatus status,
                                                 HarvestType type, Boolean mine, int page, int size) {
@@ -357,6 +385,11 @@ public class HarvestRequestService {
         // M3 has no FieldAlert aggregate yet, so the alert term is deliberately false until M8.
         return priorityCalculator.calculate(type, orchard.getCurrentMaturityIndex(), optimalMin, optimalMax,
                 waitingDays, false);
+    }
+
+    private double estimatedQuantity(Orchard orchard) {
+        double estimate = orchard.getAreaHa() * orchard.getLastSeasonYieldKgHa();
+        return Double.isFinite(estimate) && estimate > 0 ? estimate : Math.max(1, orchard.getTreeCount());
     }
 
     private boolean hasRole(Authentication authentication, Role role) {

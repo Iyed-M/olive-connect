@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
@@ -107,8 +108,13 @@ public class AutoAlertService {
         alert.setOrchardId(orchard.getId());
         alert.setOrchardName(orchard.getName());
         alert.setFarmerId(orchard.getOwnerId());
+        alert.setOpenAlertKey(FieldAlert.openAlertKey(orchard.getId(), type));
         alert.setLocation(orchard.getLocation());
         alert.setDescription(description);
-        alertRepository.save(alert);
+        try {
+            alertRepository.save(alert);
+        } catch (DataIntegrityViolationException ignored) {
+            // Another report won the atomic open-alert key race.
+        }
     }
 }

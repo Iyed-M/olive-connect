@@ -383,10 +383,15 @@ classDiagram
         +String orchardId
         +String orchardName
         +String farmerId
+        +String reporterId
+        +String openAlertKey
         +GeoPoint location
+        +boolean locationMismatch
         +String description
         +List~String~ photoUrls
         +String resolution
+        +String handledById
+        +String harvestRequestId
         +List~StatusChange~ statusHistory
         +Instant createdAt
     }
@@ -457,6 +462,10 @@ classDiagram
         ROUND_COMPLETED
         RECEPTION_RECORDED
         MILL_SATURATED
+        NEW_ALERT
+        ALERT_ACKNOWLEDGED
+        ALERT_RESOLVED
+        ALERT_DISMISSED
     }
     class ImportJob {
         +String id
@@ -911,7 +920,14 @@ sequenceDiagram
     participant S as FieldAlertService
     participant OR as OrchardRepository
     participant AR as FieldAlertRepository
+    participant GF as GridFsTemplate
+    participant HR as HarvestRequestService
     participant NS as NotificationService
+    participant RP as RedisNotificationPublisher
+    participant RS as RedisNotificationSubscriber
+    participant EC as EventController
+    participant ET as EventTicketService
+    participant SSE as SseEmitterRegistry
     participant R as Redis pub/sub
     actor CM as Collection manager (SSE open)
 
@@ -923,20 +939,40 @@ sequenceDiagram
     else denied / timeout
         FE-->>F: pick orchard manually (position = orchard centroid)
     end
+    FE->>EC: POST /api/events/ticket (manager opens stream)
+    EC->>ET: issue(userId)
+    ET->>R: SET event:ticket:{ticket} TTL 30 s
+    FE->>EC: GET /api/events?ticket=...
+    EC->>ET: consume(ticket) [one-time GETDEL]
+    EC->>SSE: register(userId)
     F->>FE: type=MATURITY, optional photo/description
     FE->>C: POST /api/alerts (multipart)
-    C->>S: report(dto, user)
+    C->>S: report(dto, photos, user)
     S->>OR: findByIdAndOwnerId
     S->>S: distance(position, orchard.location)
     opt distance > 2 km
         S-->>S: flag LOCATION_MISMATCH (kept, shown to manager)
     end
-    S->>AR: save(alert NEW)
-    S->>NS: notifyRole(COLLECTION_MANAGER, NEW_ALERT)
-    NS->>R: PUBLISH
-    R-->>CM: SSE event "alert" (map + queue refresh)
+    S->>AR: save(alert NEW + openAlertKey)
+    opt photos supplied
+        S->>GF: store photos in GridFS bucket alerts
+    end
+    S->>NS: notifyCollectionManagers(NEW_ALERT)
+    NS->>RP: publish after Mongo commit
+    RP->>R: PUBLISH notifications
+    R-->>RS: notification event
+    RS->>SSE: send(userId, alert, NotificationDto)
+    SSE-->>CM: SSE event "alert" (map + queue refresh)
     C-->>FE: 201
     FE-->>F: "Alert sent" + status follow-up
+    CM->>C: POST /api/alerts/{id}/acknowledge
+    C->>S: acknowledge(id)
+    S->>NS: notifyUser(farmerId, ALERT_ACKNOWLEDGED)
+    CM->>C: POST /api/alerts/{id}/create-urgent-request
+    C->>S: createUrgentRequest(id)
+    S->>HR: createUrgentFromAlert(orchardId, farmerId)
+    S->>AR: save(alert RESOLVED + harvestRequestId, clear openAlertKey)
+    S->>NS: notifyUser(farmerId, ALERT_RESOLVED)
 ```
 
 ### SD-6 Team leader updates a round in the field (F1)
@@ -1265,6 +1301,10 @@ stateDiagram-v2
     RESOLVED --> [*]
     DISMISSED --> [*]
 ```
+
+`openAlertKey` is set to `orchardId:type` for NEW and ACKNOWLEDGED alerts and cleared when
+the alert reaches RESOLVED or DISMISSED, allowing MongoDB to enforce one open alert of each
+type per orchard.
 
 ### Equipment
 

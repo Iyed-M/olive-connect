@@ -116,7 +116,7 @@ Cross-cutting: `GlobalExceptionHandler` (`@RestControllerAdvice`) → RFC 7807 `
 tn.oliveconnect
 ├── OliveConnectApplication.java
 ├── config/            (M1a) SecurityConfig, ProblemSecurityHandler, AppProperties, AuditingConfig.
-│                      Planned: RedisConfig, CacheConfig, OpenApiConfig, AsyncConfig, SchedulingConfig
+│                      RedisEventConfig, GridFsConfig, CacheConfig, OpenApiConfig, AsyncConfig, SchedulingConfig
 ├── auth/              (M1a) AuthController, MeController, AuthService, JwtService, RefreshTokenStore,
 │                      LoginRateLimiter, LoginRequest, LoginResponse, AccessToken, Session,
 │                      InvalidCredentialsException, UnauthenticatedException, TooManyAttemptsException
@@ -137,12 +137,14 @@ tn.oliveconnect
 ├── resource/          Worker, Equipment, EquipmentType, ResourceBooking, SupplyOrder,
 │                      repositories, ResourceService, BookingService, SupplyService, controllers
 ├── alert/             FieldAlert, AlertType, AlertSeverity, AlertSource, AlertStatus,
-│                      FieldAlertRepository (M10), FieldAlertService, FieldAlertController (M8)
+│                      FieldAlertRepository, FieldAlertService, FieldAlertController,
+│                      FieldAlertFileController and alert DTOs (M8)
 ├── mill/              Mill, MillRepository (M10), MillReception, QualityGrade, MillService,
 │                      MillReceptionService, MillController (M7)
 ├── notification/      Notification, NotificationType, NotificationRepository, NotificationService,
-│                      NotificationController (M3 inbox; SSE fan-out planned for M8),
-│                      SseEmitterRegistry, RedisNotificationPublisher/Subscriber
+│                      NotificationController (M3 inbox)
+├── event/             EventController, EventTicketService, EventTicketDto, SseEmitterRegistry,
+│                      RedisNotificationPublisher/Subscriber and RedisNotificationEvent (M8 SSE)
 ├── dashboard/         KpiService, KpiRepositoryCustom(+Impl with Aggregation), DashboardController, dto/
 ├── imports/           ImportJob, ImportError, ImportStatus, ImportSource, ImportJobRepository,
 │                      ImportScheduler, ImportService, ImportJournalService, DatasetImporter<T>,
@@ -210,18 +212,29 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
+    participant B as User browser
+    participant EC as EventController
+    participant ET as EventTicketService
+    participant R as Redis
+    participant SSE as SseEmitterRegistry
     participant S as Any Service
     participant NS as NotificationService
     participant M as MongoDB
-    participant RP as Redis pub/sub<br/>channel notifications
-    participant API as Each API instance<br/>(subscriber)
-    participant SSE as SseEmitterRegistry
-    participant B as User browser
+    participant RP as RedisNotificationPublisher
+    participant RS as RedisNotificationSubscriber
+    B->>EC: POST /api/events/ticket + Bearer JWT
+    EC->>ET: issue(userId)
+    ET->>R: SET event:ticket:{ticket} TTL 30 s
+    B->>EC: GET /api/events?ticket={ticket}
+    EC->>ET: consume(ticket) [GETDEL]
+    EC->>SSE: register(userId)
     S->>NS: notify(userId, type, payload)
     NS->>M: insert Notification (persisted, unread)
-    NS->>RP: PUBLISH notifications {userId, id}
-    RP-->>API: message
-    API->>SSE: find emitters for userId
-    SSE-->>B: event: notification (data JSON)
+    NS->>RP: publish after commit
+    RP->>R: PUBLISH notifications {userId, id, event}
+    R-->>RS: message on every API instance
+    RS->>M: load Notification by recipient and id
+    RS->>SSE: send event to emitters for userId
+SSE-->>B: event: alert or notification (data JSON)
     Note over B: If offline, notifications are fetched<br/>at next login via GET /api/notifications?unread=true
 ```

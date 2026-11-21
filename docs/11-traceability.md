@@ -30,10 +30,10 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | MillReception | R1, R3, R11, R13 | `mill_receptions` | `mill.MillReception` | `MillReceptionRepository` | `MillReceptionService` | `/mills/{id}/receptions`, `/receptions`, `/receptions/{id}` | `mill/ReceptionForm`, `farmer/MyReceptions` |
 | QualityAssessment | R2 | `mill_receptions.quality` | `mill.QualityAssessment` (embedded) | — | `MillReceptionService` | idem | idem |
 | QualityGrade | R2 | `mill_receptions.quality.grade` | `mill.QualityGrade` | — | — | — | `mill/ReceptionForm` |
-| FieldAlert | R1, R2, R10 | `field_alerts` (+ GridFS `alerts`) | `alert.FieldAlert` (minimal in M10), `alert.AlertType`, `alert.AlertSeverity`, `alert.AlertSource`, `alert.AlertStatus` | `FieldAlertRepository` | `FieldAlertService`, `imports.AutoAlertService` | `FieldAlertController /alerts` | `farmer/AlertForm`, `collection/AlertsBoard` |
+| FieldAlert | R1, R2, R10 | `field_alerts` (+ GridFS `alerts`) | `alert.FieldAlert`, `alert.AlertType`, `alert.AlertSeverity`, `alert.AlertSource`, `alert.AlertStatus` | `FieldAlertRepository` | `FieldAlertService`, `imports.AutoAlertService`, `harvest.HarvestRequestService` | `FieldAlertController /alerts`, `FieldAlertFileController /files/alerts`, `OrchardController /orchards/nearest` | `features/alerts/AlertForm`, `features/collection/AlertsBoard`, `features/alerts/AlertsMap` |
 | WeatherReading | R7, R12 | `weather_readings` (time-series) | `imports.WeatherReading` (`@TimeSeries`) | — (bulk writes through `MongoTemplate`) | `WeatherJsonImporter` | (import only), `/dashboard` | dashboard charts |
 | MaturityReading | R7, R12 | `maturity_readings` (time-series) | `imports.MaturityReading` (`@TimeSeries`) | — (bulk writes through `MongoTemplate`) | `MaturityCsvImporter` | `/orchards/{id}/maturity` (planned) | orchard detail chart (planned) |
-| Notification | R7 (+TTL) | `notifications` | `notification.Notification` | `NotificationRepository` | `NotificationService` | `NotificationController /notifications` (SSE `/events` in M8) | `notifications/NotificationBell`, `notifications/NotificationsPage`, `notifications/notifications` (30 s polling) |
+| Notification | R7 (+TTL) | `notifications` | `notification.Notification`, `notification.NotificationType` (including alert events) | `NotificationRepository` | `NotificationService`, `event.EventTicketService`, `event.RedisNotificationPublisher`, `event.RedisNotificationSubscriber` | `NotificationController /notifications`, `EventController /events` and `/events/ticket` | `features/notifications/NotificationBell`, `features/notifications/NotificationsPage`, `features/events/eventStream` |
 | ImportJob / ImportError | R1 / R2 | `import_jobs` | `imports.ImportJob`, `imports.ImportError` (embedded), `imports.ImportStatus`, `imports.ImportSource` | `ImportJobRepository` | `ImportService`, `ImportJournalService`, `ImportScheduler` | `ImportController /imports` | `features/imports/ImportJournalPage`, `features/imports/ImportDetailPage`, routes `/intranet/imports`, `/intranet/imports/$id` |
 | SystemSettings | R1 | `system_settings` (`_id: "global"`) | `settings.SystemSettings` | `SystemSettingsRepository` | `SettingsService` | `SettingsController /settings` | `features/imports/SettingsPage`, route `/intranet/settings` |
 | (System status — no class, read model) | — | none (pings MongoDB and Redis) | `system.SystemStatusDto` | — | `SystemStatusService` | `SystemStatusController /system` | `lib/api.ts` (`getSystemStatus`, no page calls it since M9 replaced the status page with the public map) |
@@ -51,9 +51,9 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | FR-1.3 | Modify / cancel / SD-4 | `PUT /harvest-requests/{id}`, `/cancel` | T-HR-4..6 |
 | FR-1.4 | Validate / reject | `/validate`, `/reject` | T-HR-7 |
 | FR-1.5 | Plan round / SD-3 | `POST /rounds`, `/planning/suggestions` | T-RD-1..5 |
-| FR-1.6 | Notifications | `/notifications` (M3), `/events` (M8) | T-HR-1, T-RD-1, T-ML-1 |
+| FR-1.6 | Notifications | `/notifications` (M3), `/events/ticket` + `/events` (M8) | T-HR-1, T-RD-1, T-ML-1, `EventControllerTest` |
 | FR-1.7 | Update round / SD-6 | `/rounds/{id}/start`, `/stops/{order}`, `/complete` | T-RD-6..8 (`CollectionRoundExecutionControllerTest`) |
-| FR-2.x | Report & handle alert / SD-5 | `/alerts/**` | T-AL-1..4 |
+| FR-2.x | Report & handle alert / SD-5 | `/alerts/**` | T-AL-1..6 |
 | FR-3.x | Resources | `/workers`, `/equipment`, `/resources/*`, `/supply-orders` | T-RS-1..2, T-RD-2 |
 | FR-4.x | Map | `/map/public`, `/map/private` | T-SEC-3, T-MAP-1..3, T-PERF-1 |
 | FR-5.x | Dashboard / SD-9 | `/dashboard/*` | T-KPI-1..2 |

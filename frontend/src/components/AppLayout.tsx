@@ -7,6 +7,7 @@ import { ROLE_HOME, ROLE_LABEL } from '@/auth/roles'
 import type { Role } from '@/auth/types'
 import { Button } from '@/components/ui/button'
 import { NotificationBell } from '@/features/notifications/NotificationBell'
+import { useEventStream } from '@/features/events/eventStream'
 
 // The layout of every role: header, side nav (from md), bottom nav (below md).
 export function AppLayout() {
@@ -14,6 +15,7 @@ export function AppLayout() {
   const navigate = useNavigate()
   const href = useLocation({ select: (l) => l.href })
   const [loggingOut, setLoggingOut] = useState(false)
+  const eventStream = useEventStream(Boolean(user))
 
   // The session ended without a click on "Log out" (refresh failed): the guard only runs on
   // navigation, so send the User to /login here, with ?redirect= to come back.
@@ -42,7 +44,7 @@ export function AppLayout() {
           <Leaf className="size-5" aria-hidden /> OliveConnect
         </span>
         <div className="flex items-center gap-2">
-          <NotificationBell />
+          <NotificationBell sseActive={eventStream.active} />
           {user.roles.length >= 2 && (
             <select
               aria-label="Active role"

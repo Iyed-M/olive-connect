@@ -17,6 +17,7 @@ import { Route as AppChangePasswordRouteImport } from './routes/_app.change-pass
 import { Route as AppFarmerRouteImport } from './routes/_app.farmer'
 import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
 import { Route as AppAdminRegistrationsRouteImport } from './routes/_app.admin.registrations'
+import { Route as AppCollectionAlertsRouteImport } from './routes/_app.collection.alerts'
 import { Route as AppCollectionPlanningRouteImport } from './routes/_app.collection.planning'
 import { Route as AppCollectionRequestsRouteImport } from './routes/_app.collection.requests'
 import { Route as AppFarmerIndexRouteImport } from './routes/_app.farmer.index'
@@ -28,6 +29,7 @@ import { Route as AppRoundsMineRouteImport } from './routes/_app.rounds.mine'
 import { Route as AppAdminUsersIndexRouteImport } from './routes/_app.admin.users.index'
 import { Route as AppAdminUsersIdRouteImport } from './routes/_app.admin.users.$id'
 import { Route as AppAdminUsersNewRouteImport } from './routes/_app.admin.users.new'
+import { Route as AppFarmerAlertsNewRouteImport } from './routes/_app.farmer.alerts.new'
 import { Route as AppFarmerOrchardsIndexRouteImport } from './routes/_app.farmer.orchards.index'
 import { Route as AppFarmerOrchardsIdRouteImport } from './routes/_app.farmer.orchards.$id'
 import { Route as AppFarmerOrchardsNewRouteImport } from './routes/_app.farmer.orchards.new'
@@ -84,6 +86,11 @@ const AppAdminRegistrationsRoute = AppAdminRegistrationsRouteImport.update({
   path: '/admin/registrations',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCollectionAlertsRoute = AppCollectionAlertsRouteImport.update({
+  id: '/collection/alerts',
+  path: '/collection/alerts',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCollectionPlanningRoute = AppCollectionPlanningRouteImport.update({
   id: '/collection/planning',
   path: '/collection/planning',
@@ -138,6 +145,11 @@ const AppAdminUsersNewRoute = AppAdminUsersNewRouteImport.update({
   id: '/admin/users/new',
   path: '/admin/users/new',
   getParentRoute: () => AppRoute,
+} as any)
+const AppFarmerAlertsNewRoute = AppFarmerAlertsNewRouteImport.update({
+  id: '/alerts/new',
+  path: '/alerts/new',
+  getParentRoute: () => AppFarmerRoute,
 } as any)
 const AppFarmerOrchardsIndexRoute = AppFarmerOrchardsIndexRouteImport.update({
   id: '/orchards/',
@@ -231,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/farmer': typeof AppFarmerRouteWithChildren
   '/notifications': typeof AppNotificationsRoute
   '/admin/registrations': typeof AppAdminRegistrationsRoute
+  '/collection/alerts': typeof AppCollectionAlertsRoute
   '/collection/planning': typeof AppCollectionPlanningRoute
   '/collection/requests': typeof AppCollectionRequestsRoute
   '/farmer/receptions': typeof AppFarmerReceptionsRoute
@@ -241,6 +254,7 @@ export interface FileRoutesByFullPath {
   '/farmer/': typeof AppFarmerIndexRoute
   '/admin/users/$id': typeof AppAdminUsersIdRoute
   '/admin/users/new': typeof AppAdminUsersNewRoute
+  '/farmer/alerts/new': typeof AppFarmerAlertsNewRoute
   '/farmer/orchards/$id': typeof AppFarmerOrchardsIdRoute
   '/farmer/orchards/new': typeof AppFarmerOrchardsNewRoute
   '/farmer/requests/$id': typeof AppFarmerRequestsIdRoute
@@ -266,6 +280,7 @@ export interface FileRoutesByTo {
   '/change-password': typeof AppChangePasswordRoute
   '/notifications': typeof AppNotificationsRoute
   '/admin/registrations': typeof AppAdminRegistrationsRoute
+  '/collection/alerts': typeof AppCollectionAlertsRoute
   '/collection/planning': typeof AppCollectionPlanningRoute
   '/collection/requests': typeof AppCollectionRequestsRoute
   '/farmer/receptions': typeof AppFarmerReceptionsRoute
@@ -276,6 +291,7 @@ export interface FileRoutesByTo {
   '/farmer': typeof AppFarmerIndexRoute
   '/admin/users/$id': typeof AppAdminUsersIdRoute
   '/admin/users/new': typeof AppAdminUsersNewRoute
+  '/farmer/alerts/new': typeof AppFarmerAlertsNewRoute
   '/farmer/orchards/$id': typeof AppFarmerOrchardsIdRoute
   '/farmer/orchards/new': typeof AppFarmerOrchardsNewRoute
   '/farmer/requests/$id': typeof AppFarmerRequestsIdRoute
@@ -304,6 +320,7 @@ export interface FileRoutesById {
   '/_app/farmer': typeof AppFarmerRouteWithChildren
   '/_app/notifications': typeof AppNotificationsRoute
   '/_app/admin/registrations': typeof AppAdminRegistrationsRoute
+  '/_app/collection/alerts': typeof AppCollectionAlertsRoute
   '/_app/collection/planning': typeof AppCollectionPlanningRoute
   '/_app/collection/requests': typeof AppCollectionRequestsRoute
   '/_app/farmer/receptions': typeof AppFarmerReceptionsRoute
@@ -314,6 +331,7 @@ export interface FileRoutesById {
   '/_app/farmer/': typeof AppFarmerIndexRoute
   '/_app/admin/users/$id': typeof AppAdminUsersIdRoute
   '/_app/admin/users/new': typeof AppAdminUsersNewRoute
+  '/_app/farmer/alerts/new': typeof AppFarmerAlertsNewRoute
   '/_app/farmer/orchards/$id': typeof AppFarmerOrchardsIdRoute
   '/_app/farmer/orchards/new': typeof AppFarmerOrchardsNewRoute
   '/_app/farmer/requests/$id': typeof AppFarmerRequestsIdRoute
@@ -342,6 +360,7 @@ export interface FileRouteTypes {
     | '/farmer'
     | '/notifications'
     | '/admin/registrations'
+    | '/collection/alerts'
     | '/collection/planning'
     | '/collection/requests'
     | '/farmer/receptions'
@@ -352,6 +371,7 @@ export interface FileRouteTypes {
     | '/farmer/'
     | '/admin/users/$id'
     | '/admin/users/new'
+    | '/farmer/alerts/new'
     | '/farmer/orchards/$id'
     | '/farmer/orchards/new'
     | '/farmer/requests/$id'
@@ -377,6 +397,7 @@ export interface FileRouteTypes {
     | '/change-password'
     | '/notifications'
     | '/admin/registrations'
+    | '/collection/alerts'
     | '/collection/planning'
     | '/collection/requests'
     | '/farmer/receptions'
@@ -387,6 +408,7 @@ export interface FileRouteTypes {
     | '/farmer'
     | '/admin/users/$id'
     | '/admin/users/new'
+    | '/farmer/alerts/new'
     | '/farmer/orchards/$id'
     | '/farmer/orchards/new'
     | '/farmer/requests/$id'
@@ -414,6 +436,7 @@ export interface FileRouteTypes {
     | '/_app/farmer'
     | '/_app/notifications'
     | '/_app/admin/registrations'
+    | '/_app/collection/alerts'
     | '/_app/collection/planning'
     | '/_app/collection/requests'
     | '/_app/farmer/receptions'
@@ -424,6 +447,7 @@ export interface FileRouteTypes {
     | '/_app/farmer/'
     | '/_app/admin/users/$id'
     | '/_app/admin/users/new'
+    | '/_app/farmer/alerts/new'
     | '/_app/farmer/orchards/$id'
     | '/_app/farmer/orchards/new'
     | '/_app/farmer/requests/$id'
@@ -508,6 +532,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRegistrationsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/collection/alerts': {
+      id: '/_app/collection/alerts'
+      path: '/collection/alerts'
+      fullPath: '/collection/alerts'
+      preLoaderRoute: typeof AppCollectionAlertsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/collection/planning': {
       id: '/_app/collection/planning'
       path: '/collection/planning'
@@ -584,6 +615,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/users/new'
       preLoaderRoute: typeof AppAdminUsersNewRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/_app/farmer/alerts/new': {
+      id: '/_app/farmer/alerts/new'
+      path: '/alerts/new'
+      fullPath: '/farmer/alerts/new'
+      preLoaderRoute: typeof AppFarmerAlertsNewRouteImport
+      parentRoute: typeof AppFarmerRoute
     }
     '/_app/farmer/orchards/': {
       id: '/_app/farmer/orchards/'
@@ -703,6 +741,7 @@ declare module '@tanstack/react-router' {
 interface AppFarmerRouteChildren {
   AppFarmerReceptionsRoute: typeof AppFarmerReceptionsRoute
   AppFarmerIndexRoute: typeof AppFarmerIndexRoute
+  AppFarmerAlertsNewRoute: typeof AppFarmerAlertsNewRoute
   AppFarmerOrchardsIdRoute: typeof AppFarmerOrchardsIdRoute
   AppFarmerOrchardsNewRoute: typeof AppFarmerOrchardsNewRoute
   AppFarmerRequestsIdRoute: typeof AppFarmerRequestsIdRoute
@@ -714,6 +753,7 @@ interface AppFarmerRouteChildren {
 const AppFarmerRouteChildren: AppFarmerRouteChildren = {
   AppFarmerReceptionsRoute: AppFarmerReceptionsRoute,
   AppFarmerIndexRoute: AppFarmerIndexRoute,
+  AppFarmerAlertsNewRoute: AppFarmerAlertsNewRoute,
   AppFarmerOrchardsIdRoute: AppFarmerOrchardsIdRoute,
   AppFarmerOrchardsNewRoute: AppFarmerOrchardsNewRoute,
   AppFarmerRequestsIdRoute: AppFarmerRequestsIdRoute,
@@ -731,6 +771,7 @@ interface AppRouteChildren {
   AppFarmerRoute: typeof AppFarmerRouteWithChildren
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppAdminRegistrationsRoute: typeof AppAdminRegistrationsRoute
+  AppCollectionAlertsRoute: typeof AppCollectionAlertsRoute
   AppCollectionPlanningRoute: typeof AppCollectionPlanningRoute
   AppCollectionRequestsRoute: typeof AppCollectionRequestsRoute
   AppIntranetSettingsRoute: typeof AppIntranetSettingsRoute
@@ -757,6 +798,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFarmerRoute: AppFarmerRouteWithChildren,
   AppNotificationsRoute: AppNotificationsRoute,
   AppAdminRegistrationsRoute: AppAdminRegistrationsRoute,
+  AppCollectionAlertsRoute: AppCollectionAlertsRoute,
   AppCollectionPlanningRoute: AppCollectionPlanningRoute,
   AppCollectionRequestsRoute: AppCollectionRequestsRoute,
   AppIntranetSettingsRoute: AppIntranetSettingsRoute,

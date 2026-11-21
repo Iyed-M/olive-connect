@@ -3,7 +3,10 @@ package tn.oliveconnect.notification;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import tn.oliveconnect.common.NotFoundException;
+import tn.oliveconnect.event.RedisNotificationPublisher;
 import tn.oliveconnect.user.Role;
 import tn.oliveconnect.user.User;
 import tn.oliveconnect.user.UserRepository;
@@ -14,10 +17,13 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final RedisNotificationPublisher notificationPublisher;
 
-    public NotificationService(NotificationRepository notificationRepository, UserRepository userRepository) {
+    public NotificationService(NotificationRepository notificationRepository, UserRepository userRepository,
+            RedisNotificationPublisher notificationPublisher) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
+        this.notificationPublisher = notificationPublisher;
     }
 
     public void notifyCollectionManagers(NotificationType type, String title, String message, String link) {
@@ -58,6 +64,20 @@ public class NotificationService {
         notification.setTitle(title);
         notification.setMessage(message);
         notification.setLink(link);
-        notificationRepository.save(notification);
+        Notification saved = notificationRepository.save(notification);
+        publishAfterCommit(saved);
+    }
+
+    private void publishAfterCommit(Notification notification) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            notificationPublisher.publish(notification);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                notificationPublisher.publish(notification);
+            }
+        });
     }
 }
