@@ -15,7 +15,7 @@ public record GeoPointDto(
         }
     }
 
-    static GeoPointDto from(GeoPoint point) {
+    public static GeoPointDto from(GeoPoint point) {
         return point == null ? null : new GeoPointDto(point.getType(), point.getCoordinates());
     }
 

@@ -1,4 +1,4 @@
-import { CalendarDays, CalendarRange, FileCheck, PackagePlus, ClipboardList, Factory, FileUp, HardHat, Map, Route, Settings, Sprout, Truck, UserPlus, Users, type LucideIcon } from 'lucide-react'
+import { CalendarDays, CalendarRange, ClipboardList, Factory, FileCheck, FileUp, Gauge, HardHat, Map, PackagePlus, Route, Scale, Settings, Sprout, TriangleAlert, Truck, UserPlus, Users, type LucideIcon } from 'lucide-react'
 import type { LinkProps } from '@tanstack/react-router'
 import type { Role } from './types'
 
@@ -15,6 +15,8 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/farmer', label: 'Accueil', icon: Sprout },
     { to: '/farmer/requests', label: 'Demandes', icon: ClipboardList },
     { to: '/farmer/orchards', label: 'Vergers', icon: Map },
+    { to: '/farmer/alerts/new', label: 'Alerte', icon: TriangleAlert },
+    { to: '/farmer/receptions', label: 'Réceptions', icon: Scale },
   ],
   COLLECTION_MANAGER: [
     { to: '/collection/requests', label: 'Demandes', icon: ClipboardList },
@@ -22,6 +24,7 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/logistics/calendar', label: 'Calendar', icon: CalendarRange },
     { to: '/intranet/orchards', label: 'Orchards', icon: Map },
     { to: '/intranet/rounds', label: 'Corrections', icon: FileCheck },
+    { to: '/collection/alerts', label: 'Alertes', icon: TriangleAlert },
   ],
   TEAM_LEADER: [{ to: '/rounds/mine', label: 'Mes tournées', icon: Route }],
   LOGISTICS_MANAGER: [
@@ -31,7 +34,10 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/logistics/supplies', label: 'Supplies', icon: PackagePlus },
     { to: '/intranet/orchards', label: 'Orchards', icon: Map },
   ],
-  MILL_MANAGER: [{ to: '/mill/incoming', label: 'Réceptions', icon: Factory }],
+  MILL_MANAGER: [
+    { to: '/mill/incoming', label: 'Réceptions', icon: Factory },
+    { to: '/mill/capacity', label: 'Capacité', icon: Gauge },
+  ],
   // The Admin has full access to Workers and Equipment too (same pages as the Logistics manager).
   ADMIN: [
     { to: '/admin/users', label: 'Utilisateurs', icon: Users },

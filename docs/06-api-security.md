@@ -34,6 +34,9 @@ Base URL: `/api`. Format: JSON, dates in ISO-8601 UTC, GeoJSON for positions. AP
 | `TOO_MANY_ATTEMPTS` | 429 | 5 failed logins in 15 min, with `Retry-After` | M1a |
 | `STALE_VERSION` | 409 | optimistic locking conflict (stale `version`) | M1b |
 | `ACTIVE_REQUEST_EXISTS` | 409 | an orchard already has an active harvest request | M3 |
+| `ACTIVE_ALERT_EXISTS` | 409 | an orchard already has an open field alert of the same type | M8 |
+| `URGENT_REQUEST_NOT_ALLOWED` | 409 | an urgent harvest request can only be created from an acknowledged maturity alert | M8 |
+| `URGENT_REQUEST_EXISTS` | 409 | an urgent harvest request was already created for this field alert | M8 |
 | `INVALID_TRANSITION` | 409 | the requested HarvestRequest or RoundStop state transition is not allowed | M3–M6 |
 | `BOOKING_CONFLICT` | 409 | a team leader, worker or equipment item is already booked for the requested slot | M5 |
 | `ROUND_NOT_PLANNED`, `ROUND_STARTED` | 409 | a round action requires `PLANNED`, or a started round cannot be cancelled | M5–M6 |
@@ -46,6 +49,11 @@ Base URL: `/api`. Format: JSON, dates in ISO-8601 UTC, GeoJSON for positions. AP
 | `RESOURCE_UNAVAILABLE` | 422 | a selected worker or equipment item is inactive, unavailable or outside its slot | M5 |
 | `INVALID_TEAM_LEADER`, `INVALID_TIME_WINDOW` | 422 | the selected team leader is invalid, or the round slot is incomplete/invalid | M5 |
 | `RESOURCE_NOT_FOUND` | 422 | a selected worker or equipment item does not exist | M5 |
+| `ROUND_MILL_MISMATCH`, `ORCHARD_NOT_IN_ROUND`, `BIN_NOT_IN_ROUND` | 422 | the selected round, orchard or bin is not part of the mill reception context | M7 |
+| `INVALID_WEIGHING` | 422 | gross/tare produce a non-positive net weight or a fill rate above 1.15 | M7 |
+| `RECEPTION_EXISTS` | 409 | the same round, bin and orchard load was already received | M7 |
+| `MILL_NOT_FOUND` | 422 | an Admin assigns a missing mill to a user | M7 |
+| `MILL_ASSIGNMENT_REQUIRES_ROLE` | 422 | an assigned mill is supplied for a user without the `MILL_MANAGER` role | M7 |
 
 ## 2. Endpoint catalogue
 
@@ -62,7 +70,7 @@ Roles: **PUB** public, **F** farmer, **CM** collection manager, **TL** team lead
 | POST | `/auth/login` | PUB | body `{email, password}` → `200 {accessToken, expiresIn, user}` + `refresh_token` cookie, 400 `VALIDATION_FAILED`, 401 `INVALID_CREDENTIALS`, 429 `TOO_MANY_ATTEMPTS` (`Retry-After` header and `retryAfterSeconds`) | — |
 | POST | `/auth/refresh` | PUB (cookie) | rotate the refresh token → `200` same body as login + new cookie; 401 `UNAUTHENTICATED` (cookie missing) or `SESSION_EXPIRED` (cookie unknown or already used, User disabled → all their sessions revoked); the cookie is cleared on 401 | — |
 | POST | `/auth/logout` | PUB (cookie) | revoke this session only (identified by the cookie, works with an expired access token), clear the cookie → `204`, idempotent | — |
-| GET | `/me` | any | `MeDto {id, email, firstName, lastName, roles, onboardingDone, mustChangePassword}`, 401 `UNAUTHENTICATED` without a valid token | — |
+| GET | `/me` | any | `MeDto {id, email, firstName, lastName, roles, onboardingDone, mustChangePassword, assignedMillId}`, 401 `UNAUTHENTICATED` without a valid token | — |
 | PATCH | `/me` | any | update phone, onboardingDone (planned) | NFR-3 |
 | PATCH | `/me/password` | any | body `{currentPassword, newPassword}` (8 to 72 characters) → `204`, clears `mustChangePassword`; 400 `VALIDATION_FAILED`, 422 `WRONG_PASSWORD` | FR-6.1 |
 | POST | `/registrations` | PUB | body `{firstName, lastName, email, phone?, cin, message?}` → `201` + `Location` and `RegistrationDto {id, firstName, lastName, email, phone, cin, message, status, createdAt, processedById}`; 400 `VALIDATION_FAILED`, 409 `EMAIL_TAKEN` (a User or a pending request already has this email) | FR-6.1 |
@@ -70,9 +78,9 @@ Roles: **PUB** public, **F** farmer, **CM** collection manager, **TL** team lead
 | POST | `/registrations/{id}/approve` | AD | body `{memberNumber, delegation}` → `200 {registration, userId, temporaryPassword}`: creates a FARMER (12-character generated password, `mustChangePassword=true`); the password is returned only here, with `Cache-Control: no-store`. 404, 409 `REGISTRATION_ALREADY_PROCESSED` / `EMAIL_TAKEN` / `MEMBER_NUMBER_TAKEN` | FR-6.1 |
 | POST | `/registrations/{id}/reject` | AD | → `200 RegistrationDto` (`REJECTED`); 404, 409 `REGISTRATION_ALREADY_PROCESSED` | FR-6.1 |
 | GET | `/users` | AD | list Users, query `role`, `enabled`, `page`, `size`; sorted by `lastName` → `PageResponse<UserDto>` | FR-6.2 |
-| POST | `/users` | AD | create User (details, roles, Farmer profile, password) → 201 + `Location`, 400 `VALIDATION_FAILED`, 409 `EMAIL_TAKEN` / `MEMBER_NUMBER_TAKEN` | FR-6.2 |
+| POST | `/users` | AD | create User (details, roles, optional Farmer profile, optional `assignedMillId`, password) → 201 + `Location`, 400 `VALIDATION_FAILED`, 409 `EMAIL_TAKEN` / `MEMBER_NUMBER_TAKEN` | FR-6.2 |
 | GET | `/users/{id}` | AD | detail → `UserDto`, 404 `NOT_FOUND` | FR-6.2 |
-| PUT | `/users/{id}` | AD | edit User: details, roles and Farmer profile in one call; optional `password` resets it; a new email or a password reset revokes all sessions. 400, 404, 409 `EMAIL_TAKEN` / `MEMBER_NUMBER_TAKEN`, 422 `SELF_LOCKOUT` (removing own ADMIN role) | FR-6.2 |
+| PUT | `/users/{id}` | AD | edit User: details, roles, optional Farmer profile and optional `assignedMillId` in one call; optional `password` resets it; a new email or a password reset revokes all sessions. 400, 404, 409 `EMAIL_TAKEN` / `MEMBER_NUMBER_TAKEN`, 422 `SELF_LOCKOUT` (removing own ADMIN role) | FR-6.2, M7 |
 | POST | `/users/{id}/enable` | AD | enable User → 204, 404 | FR-6.2 |
 | POST | `/users/{id}/disable` | AD | disable User + revoke sessions → 204, 404, 422 `SELF_LOCKOUT` (own User) | FR-6.2 |
 
@@ -149,12 +157,13 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 | Method | Path | Roles | Description | FR |
 |---|---|---|---|---|
 | POST | `/alerts` | F | report (multipart: JSON + photo) | FR-2.1, 2.2 |
-| GET | `/alerts` | F (own), CM | list, query `status`, `type`, `mine` | FR-2.3 |
+| GET | `/alerts` | F (own), CM, AD | list, query `status`, `type`, `mine` | FR-2.3 |
+| GET | `/alerts/{id}` | F own, CM, AD | detail; another Farmer's alert is indistinguishable from missing and returns 404 | FR-2.3 |
 | POST | `/alerts/{id}/acknowledge` | CM | acknowledge | FR-2.4 |
 | POST | `/alerts/{id}/resolve` | CM | resolve | FR-2.4 |
 | POST | `/alerts/{id}/dismiss` | CM | dismiss | FR-2.4 |
 | POST | `/alerts/{id}/create-urgent-request` | CM | one-click urgent request | FR-2.5 |
-| GET | `/files/alerts/{fileId}` | F own, CM | photo (GridFS) | — |
+| GET | `/files/alerts/{fileId}` | F own, CM, AD | photo (GridFS bucket `alerts`) | — |
 
 ### Mills (F1, F5)
 | Method | Path | Roles | Description | FR |
@@ -163,7 +172,8 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 | PUT | `/mills/{id}/capacity` | MM (own mill), AD | publish available capacity | — |
 | GET | `/mills/{id}/incoming` | MM own | rounds delivering today | — |
 | POST | `/mills/{id}/receptions` | MM own | record weighing | SD-7 |
-| GET | `/receptions` | F (own), MM, CM | list receptions, query `mine` | FR-1.6 |
+| GET | `/receptions` | F (own), MM (own mill), CM, AD | list receptions, query `mine` (farmer view) | FR-1.6 |
+| GET | `/receptions/{id}` | F (own), MM (own mill), CM, AD | detail with the same ownership checks as the list | FR-1.6 |
 
 ### Dashboard (F5)
 | Method | Path | Roles | Description | FR |
@@ -178,7 +188,7 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 ### Notifications, imports, settings
 | Method | Path | Roles | Description |
 |---|---|---|---|
-| GET | `/events` | any authenticated | real-time SSE stream (`text/event-stream`), authenticated with the short-lived `ticket` query parameter |
+| GET | `/events` | any authenticated ticket | real-time SSE stream (`text/event-stream`), authenticated with the short-lived one-time `ticket` query parameter |
 | GET | `/notifications` | any (own) | inbox, query `unread` |
 | POST | `/notifications/{id}/read` | own | mark one as read |
 | POST | `/notifications/read-all` | own | mark all as read |
@@ -211,7 +221,25 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 { "id": "66b0…", "code": "T-2026-AB12CD34", "date": "2026-11-25", "startTime": "07:00", "endTime": "15:00",
   "status": "PLANNED", "teamLeaderId": "665f…", "millId": "66a0…", "workerIds": ["6680…"],
   "equipmentIds": ["6690…"], "stops": [ … ], "estimatedTotalKg": 9000, "totalHarvestedKg": 0,
-  "history": [ … ], "season": "2026-2027", "version": 0, "warnings": [] }
+  "history": [ … ], "season": "2026-2027", "version": 0, "warnings": [], "bins": [] }
+
+// GET /api/mills/{millId}/incoming — the returned CollectionRoundDto includes only BIN equipment
+// in `bins`: [{ "id": "6690…", "code": "B-07", "capacityKg": 4000 }].
+
+// PUT /api/mills/{millId}/capacity — MillCapacityDto
+{ "availableCapacityKg": 7500 }
+
+// POST /api/mills/{millId}/receptions — MillReceptionCreateDto
+{ "roundId": "66b0…", "binId": "6690…", "orchardId": "6660…",
+  "grossWeightKg": 4350, "tareKg": 820,
+  "quality": { "grade": "GOOD", "defectRatePct": 3.1, "leafRatePct": 1.2, "estimatedOilYieldPct": 21 } }
+// 201 — MillReceptionDto; netWeightKg and fillRate are computed by the API.
+
+// GET /api/receptions?mine=true — farmer-owned receptions (the service enforces ownership)
+[{ "id": "66c0…", "millId": "66a0…", "roundId": "66b0…", "binId": "6690…", "orchardId": "6660…",
+   "grossWeightKg": 4350, "tareKg": 820, "netWeightKg": 3530, "binCapacityKg": 4000, "fillRate": 0.8825,
+   "quality": { "grade": "GOOD", "defectRatePct": 3.1, "leafRatePct": 1.2, "estimatedOilYieldPct": 21 },
+   "season": "2026-2027", "receivedAt": "2026-11-25T12:30:00Z" }]
 
 // PATCH /api/rounds/{id}/stops/{order} — RoundStopUpdateDto
 { "status": "DONE", "harvestedKg": 3200, "crateCount": 80, "version": 2 }
@@ -318,6 +346,7 @@ flowchart LR
 - JWT claims: `sub` = userId, `roles` (mapped to `ROLE_*` authorities), `millId` (for mill managers, from M7), `exp`. The secret comes from the `JWT_SECRET` environment variable (at least 32 characters, the API refuses to start otherwise) and is never committed. The seeded Admin comes from `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
 - **Login rate limiting** through Redis, key `ratelimit:login:{email}:{ip}`: every failed login (unknown email, wrong password, disabled User) adds 1; the 15 min window starts at the first failure. With 5 failures, every attempt gets 429 `TOO_MANY_ATTEMPTS` with `Retry-After` and `retryAfterSeconds`, even with the right password. A success clears the counter. The client IP comes from Nginx's `X-Forwarded-For` (`server.forward-headers-strategy: native`).
 - **SSE authentication**: `EventSource` cannot send headers, so the client first calls `POST /api/events/ticket`. That returns a one-time ticket stored in Redis for 30 s, which is then passed as `?ticket=`.
+  `GET /api/events` is deliberately permit-all at the bearer-token filter because the controller authenticates it by atomically consuming the ticket with Redis `GETDEL`; reusing or omitting the ticket returns 401 `UNAUTHENTICATED`. `notification` and `alert` event names carry the persisted `NotificationDto` payload.
 
 ### 4.2 Authorisation: three levels
 

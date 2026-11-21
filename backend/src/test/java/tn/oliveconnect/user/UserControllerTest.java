@@ -155,6 +155,17 @@ class UserControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void millAssignmentMustReferenceAnExistingMill() throws Exception {
+        mockMvc.perform(post("/api/users").header("Authorization", adminToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"mill-manager@example.tn\",\"password\":\"secret123\","
+                        + "\"firstName\":\"Mina\",\"lastName\":\"Manager\","
+                        + "\"roles\":[\"MILL_MANAGER\"],\"assignedMillId\":\"missing-mill\"}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("MILL_NOT_FOUND"));
+    }
+
+    @Test
     void invalidProfileFieldsAreReportedWithTheirPath() throws Exception {
         mockMvc.perform(post("/api/users").header("Authorization", adminToken())
                 .contentType(MediaType.APPLICATION_JSON)

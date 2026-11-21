@@ -143,12 +143,24 @@ erDiagram
         ObjectId _id
         ObjectId millId
         ObjectId roundId
+        ObjectId binId
         ObjectId orchardId
+        ObjectId farmerId
+        ObjectId harvestRequestId
+        double grossWeightKg
+        double tareKg
         double netWeightKg
+        double binCapacityKg
         double fillRate "computed"
         object quality "embedded"
         string season
         string varietyCode "denormalized"
+        string delegation "denormalized"
+        double orchardAreaHa "denormalized"
+        date requestValidatedAt
+        double leadTimeHours "computed"
+        date receivedAt
+        ObjectId receivedById
     }
     weather_readings {
         date timestamp "timeField"
@@ -375,6 +387,7 @@ by the M2 form yet.
 | `{ code: 1 }` unique | human reference |
 | `{ date: 1, status: 1 }` | calendar of the day/week |
 | `{ teamLeaderId: 1, date: -1 }` | team leader's "my rounds" |
+| `{ millId: 1, date: 1, startTime: 1 }` | mill's incoming rounds for a day, ordered by start time |
 | `{ "stops.harvestRequestId": 1 }` (multikey) | find the round of a request |
 | `{ workerIds: 1 }`, `{ equipmentIds: 1 }` (multikey) | rounds of a resource |
 
@@ -477,12 +490,12 @@ Indexes: `{ type: 1, status: 1 }`, `{ code: 1 }` unique. Workers: `{ active: 1, 
   "orchardId": ObjectId("..."), "orchardName": "Henchir El Mezraa", "farmerId": ObjectId("..."), "reporterId": ObjectId("..."),
   "location": { "type": "Point", "coordinates": [10.7611, 34.8002] }, "locationMismatch": false,
   "description": "Olives turning purple, ~60% veraison", "photoUrls": ["/api/files/alerts/abc.jpg"],
-  "handledById": null, "harvestRequestId": null, "statusHistory": [...],
+  "resolution": null, "openAlertKey": "orchardId:MATURITY", "handledById": null, "harvestRequestId": null, "statusHistory": [...],
   "createdAt": ISODate("...") }
 ```
-M10 creates a minimal `FieldAlert` (`type`, `severity`, `status`, `source`, `orchardId`, `orchardName`, `farmerId`, `location`, `description`, `statusHistory`, `createdAt`) for the automatic alerts (`source: "SENSOR"`, `type` `RAIN` or `MATURITY`). `reporterId`, `photoUrls`, `locationMismatch`, `handledById` and `harvestRequestId` come with M8. Enums: `AlertType` `MATURITY|RAIN|PEST|DISEASE|OTHER`, `AlertSeverity` `LOW|MEDIUM|HIGH`, `AlertSource` `FARMER|SENSOR`, `AlertStatus` `NEW|ACKNOWLEDGED|RESOLVED|DISMISSED`.
+M10 creates a minimal `FieldAlert` (`type`, `severity`, `status`, `source`, `orchardId`, `orchardName`, `farmerId`, `location`, `description`, `openAlertKey`, `statusHistory`, `createdAt`) for the automatic alerts (`source: "SENSOR"`, `type` `RAIN` or `MATURITY`). Farmer and sensor reports set `openAlertKey` to `orchardId:type` while the alert is open; RESOLVED and DISMISSED transitions clear it. `reporterId`, `photoUrls`, `locationMismatch`, `resolution`, `handledById` and `harvestRequestId` come with M8. Enums: `AlertType` `MATURITY|RAIN|PEST|DISEASE|OTHER`, `AlertSeverity` `LOW|MEDIUM|HIGH`, `AlertSource` `FARMER|SENSOR`, `AlertStatus` `NEW|ACKNOWLEDGED|RESOLVED|DISMISSED`.
 
-Indexes: `{ status: 1, createdAt: -1 }` (queue), `{ location: "2dsphere", status: 1 }` (alerts map), `{ farmerId: 1, createdAt: -1 }`, `{ orchardId: 1, type: 1, status: 1 }` (duplicate detection: one open alert of the same type per orchard).
+Indexes: `{ status: 1, createdAt: -1 }` (queue), `{ location: "2dsphere" }` (`location_2dsphere`, GeoJSON lookup), `{ location: "2dsphere", status: 1 }` (alerts map), `{ farmerId: 1, createdAt: -1 }`, `{ orchardId: 1, type: 1, status: 1 }` (open-alert lookup), and `{ openAlertKey: 1 }` unique with partial filter `openAlertKey` type string (atomic one-open-alert-per-orchard/type enforcement).
 
 Photos are stored on disk in a Docker volume, or in GridFS. **Choice: GridFS** (`bucket alerts`), so that the backup covers them too.
 
@@ -611,6 +624,7 @@ db.weather_readings.aggregate([
 | `refresh:{tokenId}` | hash `{userId, exp}` | 7 days | refresh tokens (deletion = logout / revocation) |
 | `user:{userId}:refresh` | set of tokenIds | 7 days | revoke all sessions of a user (on disable, password reset, email change) |
 | `ratelimit:login:{email}:{ip}` | counter | 15 min | brute-force protection: +1 per failed login, TTL set at the first failure (fixed window), deleted on success; 5 → 429 |
+| `event:ticket:{ticket}` | string (`userId`) | 30 s, one-time | authenticates an `EventSource` connection; consumed atomically with Redis `GETDEL` |
 | `lock:resource:{resourceId}` | string (NX) | 5 s | serialise concurrent bookings |
 | channel `notifications` | pub/sub | — | SSE fan-out between API instances |
 

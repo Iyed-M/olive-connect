@@ -18,6 +18,7 @@ import tn.oliveconnect.common.ConflictException;
 import tn.oliveconnect.common.FieldValidationException;
 import tn.oliveconnect.common.NotFoundException;
 import tn.oliveconnect.common.PageResponse;
+import tn.oliveconnect.mill.MillRepository;
 
 /** Admin management of Users (M1b). Users are never deleted: disabling replaces deletion. */
 @Service
@@ -27,13 +28,15 @@ public class UserService {
     private final MongoTemplate mongoTemplate;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenStore refreshTokenStore;
+    private final MillRepository millRepository;
 
     public UserService(UserRepository userRepository, MongoTemplate mongoTemplate, PasswordEncoder passwordEncoder,
-                       RefreshTokenStore refreshTokenStore) {
+                       RefreshTokenStore refreshTokenStore, MillRepository millRepository) {
         this.userRepository = userRepository;
         this.mongoTemplate = mongoTemplate;
         this.passwordEncoder = passwordEncoder;
         this.refreshTokenStore = refreshTokenStore;
+        this.millRepository = millRepository;
     }
 
     /** Both filters are optional. Sorted by lastName (then id, so pages are stable). */
@@ -61,7 +64,8 @@ public class UserService {
         user.setEmail(normalize(dto.email()));
         checkEmailFree(user.getEmail(), null);
         user.setPasswordHash(passwordEncoder.encode(dto.password()));
-        applyDetails(user, dto.firstName(), dto.lastName(), dto.phone(), dto.roles(), dto.farmerProfile());
+        applyDetails(user, dto.firstName(), dto.lastName(), dto.phone(), dto.roles(), dto.farmerProfile(),
+                dto.assignedMillId());
         return UserDto.from(userRepository.save(user));
     }
 
@@ -81,7 +85,8 @@ public class UserService {
         if (passwordReset) {
             user.setPasswordHash(passwordEncoder.encode(dto.password()));
         }
-        applyDetails(user, dto.firstName(), dto.lastName(), dto.phone(), dto.roles(), dto.farmerProfile());
+        applyDetails(user, dto.firstName(), dto.lastName(), dto.phone(), dto.roles(), dto.farmerProfile(),
+                dto.assignedMillId());
         User saved = userRepository.save(user);
 
         // the old email / password must stop working everywhere, not only when the access token expires
@@ -123,11 +128,13 @@ public class UserService {
 
     /** Fields shared by create and update. The Farmer profile is required when FARMER is a role. */
     private void applyDetails(User user, String firstName, String lastName, String phone, Set<Role> roles,
-                              FarmerProfileDto profile) {
+                              FarmerProfileDto profile, String assignedMillId) {
         user.setFirstName(firstName.trim());
         user.setLastName(lastName.trim());
         user.setPhone(phone);
         user.setRoles(EnumSet.copyOf(roles));
+        validateMillAssignment(roles, assignedMillId);
+        user.setAssignedMillId(assignedMillId);
         // when FARMER is removed, the stored profile is kept but ignored
         if (roles.contains(Role.FARMER)) {
             if (profile == null) {
@@ -140,6 +147,19 @@ public class UserService {
                         throw new ConflictException("MEMBER_NUMBER_TAKEN", "This member number is already used");
                     });
             user.setFarmerProfile(entity);
+        }
+    }
+
+    private void validateMillAssignment(Set<Role> roles, String assignedMillId) {
+        if (assignedMillId == null) {
+            return;
+        }
+        if (!roles.contains(Role.MILL_MANAGER)) {
+            throw new BusinessRuleException("MILL_ASSIGNMENT_REQUIRES_ROLE",
+                    "Only a Mill manager can be assigned to a mill");
+        }
+        if (millRepository.findById(assignedMillId).isEmpty()) {
+            throw new BusinessRuleException("MILL_NOT_FOUND", "The assigned mill does not exist");
         }
     }
 }

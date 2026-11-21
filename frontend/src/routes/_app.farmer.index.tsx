@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ClipboardList, Plus, Sprout } from 'lucide-react'
+import { ClipboardList, Plus, Sprout, TriangleAlert } from 'lucide-react'
 import { RequireRole } from '@/components/RequireRole'
 import { buttonVariants } from '@/components/ui/button'
 
@@ -24,6 +24,10 @@ function Page() {
           </Link>
           <Link to="/farmer/orchards/new" className={buttonVariants({ className: 'min-h-28 flex-col justify-center gap-2' })}>
             <Plus aria-hidden /> Add orchard
+          </Link>
+          <Link to="/farmer/alerts/new" className="flex min-h-28 flex-col justify-between rounded-xl bg-card p-4 ring-1 ring-foreground/10">
+            <TriangleAlert className="size-6 text-primary" aria-hidden />
+            <span className="font-medium">Report a field alert</span>
           </Link>
           <Link to="/farmer/requests/new" className={buttonVariants({ className: 'min-h-28 flex-col justify-center gap-2' })}>
             <Plus aria-hidden /> Declare a harvest

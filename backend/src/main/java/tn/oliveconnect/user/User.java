@@ -30,7 +30,7 @@ public class User {
     private boolean onboardingDone = false;
     private boolean mustChangePassword = false;   // true after an admin approves a registration (temporary password)
     private FarmerProfile farmerProfile;   // only meaningful when roles contains FARMER
-    private String assignedMillId;         // stays null until M7
+    private String assignedMillId;         // set by Admin for a Mill manager
 
     // filled by Mongo auditing
     @CreatedDate

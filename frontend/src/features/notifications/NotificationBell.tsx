@@ -3,12 +3,12 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { listNotifications, NOTIFICATION_POLL_INTERVAL_MS, unreadCount } from './notifications'
 
-export function NotificationBell() {
+export function NotificationBell({ sseActive = false }: { sseActive?: boolean }) {
   const query = useQuery({
     queryKey: ['notifications', { unread: true }],
     queryFn: () => listNotifications(true),
-    refetchInterval: NOTIFICATION_POLL_INTERVAL_MS,
-    refetchIntervalInBackground: true,
+    refetchInterval: sseActive ? false : NOTIFICATION_POLL_INTERVAL_MS,
+    refetchIntervalInBackground: !sseActive,
   })
   const count = query.data ? unreadCount(query.data) : 0
 

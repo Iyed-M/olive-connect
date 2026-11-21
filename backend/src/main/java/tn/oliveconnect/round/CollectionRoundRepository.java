@@ -15,5 +15,7 @@ public interface CollectionRoundRepository extends MongoRepository<CollectionRou
     List<CollectionRound> findByTeamLeaderIdAndDateBetween(String teamLeaderId, LocalDate from, LocalDate to,
                                                             Sort sort);
 
+    List<CollectionRound> findByMillIdAndDateOrderByStartTimeAsc(String millId, LocalDate date);
+
     List<CollectionRound> findByStopsHarvestRequestId(String harvestRequestId);
 }

@@ -41,6 +41,7 @@ export interface UserDto {
   roles: Role[]
   enabled: boolean
   farmerProfile: FarmerProfile | null
+  assignedMillId: string | null
   createdAt: string
   version: number
 }
@@ -54,6 +55,7 @@ export interface UserWriteBody {
   roles: Role[]
   password?: string
   farmerProfile: FarmerProfile | null
+  assignedMillId: string | null
 }
 
 export interface PageResponse<T> {
