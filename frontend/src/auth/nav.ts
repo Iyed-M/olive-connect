@@ -19,6 +19,7 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/farmer/receptions', label: 'Réceptions', icon: Scale },
   ],
   COLLECTION_MANAGER: [
+    { to: '/dashboard', label: 'Dashboard', icon: Gauge },
     { to: '/collection/requests', label: 'Demandes', icon: ClipboardList },
     { to: '/collection/planning', label: 'Planification', icon: CalendarDays },
     { to: '/collection/alerts', label: 'Alertes', icon: TriangleAlert },
@@ -29,11 +30,13 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/logistics/equipment', label: 'Équipements', icon: Truck },
   ],
   MILL_MANAGER: [
+    { to: '/dashboard', label: 'Dashboard', icon: Gauge },
     { to: '/mill/incoming', label: 'Réceptions', icon: Factory },
     { to: '/mill/capacity', label: 'Capacité', icon: Gauge },
   ],
   // The Admin has full access to Workers and Equipment too (same pages as the Logistics manager).
   ADMIN: [
+    { to: '/dashboard', label: 'Dashboard', icon: Gauge },
     { to: '/admin/users', label: 'Utilisateurs', icon: Users },
     { to: '/admin/registrations', label: 'Inscriptions', icon: UserPlus },
     { to: '/logistics/workers', label: 'Ouvriers', icon: HardHat },
