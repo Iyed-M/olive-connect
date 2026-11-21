@@ -28,6 +28,11 @@ import tn.oliveconnect.orchard.OliveVariety;
 import tn.oliveconnect.orchard.OliveVarietyRepository;
 import tn.oliveconnect.orchard.Orchard;
 import tn.oliveconnect.orchard.OrchardRepository;
+import tn.oliveconnect.resource.BookingService;
+import tn.oliveconnect.round.CollectionRound;
+import tn.oliveconnect.round.CollectionRoundRepository;
+import tn.oliveconnect.round.RoundStatus;
+import tn.oliveconnect.round.RoundStop;
 import tn.oliveconnect.user.Role;
 
 @Service
@@ -46,16 +51,21 @@ public class HarvestRequestService {
     private final MongoTemplate mongoTemplate;
     private final NotificationService notificationService;
     private final PriorityCalculator priorityCalculator;
+    private final CollectionRoundRepository collectionRoundRepository;
+    private final BookingService bookingService;
 
     public HarvestRequestService(HarvestRequestRepository harvestRequestRepository, OrchardRepository orchardRepository,
                                  OliveVarietyRepository oliveVarietyRepository, MongoTemplate mongoTemplate,
-                                 NotificationService notificationService, PriorityCalculator priorityCalculator) {
+                                 NotificationService notificationService, PriorityCalculator priorityCalculator,
+                                 CollectionRoundRepository collectionRoundRepository, BookingService bookingService) {
         this.harvestRequestRepository = harvestRequestRepository;
         this.orchardRepository = orchardRepository;
         this.oliveVarietyRepository = oliveVarietyRepository;
         this.mongoTemplate = mongoTemplate;
         this.notificationService = notificationService;
         this.priorityCalculator = priorityCalculator;
+        this.collectionRoundRepository = collectionRoundRepository;
+        this.bookingService = bookingService;
     }
 
     public HarvestRequestDto create(HarvestRequestCreateDto dto, Authentication authentication) {
@@ -119,8 +129,9 @@ public class HarvestRequestService {
 
     public HarvestRequestDto update(String id, HarvestRequestUpdateDto dto, Authentication authentication) {
         HarvestRequest request = findOwned(id, authentication.getName());
+        boolean scheduled = request.getStatus() == HarvestRequestStatus.SCHEDULED;
         if (request.getStatus() != HarvestRequestStatus.SUBMITTED
-                && request.getStatus() != HarvestRequestStatus.VALIDATED) {
+                && request.getStatus() != HarvestRequestStatus.VALIDATED && !scheduled) {
             throw invalidTransition(request, HarvestRequestStatus.VALIDATED);
         }
         assertVersion(request, dto.version());
@@ -137,6 +148,26 @@ public class HarvestRequestService {
         }
         if (!Double.isFinite(estimatedQuantityKg) || estimatedQuantityKg <= 0) {
             throw new FieldValidationException("estimatedQuantityKg", "must be greater than 0");
+        }
+
+        if (scheduled) {
+            CollectionRound round = collectionRoundRepository.findById(request.getRoundId())
+                    .orElseThrow(() -> new NotFoundException("Collection round not found"));
+            if (round.getStatus() != RoundStatus.PLANNED) {
+                throw new ConflictException("ROUND_STARTED", "Round already started — contact the collection manager");
+            }
+            boolean datesChanged = !Objects.equals(desiredFrom, request.getDesiredFrom())
+                    || !Objects.equals(desiredTo, request.getDesiredTo())
+                    || !Objects.equals(orchard.getId(), request.getOrchardId());
+            if (datesChanged) {
+                detachFromPlannedRound(request, round, authentication.getName(), "Request modified");
+            } else if (!Objects.equals(estimatedQuantityKg, request.getEstimatedQuantityKg())) {
+                round.getStops().stream()
+                        .filter(stop -> request.getId().equals(stop.getHarvestRequestId()))
+                        .findFirst().ifPresent(stop -> stop.setEstimatedKg(estimatedQuantityKg));
+                round.setEstimatedTotalKg(round.getStops().stream().mapToDouble(RoundStop::getEstimatedKg).sum());
+                collectionRoundRepository.save(round);
+            }
         }
 
         request.setOrchardId(orchard.getId());
@@ -158,10 +189,25 @@ public class HarvestRequestService {
         Long version = dto == null ? null : dto.version();
         String reason = dto == null ? null : dto.reason();
         assertVersion(request, version);
-        if (!request.canTransitionTo(HarvestRequestStatus.CANCELLED)
-                || (request.getStatus() != HarvestRequestStatus.SUBMITTED
-                && request.getStatus() != HarvestRequestStatus.VALIDATED)) {
+        if (!request.canTransitionTo(HarvestRequestStatus.CANCELLED)) {
             throw invalidTransition(request, HarvestRequestStatus.CANCELLED);
+        }
+        if (request.getStatus() == HarvestRequestStatus.SCHEDULED) {
+            CollectionRound round = collectionRoundRepository.findById(request.getRoundId())
+                    .orElseThrow(() -> new NotFoundException("Collection round not found"));
+            if (round.getStatus() != RoundStatus.PLANNED) {
+                throw new ConflictException("ROUND_STARTED", "Round already started — contact the collection manager");
+            }
+            removeStopFromPlannedRound(request, round, authentication.getName(), reason);
+            request.setRoundId(null);
+            request.transitionTo(HarvestRequestStatus.CANCELLED, authentication.getName(), reason);
+            HarvestRequestDto cancelled = toDto(harvestRequestRepository.save(request), authentication);
+            notificationService.notifyCollectionManagers(NotificationType.ROUND_UPDATED,
+                    "Scheduled request cancelled", "A farmer cancelled a scheduled harvest request", linkFor(request));
+            notificationService.notifyUser(round.getTeamLeaderId(), NotificationType.ROUND_UPDATED,
+                    "Scheduled request cancelled", "A farmer cancelled a stop on " + round.getCode(),
+                    "/rounds/" + round.getId());
+            return cancelled;
         }
         request.transitionTo(HarvestRequestStatus.CANCELLED, authentication.getName(), reason);
         return toDto(harvestRequestRepository.save(request), authentication);
@@ -273,9 +319,13 @@ public class HarvestRequestService {
     private List<String> allowedActions(HarvestRequest request, Authentication authentication) {
         List<String> actions = new java.util.ArrayList<>();
         boolean owner = request.getFarmerId().equals(authentication.getName());
+        boolean scheduledRoundIsPlanned = request.getStatus() != HarvestRequestStatus.SCHEDULED
+                || collectionRoundRepository.findById(request.getRoundId())
+                .map(round -> round.getStatus() == RoundStatus.PLANNED).orElse(false);
         if (owner && hasRole(authentication, Role.FARMER)
                 && (request.getStatus() == HarvestRequestStatus.SUBMITTED
-                || request.getStatus() == HarvestRequestStatus.VALIDATED)) {
+                || request.getStatus() == HarvestRequestStatus.VALIDATED
+                || request.getStatus() == HarvestRequestStatus.SCHEDULED) && scheduledRoundIsPlanned) {
             actions.add("MODIFY");
             actions.add("CANCEL");
         }
@@ -312,5 +362,21 @@ public class HarvestRequestService {
     private boolean hasRole(Authentication authentication, Role role) {
         return authentication.getAuthorities().stream()
                 .anyMatch(authority -> authority.getAuthority().equals("ROLE_" + role.name()));
+    }
+
+    private void detachFromPlannedRound(HarvestRequest request, CollectionRound round, String userId, String comment) {
+        removeStopFromPlannedRound(request, round, userId, comment);
+        request.transitionTo(HarvestRequestStatus.VALIDATED, userId, comment);
+        request.setRoundId(null);
+    }
+
+    private void removeStopFromPlannedRound(HarvestRequest request, CollectionRound round,
+                                            String userId, String comment) {
+        round.removeStopForRequest(request.getId());
+        if (round.getStops().isEmpty()) {
+            bookingService.releaseByRoundId(round.getId());
+            round.transitionTo(RoundStatus.CANCELLED, userId, comment);
+        }
+        collectionRoundRepository.save(round);
     }
 }

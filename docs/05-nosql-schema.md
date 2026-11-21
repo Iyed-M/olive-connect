@@ -34,6 +34,7 @@ erDiagram
     resource_bookings }o--|| collection_rounds : "roundId"
     resource_bookings }o--|| workers : "resourceId (WORKER)"
     resource_bookings }o--|| equipment : "resourceId (EQUIPMENT)"
+    resource_bookings }o--|| users : "resourceId (TEAM_LEADER)"
     supply_orders }o--|| equipment : "toolId"
     mill_receptions }o--|| mills : "millId"
     mill_receptions }o--|| collection_rounds : "roundId"
@@ -102,6 +103,7 @@ erDiagram
         string code UK
         date date
         string status
+        ObjectId plannedById
         ObjectId teamLeaderId
         ObjectId millId
         array stops "embedded 1..n (≤ 15)"
@@ -111,10 +113,21 @@ erDiagram
     resource_bookings {
         ObjectId _id
         string resourceKind
+        string resourceType
         ObjectId resourceId
         ObjectId roundId
         date start
         date end
+        string status
+    }
+    mills {
+        ObjectId _id
+        string name UK
+        object location "GeoJSON Point"
+        string address
+        double dailyCapacityKg
+        double availableCapacityKg
+        date capacityUpdatedAt
     }
     mill_receptions {
         ObjectId _id
@@ -337,7 +350,7 @@ by the M2 form yet.
   "stops": [
     { "order": 1, "harvestRequestId": ObjectId("..."), "orchardId": ObjectId("..."), "farmerId": ObjectId("..."),
       "orchardName": "Henchir El Mezraa", "location": {"type":"Point","coordinates":[10.7603,34.7998]},
-      "plannedArrival": "07:30", "estimatedKg": 9000, "status": "PENDING", "harvestedKg": null, "crateCount": null }
+      "plannedArrival": "07:30", "estimatedKg": 9000, "status": "PENDING", "harvestedKg": null, "crateCount": null, "comment": null }
   ],
   "estimatedTotalKg": 15000, "totalHarvestedKg": 0,
   "statusHistory": [ { "from": null, "to": "PLANNED", "at": ISODate("..."), "byUserId": ObjectId("...") } ],
@@ -361,13 +374,14 @@ Stops are embedded (R2): there are at most about 15 per round, they are read and
   "roundId": ObjectId("..."), "start": ISODate("2026-11-25T07:00:00Z"), "end": ISODate("2026-11-25T15:00:00Z"),
   "status": "ACTIVE" }
 ```
+`resourceKind` is `WORKER`, `EQUIPMENT`, or `TEAM_LEADER`; team-leader bookings reference the selected User id and use the same overlap and Redis-lock rules.
 | Index | Purpose |
 |---|---|
 | `{ resourceId: 1, start: 1, end: 1 }` partial `status: "ACTIVE"` | **overlap check**: `{resourceId: X, start: {$lt: newEnd}, end: {$gt: newStart}, status: "ACTIVE"}` |
 | `{ start: 1, resourceType: 1 }` | calendar per resource type for a week |
 | `{ roundId: 1 }` | release bookings when a round is cancelled |
 
-Overlap check and insert happen **in the same transaction** as the round creation. Concurrent planning of the same bin is serialised by a Redis lock `lock:resource:{id}` (SET NX PX 5000). The transaction alone does not prevent two inserts that don't conflict on the same document.
+Overlap check and insert happen **in the same transaction** as the round creation. Concurrent planning of the same resource is serialised by a Redis lock `lock:resource:{kind}:{id}` (SET NX PX 5000, renewed every second until transaction completion). The transaction alone does not prevent two inserts that don't conflict on the same document.
 
 ### 4.7 `workers`, `equipment` (R1, R2 unavailabilities, R8 inheritance)
 
@@ -392,6 +406,12 @@ Indexes: `{ type: 1, status: 1 }`, `{ code: 1 }` unique. Workers: `{ active: 1, 
 ### 4.8 `mills`, `mill_receptions` (R1, R2 quality, R3, R11 computed, R13 denormalised)
 
 ```json
+// mills — seeded reference destinations; capacity is mutable for later mill-management slices
+{ "_id": ObjectId("..."), "name": "Sfax North Olive Mill", "address": "Route de Tunis, Sfax",
+  "location": {"type": "Point", "coordinates": [10.7603, 34.7998]},
+  "dailyCapacityKg": 40000, "availableCapacityKg": 40000,
+  "capacityUpdatedAt": ISODate("2026-11-20T08:00:00Z") }
+
 // mill_receptions — the main "fact" collection for the dashboard
 {
   "_id": ObjectId("..."),
@@ -414,7 +434,13 @@ Indexes: `{ type: 1, status: 1 }`, `{ code: 1 }` unique. Workers: `{ active: 1, 
 | `{ farmerId: 1, receivedAt: -1 }` | farmer "my receptions" |
 | `{ roundId: 1, binId: 1, orchardId: 1 }` unique | prevents weighing the same bin load twice |
 
-`mills`: `{ code: 1 }` unique (import key), `{ location: "2dsphere" }` for nearest-mill suggestions. M10 creates the `Mill` document with only `code`, `name`, `location`, `dailyCapacityKg`, `availableCapacityKg` and `capacityUpdatedAt`; `address` comes with M7. `availableCapacityKg` is updated by `$inc` on each reception and overwritten by the dynamic import (mill system) unless the file is older than `capacityUpdatedAt` (the date of `mill_capacity_YYYYMMDD.json`).
+`mills`: `{ code: 1 }` unique sparse (import key; seeded mills have no code until a `mills.json` import matches them by name), `{ name: 1 }` unique, `{ location: "2dsphere" }` for nearest-mill suggestions. `availableCapacityKg` is updated by `$inc` on each reception and overwritten by the dynamic import (mill system) unless the file is older than `capacityUpdatedAt` (the date of `mill_capacity_YYYYMMDD.json`).
+
+| Index | Purpose |
+|---|---|
+| `{ location: "2dsphere" }` (`location_2dsphere`) | nearest-mill `$geoNear` suggestions |
+| `{ name: 1 }` unique | idempotent lookup of seeded mill names |
+| `{ code: 1 }` unique sparse | import key of `mills.json` and the mill capacity files |
 
 ### 4.9 `field_alerts` (R1, R2 history, R10)
 
@@ -494,7 +520,7 @@ flowchart LR
 | Public map, visible area | `orchards.find({location: {$geoWithin: {$box: [[w,s],[e,n]]}}, harvestStatus: {$in: [...]}}, {projection: name, location, mainVarietyCode, harvestStatus, currentMaturityIndex})` | `location_2dsphere` | < 300 ms (then cached in Redis per bbox/zoom + filter). The polygon is a GeoJSON `$geometry` (not the legacy `$box`) so MongoDB uses the 2dsphere index. Cells with several orchards are grouped by `MapService` at zoom < 13 |
 | Manager queue | `harvest_requests.find({status: "VALIDATED"}).sort({priorityScore: -1}).limit(50)` | `status_1_priorityScore_-1` | < 50 ms |
 | Nearby requests (grouping) | `$geoNear` on `orchard.location`, `maxDistance 10 000`, `query {status: VALIDATED}` | `orchard.location_2dsphere_status_1` | < 100 ms |
-| Booking conflicts | `resource_bookings.find({resourceId: {$in: ids}, start: {$lt: e}, end: {$gt: s}, status: "ACTIVE"})` | `resourceId_1_start_1_end_1` | < 20 ms |
+| Booking conflicts | `resource_bookings.find({resourceId: {$in: ids}, start: {$lt: e}, end: {$gt: s}, status: "ACTIVE"})` | `resource_id_start_end_active` | < 20 ms |
 | Yield per orchard | aggregation below | `season_1_orchardId_1` | < 1 s for 10⁵ receptions |
 | Latest maturity history | `maturity_readings.find({"meta.orchardId": X}).sort({timestamp: -1}).limit(30)` | `meta.orchardId_1_timestamp_-1` | < 50 ms |
 

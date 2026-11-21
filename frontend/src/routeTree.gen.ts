@@ -17,6 +17,7 @@ import { Route as AppChangePasswordRouteImport } from './routes/_app.change-pass
 import { Route as AppFarmerRouteImport } from './routes/_app.farmer'
 import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
 import { Route as AppAdminRegistrationsRouteImport } from './routes/_app.admin.registrations'
+import { Route as AppCollectionPlanningRouteImport } from './routes/_app.collection.planning'
 import { Route as AppCollectionRequestsRouteImport } from './routes/_app.collection.requests'
 import { Route as AppFarmerIndexRouteImport } from './routes/_app.farmer.index'
 import { Route as AppIntranetSettingsRouteImport } from './routes/_app.intranet.settings'
@@ -39,6 +40,7 @@ import { Route as AppLogisticsEquipmentNewRouteImport } from './routes/_app.logi
 import { Route as AppLogisticsWorkersIndexRouteImport } from './routes/_app.logistics.workers.index'
 import { Route as AppLogisticsWorkersIdRouteImport } from './routes/_app.logistics.workers.$id'
 import { Route as AppLogisticsWorkersNewRouteImport } from './routes/_app.logistics.workers.new'
+import { Route as AppRoundsIdRunRouteImport } from './routes/_app.rounds.$id.run'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -77,6 +79,11 @@ const AppNotificationsRoute = AppNotificationsRouteImport.update({
 const AppAdminRegistrationsRoute = AppAdminRegistrationsRouteImport.update({
   id: '/admin/registrations',
   path: '/admin/registrations',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCollectionPlanningRoute = AppCollectionPlanningRouteImport.update({
+  id: '/collection/planning',
+  path: '/collection/planning',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCollectionRequestsRoute = AppCollectionRequestsRouteImport.update({
@@ -192,6 +199,11 @@ const AppLogisticsWorkersNewRoute = AppLogisticsWorkersNewRouteImport.update({
   path: '/logistics/workers/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRoundsIdRunRoute = AppRoundsIdRunRouteImport.update({
+  id: '/rounds/$id/run',
+  path: '/rounds/$id/run',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -201,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/farmer': typeof AppFarmerRouteWithChildren
   '/notifications': typeof AppNotificationsRoute
   '/admin/registrations': typeof AppAdminRegistrationsRoute
+  '/collection/planning': typeof AppCollectionPlanningRoute
   '/collection/requests': typeof AppCollectionRequestsRoute
   '/intranet/settings': typeof AppIntranetSettingsRoute
   '/mill/incoming': typeof AppMillIncomingRoute
@@ -217,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/logistics/equipment/new': typeof AppLogisticsEquipmentNewRoute
   '/logistics/workers/$id': typeof AppLogisticsWorkersIdRoute
   '/logistics/workers/new': typeof AppLogisticsWorkersNewRoute
+  '/rounds/$id/run': typeof AppRoundsIdRunRoute
   '/admin/users/': typeof AppAdminUsersIndexRoute
   '/farmer/orchards/': typeof AppFarmerOrchardsIndexRoute
   '/farmer/requests/': typeof AppFarmerRequestsIndexRoute
@@ -231,6 +245,7 @@ export interface FileRoutesByTo {
   '/change-password': typeof AppChangePasswordRoute
   '/notifications': typeof AppNotificationsRoute
   '/admin/registrations': typeof AppAdminRegistrationsRoute
+  '/collection/planning': typeof AppCollectionPlanningRoute
   '/collection/requests': typeof AppCollectionRequestsRoute
   '/intranet/settings': typeof AppIntranetSettingsRoute
   '/mill/incoming': typeof AppMillIncomingRoute
@@ -247,6 +262,7 @@ export interface FileRoutesByTo {
   '/logistics/equipment/new': typeof AppLogisticsEquipmentNewRoute
   '/logistics/workers/$id': typeof AppLogisticsWorkersIdRoute
   '/logistics/workers/new': typeof AppLogisticsWorkersNewRoute
+  '/rounds/$id/run': typeof AppRoundsIdRunRoute
   '/admin/users': typeof AppAdminUsersIndexRoute
   '/farmer/orchards': typeof AppFarmerOrchardsIndexRoute
   '/farmer/requests': typeof AppFarmerRequestsIndexRoute
@@ -264,6 +280,7 @@ export interface FileRoutesById {
   '/_app/farmer': typeof AppFarmerRouteWithChildren
   '/_app/notifications': typeof AppNotificationsRoute
   '/_app/admin/registrations': typeof AppAdminRegistrationsRoute
+  '/_app/collection/planning': typeof AppCollectionPlanningRoute
   '/_app/collection/requests': typeof AppCollectionRequestsRoute
   '/_app/intranet/settings': typeof AppIntranetSettingsRoute
   '/_app/mill/incoming': typeof AppMillIncomingRoute
@@ -280,6 +297,7 @@ export interface FileRoutesById {
   '/_app/logistics/equipment/new': typeof AppLogisticsEquipmentNewRoute
   '/_app/logistics/workers/$id': typeof AppLogisticsWorkersIdRoute
   '/_app/logistics/workers/new': typeof AppLogisticsWorkersNewRoute
+  '/_app/rounds/$id/run': typeof AppRoundsIdRunRoute
   '/_app/admin/users/': typeof AppAdminUsersIndexRoute
   '/_app/farmer/orchards/': typeof AppFarmerOrchardsIndexRoute
   '/_app/farmer/requests/': typeof AppFarmerRequestsIndexRoute
@@ -297,6 +315,7 @@ export interface FileRouteTypes {
     | '/farmer'
     | '/notifications'
     | '/admin/registrations'
+    | '/collection/planning'
     | '/collection/requests'
     | '/intranet/settings'
     | '/mill/incoming'
@@ -313,6 +332,7 @@ export interface FileRouteTypes {
     | '/logistics/equipment/new'
     | '/logistics/workers/$id'
     | '/logistics/workers/new'
+    | '/rounds/$id/run'
     | '/admin/users/'
     | '/farmer/orchards/'
     | '/farmer/requests/'
@@ -327,6 +347,7 @@ export interface FileRouteTypes {
     | '/change-password'
     | '/notifications'
     | '/admin/registrations'
+    | '/collection/planning'
     | '/collection/requests'
     | '/intranet/settings'
     | '/mill/incoming'
@@ -343,6 +364,7 @@ export interface FileRouteTypes {
     | '/logistics/equipment/new'
     | '/logistics/workers/$id'
     | '/logistics/workers/new'
+    | '/rounds/$id/run'
     | '/admin/users'
     | '/farmer/orchards'
     | '/farmer/requests'
@@ -359,6 +381,7 @@ export interface FileRouteTypes {
     | '/_app/farmer'
     | '/_app/notifications'
     | '/_app/admin/registrations'
+    | '/_app/collection/planning'
     | '/_app/collection/requests'
     | '/_app/intranet/settings'
     | '/_app/mill/incoming'
@@ -375,6 +398,7 @@ export interface FileRouteTypes {
     | '/_app/logistics/equipment/new'
     | '/_app/logistics/workers/$id'
     | '/_app/logistics/workers/new'
+    | '/_app/rounds/$id/run'
     | '/_app/admin/users/'
     | '/_app/farmer/orchards/'
     | '/_app/farmer/requests/'
@@ -446,6 +470,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/registrations'
       fullPath: '/admin/registrations'
       preLoaderRoute: typeof AppAdminRegistrationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/collection/planning': {
+      id: '/_app/collection/planning'
+      path: '/collection/planning'
+      fullPath: '/collection/planning'
+      preLoaderRoute: typeof AppCollectionPlanningRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/collection/requests': {
@@ -602,6 +633,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLogisticsWorkersNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/rounds/$id/run': {
+      id: '/_app/rounds/$id/run'
+      path: '/rounds/$id/run'
+      fullPath: '/rounds/$id/run'
+      preLoaderRoute: typeof AppRoundsIdRunRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -634,6 +672,7 @@ interface AppRouteChildren {
   AppFarmerRoute: typeof AppFarmerRouteWithChildren
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppAdminRegistrationsRoute: typeof AppAdminRegistrationsRoute
+  AppCollectionPlanningRoute: typeof AppCollectionPlanningRoute
   AppCollectionRequestsRoute: typeof AppCollectionRequestsRoute
   AppIntranetSettingsRoute: typeof AppIntranetSettingsRoute
   AppMillIncomingRoute: typeof AppMillIncomingRoute
@@ -645,6 +684,7 @@ interface AppRouteChildren {
   AppLogisticsEquipmentNewRoute: typeof AppLogisticsEquipmentNewRoute
   AppLogisticsWorkersIdRoute: typeof AppLogisticsWorkersIdRoute
   AppLogisticsWorkersNewRoute: typeof AppLogisticsWorkersNewRoute
+  AppRoundsIdRunRoute: typeof AppRoundsIdRunRoute
   AppAdminUsersIndexRoute: typeof AppAdminUsersIndexRoute
   AppIntranetImportsIndexRoute: typeof AppIntranetImportsIndexRoute
   AppLogisticsEquipmentIndexRoute: typeof AppLogisticsEquipmentIndexRoute
@@ -656,6 +696,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFarmerRoute: AppFarmerRouteWithChildren,
   AppNotificationsRoute: AppNotificationsRoute,
   AppAdminRegistrationsRoute: AppAdminRegistrationsRoute,
+  AppCollectionPlanningRoute: AppCollectionPlanningRoute,
   AppCollectionRequestsRoute: AppCollectionRequestsRoute,
   AppIntranetSettingsRoute: AppIntranetSettingsRoute,
   AppMillIncomingRoute: AppMillIncomingRoute,
@@ -667,6 +708,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppLogisticsEquipmentNewRoute: AppLogisticsEquipmentNewRoute,
   AppLogisticsWorkersIdRoute: AppLogisticsWorkersIdRoute,
   AppLogisticsWorkersNewRoute: AppLogisticsWorkersNewRoute,
+  AppRoundsIdRunRoute: AppRoundsIdRunRoute,
   AppAdminUsersIndexRoute: AppAdminUsersIndexRoute,
   AppIntranetImportsIndexRoute: AppIntranetImportsIndexRoute,
   AppLogisticsEquipmentIndexRoute: AppLogisticsEquipmentIndexRoute,

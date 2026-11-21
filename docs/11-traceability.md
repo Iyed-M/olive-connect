@@ -19,12 +19,12 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | OliveVariety | R1 (natural key) | `olive_varieties` | `orchard.OliveVariety` | `OliveVarietyRepository` | `OrchardService` (Redis cached), `OliveVarietySeeder` | `OliveVarietyController /varieties` | `features/farmer/OrchardForm`, `intranet/Reference` |
 | HarvestRequest | R1, R3, R4, R11, R14 | `harvest_requests` | `harvest.HarvestRequest` (+ embedded `OrchardSnapshot`) | `HarvestRequestRepository` | `HarvestRequestService`, weighted `PriorityCalculator` | `HarvestRequestController /harvest-requests` (paged GET + actions) | `farmer/HarvestRequestForm`, `farmer/MyRequests`, `farmer/HarvestRequestDetail`, `farmer/RequestActions`, `farmer/harvestRequests`, `collection/RequestQueue` |
 | StatusChange | R2 | `*.statusHistory[]` | `common.StatusChange` (embedded) | — | each owning service | in detail DTOs | `components/Timeline` |
-| CollectionRound | R1, R5, R14 | `collection_rounds` | `round.CollectionRound` | `CollectionRoundRepository` | `CollectionRoundService`, `PlanningService` | `CollectionRoundController /rounds`, `/planning` | `collection/PlanningBoard`, `teamleader/RoundRunner` |
+| CollectionRound | R1, R5, R14 | `collection_rounds` | `round.CollectionRound` | `CollectionRoundRepository` | `CollectionRoundService`, `PlanningService` | `CollectionRoundController /rounds`, `PlanningController /planning` | `collection/PlanningBoard`, `teamleader/MyRounds`, `teamleader/RoundRunner` |
 | RoundStop | R2 | `collection_rounds.stops[]` | `round.RoundStop` (embedded) | — | `CollectionRoundService` | `/rounds/{id}/stops/{order}` | `teamleader/RoundRunner` |
 | Worker | R1, R2 | `workers` (+ `externalRef`, import key) | `resource.Worker` | `WorkerRepository` | `ResourceService`, `ResourcesCsvImporter` | `/workers` | `logistics/WorkerForm`, `routes/_app.logistics.workers.*` |
 | Equipment / Tractor / Bin / Tool | R1, R8 | `equipment` (`type`, `_class`) | `resource.Equipment` + subclasses | `EquipmentRepository` | `ResourceService` | `/equipment` | `logistics/EquipmentForm`, `routes/_app.logistics.equipment.*` |
 | Unavailability | R2 | `workers/equipment.unavailabilities[]` | `resource.Unavailability` | — | `ResourceService` | `/…/{id}/unavailabilities` | `logistics/UnavailabilityPanel`, `logistics/ResourceCalendar` |
-| ResourceBooking | R6 | `resource_bookings` | `resource.ResourceBooking` | `ResourceBookingRepository` | `BookingService` | `/resources/calendar`, `/resources/availability` | `logistics/ResourceCalendar` |
+| ResourceBooking | R6 | `resource_bookings` | `resource.ResourceBooking` | `ResourceBookingRepository` | `BookingService`, `ResourceAvailabilityService` | `/resources/calendar`, `/resources/availability` | `collection/RoundForm`, `logistics/ResourceCalendar` |
 | SupplyOrder | R1, R3 | `supply_orders` | `resource.SupplyOrder` | `SupplyOrderRepository` | `SupplyService` | `/supply-orders` | `logistics/SupplyOrders` |
 | Mill | R1, R10 | `mills` | `mill.Mill` (minimal in M10) | `MillRepository` | `MillService`, `MillsJsonImporter`, `MillCapacityJsonImporter` | `MillController /mills` | `mill/CapacityPage` |
 | MillReception | R1, R3, R11, R13 | `mill_receptions` | `mill.MillReception` | `MillReceptionRepository` | `MillReceptionService` | `/mills/{id}/receptions`, `/receptions` | `mill/ReceptionForm`, `farmer/MyReceptions` |
@@ -51,7 +51,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | FR-1.4 | Validate / reject | `/validate`, `/reject` | T-HR-7 |
 | FR-1.5 | Plan round / SD-3 | `POST /rounds`, `/planning/suggestions` | T-RD-1..5 |
 | FR-1.6 | Notifications | `/notifications` (M3), `/events` (M8) | T-HR-1, T-RD-1, T-ML-1 |
-| FR-1.7 | Update round / SD-6 | `/rounds/{id}/start`, `/stops/{order}`, `/complete` | T-RD-6..8 |
+| FR-1.7 | Update round / SD-6 | `/rounds/{id}/start`, `/stops/{order}`, `/complete` | T-RD-6..8 (`CollectionRoundExecutionControllerTest`) |
 | FR-2.x | Report & handle alert / SD-5 | `/alerts/**` | T-AL-1..4 |
 | FR-3.x | Resources | `/workers`, `/equipment`, `/resources/*`, `/supply-orders` | T-RS-1..2, T-RD-2 |
 | FR-4.x | Map | `/map/public`, `/map/private` | T-SEC-3, T-MAP-1..3, T-PERF-1 |

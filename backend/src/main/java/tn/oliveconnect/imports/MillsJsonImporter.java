@@ -92,6 +92,13 @@ public class MillsJsonImporter implements DatasetImporter<Mill> {
         for (Mill record : records) {
             Mill mill = existing.get(record.getCode());
             if (mill == null) {
+                // a mill seeded by name (no code yet) is adopted instead of duplicated
+                mill = repository.findByName(record.getName()).filter(seeded -> seeded.getCode() == null).orElse(null);
+                if (mill != null) {
+                    mill.setCode(record.getCode());
+                }
+            }
+            if (mill == null) {
                 record.setAvailableCapacityKg(record.getDailyCapacityKg());
                 toSave.add(record);
                 continue;

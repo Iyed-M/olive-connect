@@ -10,4 +10,8 @@ public interface MillRepository extends MongoRepository<Mill, String> {
     Optional<Mill> findByCode(String code);
 
     List<Mill> findAllByCodeIn(Collection<String> codes);
+
+    Optional<Mill> findByName(String name);
+
+    List<Mill> findAllByOrderByNameAsc();
 }

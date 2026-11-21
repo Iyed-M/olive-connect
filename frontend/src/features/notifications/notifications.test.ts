@@ -31,4 +31,13 @@ describe('notificationPath', () => {
     expect(notificationPath({ type: 'REQUEST_VALIDATED', link: '/harvest-requests/abc' })).toBe('/farmer/requests/abc')
     expect(notificationPath({ type: 'REQUEST_REJECTED', link: null })).toBeNull()
   })
+
+  it('opens an assigned round in the team leader runner', () => {
+    expect(notificationPath({ type: 'ROUND_ASSIGNED', link: '/rounds/round-1' })).toBe('/rounds/round-1/run')
+  })
+
+  it('keeps farmer round notifications on an authorized farmer page', () => {
+    expect(notificationPath({ type: 'ROUND_STARTED', link: '/farmer/requests' })).toBe('/farmer/requests')
+    expect(notificationPath({ type: 'ROUND_COMPLETED', link: '/farmer/requests' })).toBe('/farmer/requests')
+  })
 })
