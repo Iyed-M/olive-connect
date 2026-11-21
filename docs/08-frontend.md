@@ -229,7 +229,7 @@ The runner first records `IN_PROGRESS` when the team arrives, so the documented
 
 **Collection manager — planning board (desktop)**: left pane = validated requests sorted by priority (badges URGENT / maturity), centre = map with the selected requests and suggested groups, right pane = round form (date, team leader, resources with free/busy indicators, mill with available capacity).
 
-**Dashboard** (`/dashboard`): KPI tiles (season tonnage, avg yield kg/ha, avg lead time, avg fill rate), then charts: yield per delegation (bar), fill rate per week (line + 70 % threshold), lead time distribution (line), mill daily volumes (stacked bar), top/bottom orchards table with CSV export. Filters: season, period, variety, delegation. Collection managers and Admins see the cooperative scope; mill managers see only their assigned mill.
+**Dashboard** (`/dashboard`): KPI tiles (season tonnage, avg yield kg/ha, avg lead time, avg fill rate), then charts: yield per delegation (bar), fill rate per week (line + 70 % threshold), lead time average/p90 (grouped bar), mill daily volumes (stacked bar), top/bottom orchards table with CSV export. Filters: season, period, variety, delegation. Collection managers and Admins see the cooperative scope; mill managers see only their assigned mill.
 
 ## 5. Map (F4)
 
