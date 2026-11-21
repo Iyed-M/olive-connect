@@ -5,7 +5,7 @@ Examples:
   python3 simulator.py /data/inbox --only reference
   python3 simulator.py /data/inbox --only dynamic
   python3 simulator.py /data/inbox --loop 15        # dynamic files every 15 minutes
-  python3 simulator.py /data/inbox --history        # 3 past seasons of readings
+  python3 simulator.py /data/inbox --history        # 3 past seasons of readings and reception facts
 """
 import argparse
 import csv
@@ -318,7 +318,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("inbox", help="inbox directory (created if missing)")
     ap.add_argument("--only", choices=["reference", "dynamic", "all"], default="all")
-    ap.add_argument("--history", action="store_true", help="generate 3 past seasons of readings")
+    ap.add_argument("--history", action="store_true", help="generate 3 past seasons of readings and reception facts")
     ap.add_argument("--loop", type=int, metavar="MIN", help="write dynamic files every MIN minutes")
     ap.add_argument("--orchards", type=int, default=1500)
     ap.add_argument("--seed", default="oliveconnect")
