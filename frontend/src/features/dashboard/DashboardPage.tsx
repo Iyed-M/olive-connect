@@ -261,6 +261,11 @@ function DashboardReady({
             <YieldChart points={yieldPoints} />
           </ChartCard>
         )}
+        {canSeeDetailedKpis && (
+          <ChartCard title="Yield per orchard (top 20)" description="Highest orchard yields for the selected filters.">
+            <YieldChart points={orchardYieldPoints.slice(0, 20)} />
+          </ChartCard>
+        )}
         <ChartCard title="Fill rate per week" description="The dashed line marks the 70% target.">
           <FillRateChart points={fillRatePoints} />
         </ChartCard>
@@ -273,6 +278,8 @@ function DashboardReady({
           <MillVolumeChart points={millVolumePoints} />
         </ChartCard>
       </div>
+
+      {millVolumePoints.length > 0 && <MillVolumeDetails points={millVolumePoints} />}
 
       {canSeeDetailedKpis && <OrchardTable points={orchardYieldPoints} />}
 
@@ -376,6 +383,46 @@ function MillVolumeChart({ points }: { points: MillVolumePoint[] }) {
         ))}
       </BarChart>
     </ResponsiveContainer>
+  )
+}
+
+function MillVolumeDetails({ points }: { points: MillVolumePoint[] }) {
+  return (
+    <Card className="min-w-0">
+      <CardHeader className="gap-1">
+        <CardTitle>Mill quality and capacity details</CardTitle>
+        <p className="text-sm text-muted-foreground">Quality counts and daily capacity use for the selected period.</p>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[38rem] text-left text-sm" aria-label="Mill quality and capacity details">
+            <thead className="border-b text-muted-foreground">
+              <tr>
+                <th className="py-2 pr-3">Date</th>
+                <th className="py-2 pr-3">Mill</th>
+                <th className="py-2 pr-3">Volume</th>
+                <th className="py-2 pr-3">Quality (E/G/A/P)</th>
+                <th className="py-2">Capacity use</th>
+              </tr>
+            </thead>
+            <tbody>
+              {points.map((point) => {
+                const quality = point.qualityDistribution ?? {}
+                return (
+                  <tr key={`${point.date}-${point.millName}`} className="border-b last:border-0">
+                    <td className="py-2 pr-3">{point.date}</td>
+                    <td className="py-2 pr-3 font-medium">{point.millName}</td>
+                    <td className="py-2 pr-3">{formatNumber(point.volumeKg)} kg</td>
+                    <td className="py-2 pr-3">{quality.EXTRA ?? 0}/{quality.GOOD ?? 0}/{quality.AVERAGE ?? 0}/{quality.POOR ?? 0}</td>
+                    <td className="py-2">{point.capacityUsePct === undefined ? '—' : `${formatNumber(point.capacityUsePct)}%`}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

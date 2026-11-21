@@ -22,7 +22,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import tn.oliveconnect.AbstractIntegrationTest;
+import tn.oliveconnect.mill.Mill;
 import tn.oliveconnect.mill.MillReception;
+import tn.oliveconnect.mill.MillRepository;
 import tn.oliveconnect.user.AdminSeeder;
 
 /** Historical reception facts are imported through the same public import API as other dynamic datasets. */
@@ -41,11 +43,14 @@ class HistoricalReceptionImportApiTest extends AbstractIntegrationTest {
     ImportJobRepository jobRepository;
     @Autowired
     AdminSeeder adminSeeder;
+    @Autowired
+    MillRepository millRepository;
 
     @BeforeEach
     @AfterEach
     void clean() throws IOException {
         jobRepository.deleteAll();
+        millRepository.deleteAll();
         mongoTemplate.remove(Query.query(Criteria.where("roundId").regex("^HIST-")), MillReception.class);
         for (String folder : List.of("", "processed", "rejected")) {
             Path directory = folder.isEmpty() ? INBOX : INBOX.resolve(folder);
@@ -61,6 +66,7 @@ class HistoricalReceptionImportApiTest extends AbstractIntegrationTest {
 
     @Test
     void historicalReceptionFactsAreBulkInsertedWithTheirDocumentDimensions() throws Exception {
+        Mill northMill = saveMill("MIL-SFX-01");
         String content = HEADER
                 + reception("MIL-SFX-01", "HIST-2023-0001", "BIN-0001", "ORC-0001", 4350, 820, 3530, 4000,
                         0.8825, "GOOD", "2023-2024", "CHEMLALI", "SAKIET_EZZIT", 5.7,
@@ -79,7 +85,7 @@ class HistoricalReceptionImportApiTest extends AbstractIntegrationTest {
         assertThat(receptions).hasSize(2);
         MillReception first = receptions.stream().filter(item -> item.getRoundId().equals("HIST-2023-0001")).findFirst()
                 .orElseThrow();
-        assertThat(first.getMillId()).isEqualTo("MIL-SFX-01");
+        assertThat(first.getMillId()).isEqualTo(northMill.getId());
         assertThat(first.getOrchardId()).isEqualTo("ORC-0001");
         assertThat(first.getNetWeightKg()).isEqualTo(3530);
         assertThat(first.getFillRate()).isEqualTo(0.8825);
@@ -140,6 +146,15 @@ class HistoricalReceptionImportApiTest extends AbstractIntegrationTest {
 
     private void drop(String fileName, String content) throws IOException {
         Files.writeString(INBOX.resolve(fileName), content);
+    }
+
+    private Mill saveMill(String code) {
+        Mill mill = new Mill();
+        mill.setCode(code);
+        mill.setName("Historical " + code);
+        mill.setDailyCapacityKg(50_000);
+        mill.setAvailableCapacityKg(50_000);
+        return millRepository.save(mill);
     }
 
     private String adminToken() throws Exception {

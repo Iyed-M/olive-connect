@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -15,7 +16,9 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
+import tn.oliveconnect.mill.Mill;
 import tn.oliveconnect.mill.MillReception;
+import tn.oliveconnect.mill.MillRepository;
 import tn.oliveconnect.mill.QualityAssessment;
 import tn.oliveconnect.mill.QualityGrade;
 import tn.oliveconnect.user.Delegation;
@@ -60,9 +63,11 @@ public class MillReceptionCsvImporter implements DatasetImporter<MillReceptionCs
     }
 
     private final MongoTemplate mongoTemplate;
+    private final MillRepository millRepository;
 
-    public MillReceptionCsvImporter(MongoTemplate mongoTemplate) {
+    public MillReceptionCsvImporter(MongoTemplate mongoTemplate, MillRepository millRepository) {
         this.mongoTemplate = mongoTemplate;
+        this.millRepository = millRepository;
     }
 
     @Override
@@ -77,7 +82,7 @@ public class MillReceptionCsvImporter implements DatasetImporter<MillReceptionCs
 
     @Override
     public boolean accepts(String fileName) {
-        return fileName.matches("(?:mill_)?receptions_\\d{8}(?:\\d{4})?\\.csv");
+        return fileName.matches("receptions_\\d{8}\\.csv");
     }
 
     @Override
@@ -232,15 +237,19 @@ public class MillReceptionCsvImporter implements DatasetImporter<MillReceptionCs
         if (records.isEmpty()) {
             return new PersistResult(0, 0);
         }
-        List<MillReception> receptions = records.stream().map(this::toEntity).toList();
+        Map<String, String> millIds = millRepository.findAllByCodeIn(records.stream()
+                        .map(ReceptionLine::millId).distinct().toList()).stream()
+                .collect(Collectors.toMap(Mill::getCode, Mill::getId));
+        List<MillReception> receptions = records.stream().map(record -> toEntity(record, millIds)).toList();
         int inserted = mongoTemplate.bulkOps(BulkMode.UNORDERED, MillReception.class)
                 .insert(receptions).execute().getInsertedCount();
         return new PersistResult(inserted, 0);
     }
 
-    private MillReception toEntity(ReceptionLine record) {
+    private MillReception toEntity(ReceptionLine record, Map<String, String> millIds) {
         MillReception reception = new MillReception();
-        reception.setMillId(record.millId());
+        // History files use the stable mills.json code; live weighing already stores the Mongo id.
+        reception.setMillId(millIds.getOrDefault(record.millId(), record.millId()));
         reception.setRoundId(record.roundId());
         reception.setBinId(record.binId());
         reception.setOrchardId(record.orchardId());

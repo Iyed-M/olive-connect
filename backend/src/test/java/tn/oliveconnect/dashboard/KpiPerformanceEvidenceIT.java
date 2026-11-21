@@ -55,7 +55,7 @@ class KpiPerformanceEvidenceIT extends AbstractIntegrationTest {
         measure("lead-time/delegation", () -> kpiRepository.aggregateLeadTime(filter, "delegation"));
         measure("fill-rate/week", () -> kpiRepository.aggregateFillRate(filter, "week"));
         measure("mill-volumes/day", () -> kpiRepository.aggregateMillVolumes(filter));
-        explainSeasonMatch();
+        explainPipelines();
     }
 
     private void seedHistoryFacts() {
@@ -103,17 +103,34 @@ class KpiPerformanceEvidenceIT extends AbstractIntegrationTest {
         Object result = query.get();
         long millis = Duration.ofNanos(System.nanoTime() - started).toMillis();
         assertThat(result).isNotNull();
+        assertThat(millis).as(name + " must remain under one second").isLessThan(1_000);
         System.out.printf("M11 KPI timing %-24s %4d ms%n", name, millis);
     }
 
-    private void explainSeasonMatch() {
+    private void explainPipelines() {
+        Document season = new Document("$match", new Document("season", SEASON));
+        explain("summary", List.of(season, new Document("$group",
+                new Document("_id", null).append("totalNetKg", new Document("$sum", "$netWeightKg")))));
+        explain("yield/orchard", List.of(season, new Document("$group",
+                new Document("_id", "$orchardId").append("totalNetKg", new Document("$sum", "$netWeightKg")))));
+        explain("lead-time/delegation", List.of(season, new Document("$group",
+                new Document("_id", "$delegation").append("avgLeadTimeH", new Document("$avg", "$leadTimeHours")))));
+        explain("fill-rate/week", List.of(season, new Document("$group", new Document("_id",
+                new Document("week", new Document("$isoWeek", "$receivedAt")))
+                .append("avgFillRate", new Document("$avg", "$fillRate")))));
+        explain("mill-volumes/day", List.of(season, new Document("$group", new Document("_id",
+                new Document("millId", "$millId").append("date", new Document("$dateTrunc",
+                        new Document("date", "$receivedAt").append("unit", "day"))))
+                .append("totalNetKg", new Document("$sum", "$netWeightKg")))));
+    }
+
+    private void explain(String name, List<Document> pipeline) {
         Document command = new Document("explain", new Document("aggregate", "mill_receptions")
-                .append("pipeline", List.of(new Document("$match", new Document("season", SEASON))))
-                .append("cursor", new Document()))
+                .append("pipeline", pipeline).append("cursor", new Document()))
                 .append("verbosity", "executionStats");
         Document explain = mongoTemplate.executeCommand(command);
         Document stats = explain.get("executionStats", Document.class);
-        System.out.printf("M11 KPI explain docs=%s keys=%s%n",
+        System.out.printf("M11 KPI explain %-24s docs=%s keys=%s%n", name,
                 stats == null ? "n/a" : stats.get("totalDocsExamined"),
                 stats == null ? "n/a" : stats.get("totalKeysExamined"));
     }

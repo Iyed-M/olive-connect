@@ -182,7 +182,7 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 | GET | `/dashboard/lead-time` | CM, AD | lead time average and p90, same filters, `groupBy=delegation\|week` | FR-5.2 |
 | GET | `/dashboard/fill-rate` | CM, MM, AD | fill rate and under-filled count, same filters, `groupBy=week\|bin\|round` | FR-5.3 |
 | GET | `/dashboard/mill-volumes` | MM (own), CM, AD | daily mill volumes and quality counts, query `season`, optional `from`, `to`, `variety`, `delegation`, `millId` | FR-5.4 |
-| GET | `/dashboard/{kpi}/export.csv` | same as KPI | CSV export of `summary`, `yield`, `lead-time`, `fill-rate` or `mill-volumes` with the same filters | FR-5.6 |
+| GET | `/dashboard/{kpi}/export.csv` | CM, MM, AD; service applies the KPI-specific scope | CSV export of `summary`, `yield`, `lead-time`, `fill-rate` or `mill-volumes` with the same filters; MM gets 403 for yield and lead-time | FR-5.6 |
 
 ### Notifications, imports, settings
 | Method | Path | Roles | Description |

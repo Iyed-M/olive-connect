@@ -81,6 +81,10 @@ describe('dashboard DTO normalization', () => {
       },
     ])
 
+    expect(normalizeYieldPoints([
+      { groupBy: 'orchard', orchardId: 'ORC-0002', delegation: 'AGAREB', yieldKgHa: 1_800 },
+    ])).toEqual([{ label: 'ORC-0002', orchardId: 'ORC-0002', delegation: 'AGAREB', yieldKgHa: 1_800 }])
+
     expect(normalizeLeadTimePoints([{ _id: 'AGAREB', avgLeadTimeH: 24, p90LeadTimeH: 48 }])).toEqual([
       { label: 'AGAREB', avgLeadTimeHours: 24, p90LeadTimeHours: 48 },
     ])
@@ -90,8 +94,14 @@ describe('dashboard DTO normalization', () => {
     ])
 
     expect(
-      normalizeMillVolumePoints([{ date: '2026-11-21', millId: 'mill-1', totalNetKg: 3_200 }]),
-    ).toEqual([{ date: '2026-11-21', millName: 'mill-1', volumeKg: 3_200 }])
+      normalizeMillVolumePoints([{
+        date: '2026-11-21', millId: 'mill-1', totalNetKg: 3_200,
+        qualityDistribution: { GOOD: 3 }, capacityUsePct: 8,
+      }]),
+    ).toEqual([{
+      date: '2026-11-21', millName: 'mill-1', volumeKg: 3_200,
+      qualityDistribution: { GOOD: 3 }, capacityUsePct: 8,
+    }])
   })
 })
 

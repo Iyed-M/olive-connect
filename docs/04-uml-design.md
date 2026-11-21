@@ -815,7 +815,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     autonumber
-    actor CM as Collection or mill manager
+    actor CM as Collection manager
     participant FE as React
     participant C as CollectionRoundController
     participant S as CollectionRoundService
@@ -1128,7 +1128,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     autonumber
-    actor CM as Collection manager
+    actor CM as Collection or mill manager
     participant C as DashboardController
     participant K as KpiService
     participant RC as Redis cache "kpi"

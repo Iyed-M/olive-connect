@@ -95,8 +95,11 @@ The importer validates the weight and fill-rate equations, quality and
 delegation enums, season, timestamps and lead time, then inserts valid facts in
 unordered batches of 1,000. The simulator writes 20 receptions per orchard for
 each of three past seasons (90,000 facts with the default 1,500 orchards).
-These are stable synthetic fact references for dashboard history; they do not
-create operational rounds or harvest requests.
+`millId` contains the stable code from `mills.json`; when the reference mills
+are already loaded, `MillReceptionCsvImporter` resolves that code to the
+MongoDB mill id used by live weighing and mill-manager scoping. These are
+stable synthetic fact references for dashboard history; they do not create
+operational rounds or harvest requests.
 
 ## 3. Conformity checks (validation rules)
 

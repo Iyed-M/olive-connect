@@ -52,6 +52,8 @@ export interface MillVolumePoint {
   date: string
   millName: string
   volumeKg: number
+  qualityDistribution?: Record<string, number>
+  capacityUsePct?: number
 }
 
 export type DashboardState = 'loading' | 'error' | 'empty' | 'ready'
@@ -113,11 +115,14 @@ export function normalizeDashboardSummary(raw: unknown): DashboardSummary {
 export function normalizeYieldPoints(raw: unknown): YieldPoint[] {
   return responseItems(raw).map((item) => {
     const value = asRecord(item)
+    const groupBy = stringValue(value, ['groupBy'])
     const orchardId = stringValue(value, ['orchardId'])
     const orchardName = stringValue(value, ['orchardName', 'name'])
     const variety = stringValue(value, ['variety', 'varietyCode'])
     const delegation = stringValue(value, ['delegation', 'delegationCode'])
-    const label = orchardName || delegation || variety || orchardId || dimensionLabel(value) || '—'
+    const label = groupBy === 'orchard'
+      ? orchardName || orchardId || delegation || variety || dimensionLabel(value) || '—'
+      : orchardName || delegation || variety || orchardId || dimensionLabel(value) || '—'
     const point: YieldPoint = {
       label,
       yieldKgHa: numberValue(value, ['yieldKgHa', 'averageYieldKgHa']),
@@ -158,11 +163,17 @@ export function normalizeFillRatePoints(raw: unknown): FillRatePoint[] {
 export function normalizeMillVolumePoints(raw: unknown): MillVolumePoint[] {
   return responseItems(raw).map((item) => {
     const value = asRecord(item)
-    return {
+    const point: MillVolumePoint = {
       date: stringValue(value, ['date', 'day', 'receivedDate']) || dimensionLabel(value) || '—',
       millName: stringValue(value, ['millName', 'mill', 'name', 'millId']) || 'Mill',
       volumeKg: numberValue(value, ['volumeKg', 'totalNetKg', 'netWeightKg', 'millVolumeKg']),
     }
+    const qualityDistribution = numericRecord(value.qualityDistribution)
+    if (Object.keys(qualityDistribution).length) point.qualityDistribution = qualityDistribution
+    if (value.capacityUsePct !== undefined && value.capacityUsePct !== null) {
+      point.capacityUsePct = numberValue(value, ['capacityUsePct'])
+    }
+    return point
   })
 }
 
@@ -291,6 +302,18 @@ function numberValue(value: JsonRecord, keys: string[]): number {
     }
   }
   return 0
+}
+
+function numericRecord(value: unknown): Record<string, number> {
+  const result: Record<string, number> = {}
+  for (const [key, candidate] of Object.entries(asRecord(value))) {
+    if (typeof candidate === 'number' && Number.isFinite(candidate)) result[key] = candidate
+    if (typeof candidate === 'string' && candidate.trim() !== '') {
+      const parsed = Number(candidate)
+      if (Number.isFinite(parsed)) result[key] = parsed
+    }
+  }
+  return result
 }
 
 function stringValue(value: JsonRecord, keys: string[]): string {
