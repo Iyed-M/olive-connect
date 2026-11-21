@@ -111,13 +111,7 @@ def write_reference(out, count, seed, rng, now):
     rows = []
     for i in range(1, count + 1):
         p = orchard_profile(i, seed)
-        r = p["rng"]
-        plots = []
-        for n in range(r.choice([1, 1, 2, 3])):
-            v = p["variety"] if n == 0 else r.choice(VARIETIES)
-            area = round(r.uniform(0.5, 6), 1)
-            plots.append(["P%d" % (n + 1), v[0], area, int(area * 100), r.randint(1960, 2020),
-                          str(r.random() < 0.3).lower()])
+        plots = orchard_plots(p)
         for plot in plots:
             row = [p["ref"], p["name"], p["member"], p["lng"], p["lat"], p["delegation"]] + plot
             if pick_invalid(rng):  # one broken field per bad row
@@ -229,17 +223,21 @@ def write_mill_capacity(out, rng, at):
 
 # ---------- historical reception facts ----------
 
+def orchard_plots(p):
+    """Reproduce the plots generated for an orchard in orchards.csv."""
+    r = p["rng"]
+    plots = []
+    for n in range(r.choice([1, 1, 2, 3])):
+        variety = p["variety"] if n == 0 else r.choice(VARIETIES)
+        area = round(r.uniform(0.5, 6), 1)
+        plots.append(["P%d" % (n + 1), variety[0], area, int(area * 100), r.randint(1960, 2020),
+                      str(r.random() < 0.3).lower()])
+    return plots
+
+
 def orchard_area(p):
     """Reproduce the area generated for an orchard in orchards.csv."""
-    r = p["rng"]
-    total = 0.0
-    for n in range(r.choice([1, 1, 2, 3])):
-        r.choice(VARIETIES)
-        area = round(r.uniform(0.5, 6), 1)
-        r.randint(1960, 2020)
-        r.random()
-        total += area
-    return round(total, 1)
+    return round(sum(plot[2] for plot in orchard_plots(p)), 1)
 
 
 def reception_rows(rng, seed, count, season_start):
