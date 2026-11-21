@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { CorrectionHistory } from '@/components/CorrectionHistory'
 import { RequireRole } from '@/components/RequireRole'
 import { EquipmentForm } from '@/logistics/EquipmentForm'
 import { UnavailabilityPanel } from '@/logistics/UnavailabilityPanel'
@@ -31,6 +32,7 @@ function EquipmentDetail() {
       )}
       {/* key: a new version rebuilds the form with fresh values */}
       {query.data && <EquipmentForm key={query.data.version} equipment={query.data} />}
+      {query.data && <CorrectionHistory items={query.data.corrections} />}
       {query.data && (
         <UnavailabilityPanel
           items={query.data.unavailabilities}

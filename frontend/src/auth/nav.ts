@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, Factory, FileUp, HardHat, Map, Route, Settings, Sprout, Truck, UserPlus, Users, type LucideIcon } from 'lucide-react'
+import { CalendarDays, CalendarRange, FileCheck, PackagePlus, ClipboardList, Factory, FileUp, HardHat, Map, Route, Settings, Sprout, Truck, UserPlus, Users, type LucideIcon } from 'lucide-react'
 import type { LinkProps } from '@tanstack/react-router'
 import type { Role } from './types'
 
@@ -19,11 +19,16 @@ export const NAV: Record<Role, NavItem[]> = {
   COLLECTION_MANAGER: [
     { to: '/collection/requests', label: 'Demandes', icon: ClipboardList },
     { to: '/collection/planning', label: 'Planification', icon: CalendarDays },
+    { to: '/intranet/orchards', label: 'Vergers', icon: Map },
+    { to: '/intranet/rounds', label: 'Corrections', icon: FileCheck },
   ],
   TEAM_LEADER: [{ to: '/rounds/mine', label: 'Mes tournées', icon: Route }],
   LOGISTICS_MANAGER: [
     { to: '/logistics/workers', label: 'Ouvriers', icon: HardHat },
     { to: '/logistics/equipment', label: 'Équipements', icon: Truck },
+    { to: '/logistics/calendar', label: 'Calendrier', icon: CalendarRange },
+    { to: '/logistics/supplies', label: 'Approvisionnements', icon: PackagePlus },
+    { to: '/intranet/orchards', label: 'Vergers', icon: Map },
   ],
   MILL_MANAGER: [{ to: '/mill/incoming', label: 'Réceptions', icon: Factory }],
   // The Admin has full access to Workers and Equipment too (same pages as the Logistics manager).
@@ -32,6 +37,10 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/admin/registrations', label: 'Inscriptions', icon: UserPlus },
     { to: '/logistics/workers', label: 'Ouvriers', icon: HardHat },
     { to: '/logistics/equipment', label: 'Équipements', icon: Truck },
+    { to: '/logistics/calendar', label: 'Calendrier', icon: CalendarRange },
+    { to: '/logistics/supplies', label: 'Approvisionnements', icon: PackagePlus },
+    { to: '/intranet/orchards', label: 'Vergers', icon: Map },
+    { to: '/intranet/rounds', label: 'Corrections', icon: FileCheck },
     { to: '/intranet/imports', label: 'Imports', icon: FileUp },
     { to: '/intranet/settings', label: 'Paramètres', icon: Settings },
   ],

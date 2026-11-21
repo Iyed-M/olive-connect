@@ -1,7 +1,7 @@
 import { api, ApiError } from '@/lib/api'
 import { sortRequestsByPriority, type HarvestRequest } from '@/features/farmer/harvestRequests'
 import type { GeoPoint } from '@/features/farmer/orchards'
-import type { EquipmentType } from '@/logistics/resources'
+import type { Correction, EquipmentType } from '@/logistics/resources'
 
 export type RoundStatus = 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
 export type StopStatus = 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'SKIPPED'
@@ -118,6 +118,7 @@ export interface CollectionRound {
   stops: RoundStop[]
   estimatedTotalKg: number
   totalHarvestedKg: number
+  corrections?: Correction[]
   version: number
 }
 
@@ -417,6 +418,9 @@ export function listRounds(filters: RoundFilters = {}) {
   const query = params.toString()
   return api<CollectionRound[] | { content?: CollectionRound[]; page?: number; size?: number; totalElements?: number }>(`/rounds${query ? `?${query}` : ''}`).then(normalizeRoundPage)
 }
+
+export const correctRound = (id: string, body: { totalHarvestedKg: number; comment: string }) =>
+  api<CollectionRound>(`/rounds/${id}/correction`, { method: 'PATCH', body: JSON.stringify(body) })
 
 export const getRound = (id: string) => api<CollectionRound>(`/rounds/${id}`)
 
