@@ -72,7 +72,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 
 - [x] (M0/M13) Service names and ports agree: `web` publishes HTTP/HTTPS (`HTTP_PORT:80` and `HTTPS_PORT:443`) and forwards `/api/` to `api:8080` (`frontend/nginx.conf`), `api` listens on 8080 (`server.port: ${API_PORT:8080}`, overridden only for host dev), `mongo` and `redis` publish nothing, and the Actuator shares port 8080 (healthcheck `http://localhost:8080/actuator/health` in `deploy/docker-compose.yml`).
 - [x] (M0) `MONGO_URI` and `REDIS_HOST` in `deploy/docker-compose.yml` are the variables read by `application.yml`.
-- [x] (M0/M13) The commands in `.github/workflows/ci.yml` match [10](10-deployment.md) §2 (`./mvnw -B -U verify`, `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm test`, `pnpm build`, Docker build, and the main-branch Playwright job); `.github/workflows/deploy.yml` waits for successful CI.
+- [x] (M0/M13) The commands in `.github/workflows/ci.yml` match [10](10-deployment.md) §2 (`./mvnw -B -U verify`, `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm test`, `pnpm build`, deployment validation, Docker build, and the PR/main Playwright job); `.github/workflows/deploy.yml` waits for successful CI.
 - [x] (M13) Env variable names in `application-prod.yml` match `.env.example` and `docker-compose.yml` (`MONGO_URI`, `REDIS_HOST`, `REDIS_PASSWORD`, JWT/admin/import settings).
 - [x] (M13) Nginx `location` blocks cover every API path prefix of section 1 (`/api/` catch-all, plus specific rules for `/api/events`, `/api/map/public` and `/api/auth/login`).
 - [ ] The indexes created by the production migration are exactly the ones listed in [05](05-nosql-schema.md) §4 (an automated test compares `getIndexInfo()` with the expected list).

@@ -72,7 +72,7 @@ flowchart LR
         B["backend<br/>./mvnw -B -U verify<br/>(tests with Testcontainers)"]
         C["frontend<br/>pnpm install --frozen-lockfile<br/>pnpm lint, pnpm test, pnpm build"]
         D["docker<br/>cp deploy/.env.example deploy/.env<br/>docker compose -f deploy/docker-compose.yml build"]
-        E2E["main push only<br/>compose stack + Playwright<br/>mobile and desktop"]
+        E2E["PR and main push<br/>compose stack + Playwright<br/>mobile and desktop"]
     end
     A --> DOC["docs.yml<br/>scripts/check-diagrams.sh"]
     CI --> M{"push to main<br/>and all green?"}
@@ -227,7 +227,7 @@ On startup, `MongoIndexInitializer` creates the declared indexes after reconcili
 
 The current Compose file adds the following production concerns on top of the application services:
 
-- `web` builds the SPA with `deploy/nginx/Dockerfile`, serves HTTP/HTTPS, mounts the certificate and log volumes, and joins `front`, `back` and `monitoring` only so it can proxy the internal Grafana path.
+- `web` builds the SPA with `deploy/nginx/Dockerfile`, serves HTTP/HTTPS, explicitly runs `nginx -g 'daemon off;'` after its TLS/allowlist wrapper, mounts the certificate and log volumes, and joins `front`, `back` and `monitoring` only so it can proxy the internal Grafana path.
 - `api`, MongoDB and Redis use the internal `back` network. The API also joins `monitoring` for the Prometheus scrape; MongoDB and Redis remain unpublished.
 - Prometheus, Alertmanager, Grafana, Loki, Promtail, node-exporter, cAdvisor, the MongoDB and Redis exporters, and Uptime Kuma are pinned to explicit image versions. Grafana provisioning loads the Prometheus/Loki data sources and the OliveConnect overview dashboard automatically.
 - Named volumes isolate database, inbox, logs, monitoring state and the generated TLS key pair. Docker JSON logs are capped at 10 MB × 3 files per service.

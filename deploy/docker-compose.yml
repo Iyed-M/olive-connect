@@ -47,6 +47,7 @@ services:
       - nginx-logs:/var/log/nginx
       - ./nginx/entrypoint.sh:/usr/local/bin/oliveconnect-nginx-entrypoint.sh:ro
     entrypoint: ["/usr/local/bin/oliveconnect-nginx-entrypoint.sh"]
+    command: ["nginx", "-g", "daemon off;"]
     depends_on:
       api:
         condition: service_healthy
