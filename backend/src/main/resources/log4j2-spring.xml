@@ -4,10 +4,26 @@
         <Console name="Console" target="SYSTEM_OUT">
             <PatternLayout pattern="%d{HH:mm:ss.SSS} %-5level [%t] %logger{36} - %msg%n"/>
         </Console>
+        <SpringProfile name="prod">
+            <RollingFile name="RollingFile"
+                         fileName="${env:LOG_DIR:-logs}/oliveconnect.json"
+                         filePattern="${env:LOG_DIR:-logs}/archive/oliveconnect-%d{yyyy-MM-dd}-%i.json.gz"
+                         immediateFlush="true">
+                <JsonLayout compact="true" eventEol="true" properties="true" stacktraceAsString="true"/>
+                <Policies>
+                    <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                    <SizeBasedTriggeringPolicy size="100 MB"/>
+                </Policies>
+                <DefaultRolloverStrategy max="14"/>
+            </RollingFile>
+        </SpringProfile>
     </Appenders>
     <Loggers>
         <Root level="info">
             <AppenderRef ref="Console"/>
+            <SpringProfile name="prod">
+                <AppenderRef ref="RollingFile"/>
+            </SpringProfile>
         </Root>
     </Loggers>
 </Configuration>

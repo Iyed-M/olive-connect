@@ -6,7 +6,7 @@
 |---|---|
 | Plain, readable, usable on a phone in the orchard | **Mobile-first** layout (360 px baseline); bottom tab bar for field roles (farmer, team leader); large buttons (≥ 44 px); high contrast for sunlight; minimal text |
 | Short forms + automatic geolocation | ≤ 3 required inputs; GPS asked automatically on the alert and orchard forms; smart defaults (nearest orchard, estimate from last season, today + 3 days) |
-| Permanent online help + guided tour | `?` button in the header opens a help drawer with content for the current route (Markdown files in `src/help/{route}.md`); **React Joyride** tour per role on first login (`onboardingDone=false`), can be replayed from the profile menu |
+| Permanent online help + guided tour | `?` button in the header opens a mobile-friendly help drawer with content for the current route (Markdown files in `src/help/`); a lightweight guided-tour overlay uses role-specific steps on first login (`onboardingDone=false`) and can be replayed from the profile menu |
 | Performance | Code-splitting per role (`React.lazy`), TanStack Query caching, map loads by bbox with debounce (300 ms), marker clustering |
 | Weak network in the field | Team leader stop form keeps drafts in IndexedDB and retries; optional PWA (vite-plugin-pwa) for the app shell |
 | Language | French UI (i18n via `react-i18next`, with an English and an Arabic file as a bonus). Code and docs in English |
@@ -32,7 +32,7 @@ frontend/
 │   ├── auth/                  # (M1a) AuthContext, session (in memory), refresh, roles (Role labels, ROLE_PRIORITY, ROLE_HOME, priorityRole, activeRole), activeRole (localStorage), nav (NAV per Active role), redirect (safeRedirect), types (hand-written Role union); unit tests *.test.ts (Vitest)
 │   ├── admin/                 # (M1b) users.ts (API calls, Delegation labels, `setServerErrors` puts the server field errors on the form fields, banner messages), UserForm.tsx (React Hook Form; one form for new and edit, Farmer profile and mill assignment sections, Enable / Disable); unit tests users.test.ts (Vitest). registrations.ts (M9, registration API calls)
 │   ├── logistics/             # (M4) resources.ts (all Worker / Equipment / Unavailability API types and calls, enum labels, small pure helpers), WorkerForm.tsx and EquipmentForm.tsx (React Hook Form; one form for new and edit, the equipment fields follow the type with `useWatch`), ResourceCalendar.tsx and SupplyOrders.tsx (M12), UnavailabilityPanel.tsx (list + add form, the end must be after the start via `validate`), Pager.tsx; unit tests resources.test.ts (Vitest)
-│   ├── components/            # (M1a) AppLayout (header, side nav, bottom nav), RequireRole, RoleHome, PublicPage; Field (labelled input with its error, used with `register`) (M4); StatusBadge, Timeline (M3). Planned: HelpDrawer, MapView, ConfirmDialog
+│   ├── components/            # (M1a) AppLayout (header, side nav, bottom nav), RequireRole, RoleHome, PublicPage; Field (labelled input with its error, used with `register`) (M4); StatusBadge, Timeline (M3); HelpDrawer and GuidedTour (M13). Planned: MapView, ConfirmDialog
 │   │   └── ui/                # (M0) shadcn/ui components: badge, button, card, input, label (more are added with the CLI when needed)
 │   ├── features/
 │   │   ├── public/            # PublicMapPage, RegistrationPage, AboutPage
@@ -47,8 +47,8 @@ frontend/
 │   │   ├── events/            # useEventStream and event helpers/tests (SSE, M8)
 │   │   ├── imports/           # (M10) ImportJournalPage, ImportDetailPage, SettingsPage, imports.ts (API calls, CSV export of rejected rows)
 │   │   └── intranet/          # (M12) OrchardsGrid, RoundsGrid (staff corrections, FR-6.5)
-│   ├── help/                  # contextual help Markdown
-│   ├── tours/                 # Joyride steps per role
+│   ├── help/                  # (M13) contextual help Markdown and route/role resolver
+│   ├── tours/                 # (M13) guided-tour steps per role and onboarding helpers
 │   └── types/                 # DTO types (generated from OpenAPI with openapi-typescript)
 └── tests/                     # Testing Library component tests; e2e/ Playwright
 ```
@@ -111,6 +111,8 @@ but the API constrains every KPI to their assigned mill. The layout is responsiv
 stack on a phone, while the Recharts bar and line charts use the available desktop width.
 
 M12 adds `/logistics/calendar` (Logistics manager, Collection manager, Admin: one worker or equipment chosen in a list, a Monday-to-Sunday week grid or a single day (Day / Week toggle, FR-3.3) with the bookings of rounds and the unavailabilities, previous/next buttons that move by the displayed period, API `GET /resources/calendar`), `/logistics/supplies` (Logistics manager and Admin: paged list with a status filter; the Logistics manager also gets the React Hook Form "new supply order" form with the NET and SHAKER tools from `GET /equipment?type=` and the "Mark received" button; the Admin is read only) and the intranet data grids `/intranet/orchards` (Collection manager, Logistics manager, Admin: all orchards with search, a row opens `/intranet/orchards/$id`, the owner's `OrchardForm` in `staff` mode, without delete) and `/intranet/rounds` (Collection manager and Admin: rounds with a status filter, a "Correct" form with the new `totalHarvestedKg` and a mandatory comment for COMPLETED rounds, `PATCH /rounds/{id}/correction`). The equipment grid is the existing `/logistics/equipment` page; equipment corrections (FR-6.5) are made on `/logistics/equipment/$id`. Orchard, equipment and round detail show the `corrections` history (`components/CorrectionHistory`).
+
+M13 adds the shared contextual-help and onboarding layer. `AppLayout` exposes a help button on every authenticated page; `HelpDrawer` selects a concise Markdown document by route and active role. A custom guided-tour overlay highlights the navigation, work area, help button and profile menu, starts once when `onboardingDone=false`, persists a local fallback per user, and marks the server-side flag through `PATCH /api/me`; the profile menu can replay it. The implementation is dependency-free and remains usable at the 390 px mobile viewport.
 
 M4 adds Worker and Equipment pages for the Logistics manager and Admin (full CRUD in the API), with
 filters, pagination, mobile cards, shared `/new` and `/$id` forms, and unavailability panels.

@@ -23,7 +23,7 @@ flowchart TB
 | Repository | `@DataMongoTest` + Testcontainers `mongo:8` | Derived queries, `@Query`, geo queries, aggregation pipelines, **indexes used** (`explain()` asserts `IXSCAN`) | every build |
 | Web/security | `@WebMvcTest` + `spring-security-test` (`@WithMockUser`) | Status codes, validation errors, role access (403), JSON shape | every build |
 | Integration | `@SpringBootTest` + `MockMvc` + Testcontainers (Mongo replica set + Redis) | Full layers incl. transactions, cache, SSE | every build (CI) |
-| Frontend | Vitest + React Testing Library + MSW (mocked API) | Forms, role-based rendering, error display. Built so far (M1a): Vitest unit tests of the pure auth functions (`priorityRole`, `activeRole` fallback, `safeRedirect`). M1b: Vitest tests of the user form's error mapping (`fieldMessages`, `errorBanner` in `admin/users.ts`) | every build |
+| Frontend | Vitest + React Testing Library + MSW (mocked API) | Forms, role-based rendering, error display. Built so far (M1a): Vitest unit tests of the pure auth functions (`priorityRole`, `activeRole` fallback, `safeRedirect`). M1b: Vitest tests of the user form's error mapping (`fieldMessages`, `errorBanner` in `admin/users.ts`). M13 adds onboarding persistence and role-tour resolver tests | every build |
 | E2E | Playwright (mobile viewport 390×844 + desktop) | Real browser → Nginx → API → DB | before release |
 | Load | **k6** | NFR-4: 100 concurrent users, map/search < 10 s | before release, on the VPS |
 | Manual | Checklist on a real phone | Geolocation, usability in the field, guided tour | before demo |
@@ -49,6 +49,7 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-AUTH-7 | Login | blank email | Alternative | API | 400 `VALIDATION_FAILED` with `errors[]` (`AuthControllerTest`) |
 | T-AUTH-8 | Startup | seeding run twice | Alternative | API | one Admin, `createdBy` = `system`; the `users` indexes exist (`AdminSeederTest`) |
 | T-SEC-5 | Any | `GET /api/me` without a token (or with a garbage token) | Alternative | API | 401 `UNAUTHENTICATED`; with a valid token 200 `MeDto` (`AuthControllerTest`) |
+| T-AUTH-14 | Onboarding | authenticated User completes the first-login tour, then repeats the `PATCH /api/me` call | Nominal / Alternative | API | first call returns 204 and persists `onboardingDone=true`; repeat is idempotent (`AuthControllerTest`) |
 | T-SEC-6 | Me | valid token whose User was deleted | Alternative | API | 401 `UNAUTHENTICATED` (`AuthControllerTest`) |
 | T-SEC-1 | Any | farmer reads another farmer's orchard | Alternative | API | **404** |
 | T-ORCH-1 | Manage orchards | farmer creates an orchard with two valid plots | Nominal | API + unit | 201, totals recomputed, owner snapshot stored (`OrchardControllerTest`, `OrchardTest`) |
@@ -144,6 +145,7 @@ Coverage target: **≥ 70 % line coverage on `service` packages** (JaCoCo report
 | T-MAP-2 | Map | filters, low-zoom clustering, Redis cache, invalid `bbox` | Nominal + Alt | Web | filtered features, `cluster`/`count`, one `cache:mapPublic::*` key with TTL <= 60 s, 400 |
 | T-MAP-3 | Map | 1,500 orchards, one public request | NFR | Web | response in < 2 s |
 | T-PERF-1 | Load | 100 VUs, 10 min, mixed scenario | NFR | k6 | p95 map < 2 s, p99 < 10 s, error rate < 1 % |
+| T-E2E-1 | Release journey | visitor opens map and registers; Admin approves; Farmer changes the temporary password; contextual help and tour replay are exercised on mobile and desktop | Nominal | Playwright | browser → Nginx → API → MongoDB journey passes (`frontend/e2e/release-journey.spec.ts`) |
 
 ## 3. Examples
 
@@ -225,4 +227,4 @@ The k6 run is done against the deployed VPS with the `--history` dataset loaded 
 
 ## 4. CI
 
-A GitHub Actions (or GitLab CI) pipeline runs on each push: `./mvnw verify` (unit, slice and Testcontainers tests, plus the JaCoCo report), then `pnpm install --frozen-lockfile && pnpm lint && pnpm test && pnpm build`, then the Docker image build (`docker compose -f deploy/docker-compose.yml build`). This is `.github/workflows/ci.yml`; the Mermaid render check is the separate `.github/workflows/docs.yml`. On the `main` branch it also runs the Playwright tests against `docker compose up`.
+A GitHub Actions pipeline runs on each pull request and push to `main`: `./mvnw -B -U verify` (unit, slice and Testcontainers tests), then `pnpm install --frozen-lockfile && pnpm lint && pnpm test && pnpm build`, then the Docker image build (`docker compose -f deploy/docker-compose.yml build`). On a successful `main` push, a separate E2E job starts the production compose dependencies, installs Chromium and runs `pnpm e2e` for the mobile and desktop projects. The Mermaid render check is the separate `.github/workflows/docs.yml`; deployment waits for the CI workflow and is defined in `.github/workflows/deploy.yml`.

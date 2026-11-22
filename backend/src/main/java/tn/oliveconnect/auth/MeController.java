@@ -26,6 +26,12 @@ public class MeController {
         return authService.me(jwt.getSubject());   // sub = user id
     }
 
+    @PatchMapping
+    public ResponseEntity<Void> completeOnboarding(@AuthenticationPrincipal Jwt jwt) {
+        authService.completeOnboarding(jwt.getSubject());
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/password")
     public ResponseEntity<Void> changePassword(@AuthenticationPrincipal Jwt jwt,
                                                @Valid @RequestBody ChangePasswordDto dto) {

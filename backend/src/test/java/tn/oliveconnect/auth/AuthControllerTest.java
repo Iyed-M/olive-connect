@@ -1,6 +1,7 @@
 package tn.oliveconnect.auth;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -134,6 +135,28 @@ class AuthControllerTest extends AbstractIntegrationTest {
         userRepository.deleteAll();
 
         mockMvc.perform(get("/api/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+    }
+
+    @Test
+    void authenticatedUserCanCompleteOnboarding() throws Exception {
+        String body = login(ADMIN_EMAIL, ADMIN_PASSWORD).andReturn().getResponse().getContentAsString();
+        String token = JsonPath.read(body, "$.accessToken");
+
+        mockMvc.perform(patch("/api/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(patch("/api/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.onboardingDone").value(true));
+    }
+
+    @Test
+    void completingOnboardingWithoutTokenIsUnauthenticated() throws Exception {
+        mockMvc.perform(patch("/api/me"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
     }

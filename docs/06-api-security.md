@@ -71,7 +71,7 @@ Roles: **PUB** public, **F** farmer, **CM** collection manager, **TL** team lead
 | POST | `/auth/refresh` | PUB (cookie) | rotate the refresh token → `200` same body as login + new cookie; 401 `UNAUTHENTICATED` (cookie missing) or `SESSION_EXPIRED` (cookie unknown or already used, User disabled → all their sessions revoked); the cookie is cleared on 401 | — |
 | POST | `/auth/logout` | PUB (cookie) | revoke this session only (identified by the cookie, works with an expired access token), clear the cookie → `204`, idempotent | — |
 | GET | `/me` | any | `MeDto {id, email, firstName, lastName, roles, onboardingDone, mustChangePassword, assignedMillId}`, 401 `UNAUTHENTICATED` without a valid token | — |
-| PATCH | `/me` | any | update phone, onboardingDone (planned) | NFR-3 |
+| PATCH | `/me` | any | mark the authenticated user's first-login onboarding as complete → `204` | NFR-3 |
 | PATCH | `/me/password` | any | body `{currentPassword, newPassword}` (8 to 72 characters) → `204`, clears `mustChangePassword`; 400 `VALIDATION_FAILED`, 422 `WRONG_PASSWORD` | FR-6.1 |
 | POST | `/registrations` | PUB | body `{firstName, lastName, email, phone?, cin, message?}` → `201` + `Location` and `RegistrationDto {id, firstName, lastName, email, phone, cin, message, status, createdAt, processedById}`; 400 `VALIDATION_FAILED`, 409 `EMAIL_TAKEN` (a User or a pending request already has this email) | FR-6.1 |
 | GET | `/registrations` | AD | list `RegistrationDto[]`, newest first, optional query `status` (`PENDING`, `APPROVED`, `REJECTED`) | FR-6.1 |
@@ -200,7 +200,7 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 | PUT | `/settings` | AD | replace both values (both required and greater than 0), returns the saved settings |
 | POST | `/events/ticket` | any authenticated | one-time SSE ticket (see §4.1) |
 
-**Actuator** (not under `/api`, same port 8080 as the API): `/actuator/health` and `/actuator/info` are exposed today. `/actuator/prometheus` is added in M10. Nginx only proxies `/api/`, so the Actuator is not reachable from outside, only from the `back` Docker network.
+**Actuator** (not under `/api`, same port 8080 as the API): `/actuator/health` and `/actuator/info` are exposed in every profile; the production profile also exposes `/actuator/prometheus` for the internal Prometheus scraper. Nginx only proxies `/api/`, so the Actuator is not reachable from outside, only from the Docker back/monitoring networks.
 
 ## 3. DTO examples (the API contract)
 
@@ -359,7 +359,7 @@ flowchart LR
 
 ### 4.2 Authorisation: three levels
 
-1. **URL level** (`SecurityFilterChain`): `/api/map/public/**`, `/api/varieties`, `/api/auth/**` and `POST /api/registrations` are `permitAll`. Everything else is `authenticated`. `/api/system/status` is also `permitAll` (M0), as are `/actuator/health`, `/actuator/info` and the Swagger UI paths. A missing or invalid token returns 401 `UNAUTHENTICATED`. The Actuator exposes only `health` and `info` on port 8080, and Nginx never proxies it. The Actuator paths are public because the Docker healthcheck calls them. Also permitted until the M13 hardening: the springdoc pages (`/swagger-ui/**`, `/v3/api-docs/**`, `/api/docs/**`) and CORS preflight `OPTIONS` requests.
+1. **URL level** (`SecurityFilterChain`): `/api/map/public/**`, `/api/varieties`, `/api/auth/**` and `POST /api/registrations` are `permitAll`. Everything else is `authenticated`. `/api/system/status` is also `permitAll` (M0), as are `/actuator/health`, `/actuator/info`, `/actuator/prometheus` and the Swagger UI paths. A missing or invalid token returns 401 `UNAUTHENTICATED`. The Actuator is public at the application layer so the Docker healthcheck and Prometheus can call it, but Nginx never proxies it. The springdoc pages (`/swagger-ui/**`, `/v3/api-docs/**`, `/api/docs/**`) and CORS preflight `OPTIONS` requests are also permitted.
 2. **Method level** (`@PreAuthorize("hasRole('COLLECTION_MANAGER')")`) on controllers.
 3. **Data level (ownership)** in services. For example, `OrchardService.getForUser(id, user)` loads with `findByIdAndOwnerId(id, user.id())` when the user is only a FARMER. Missing → `NotFoundException` (404, not 403, so the existence of other farmers' data is never revealed). Mill managers are restricted to `assignedMillId`, team leaders to their own rounds.
 

@@ -2,66 +2,65 @@
 
 Target: a Linux VPS (Ubuntu Server 24.04 LTS, 2 vCPU / 4 GB RAM / 40 GB SSD is enough) running **Docker Compose**, reachable at `https://<domain>` (or `http://<IP>` for the demo, as the subject allows).
 
-**What exists and what is planned.** There is no VPS before milestone M13.
+**Repository status.** M13 production configuration is implemented and validated locally. A real VPS run still needs the operator-provided domain, SSH secrets, notification destination and restore/load-test evidence.
 
 | Status | Content |
 |---|---|
 | **Built (M0)** | `.github/workflows/ci.yml` (backend verify, frontend lint + test + build, Docker build), `.github/workflows/docs.yml` (Mermaid render), `backend/Dockerfile`, `frontend/Dockerfile`, `frontend/nginx.conf`, `deploy/docker-compose.yml` (production-like stack on port 80, runs locally), `deploy/docker-compose.dev.yml` (MongoDB + Redis only, for development). CI copies `deploy/.env.example` to `deploy/.env` before the build, because compose rejects the file without the secrets even for `build`. In M0, "done" means CI is green and the production compose stack works on a developer machine |
 | **Built (M10)** | Import inbox volume `inbox-data` mounted on `api` at `/data/inbox`, Nginx upload limit `client_max_body_size 21m` on `/api/`. The data simulator is a script run by hand (`data-simulator/`), not a compose service |
-| **Planned (M13)** | VPS, TLS, rate limiting, monitoring stack (Prometheus, Grafana, Loki, exporters, Uptime Kuma), MongoDB authentication + keyfile, Redis password, `.env` secrets, backups, automatic deployment |
+| **Implemented (M13)** | Production-shaped VPS stack in `deploy/docker-compose.yml`, TLS/self-signed local fallback, Nginx hardening and rate limiting, Prometheus/Grafana/Loki/Promtail/exporters/Uptime Kuma, MongoDB authentication + generated keyfile, Redis password, `.env` secrets, backups/restore drill scripts, and CI-gated SSH deployment |
 
-Everything marked *planned* below is kept as the target design.
+The VPS-specific secrets and evidence are deliberately not committed. `deploy/README.md` is the operator runbook; this document records the design and its checked-in implementation.
 
 ## 1. Deployment diagram
 
-Solid boxes exist in `deploy/docker-compose.yml`. Dashed boxes are planned (M13). The simulator runs on the developer machine and writes into the inbox volume.
+All service boxes and flows below exist in `deploy/docker-compose.yml`. The simulator remains a developer-side data source and writes into the inbox volume.
 
 ```mermaid
 flowchart TB
     subgraph Internet
         BR[Browsers<br/>phones / desktops]
-        GH["GitHub Actions<br/>CI on every PR (M0)<br/>SSH deploy (planned M13)"]
-        DEV["Developers<br/>SSH key only"]:::planned
+        GH["GitHub Actions<br/>CI on every PR (M0)<br/>CI-gated SSH deploy (M13)"]
+        DEV["Operators<br/>SSH key only"]
     end
-    subgraph HOST["Host: developer machine in M0, VPS Ubuntu 24.04 in M13 (planned: ufw 22, 80, 443)"]
+    subgraph HOST["Host: developer machine or VPS Ubuntu 24.04 (ufw 22, 80, 443)"]
         subgraph FrontNet["Docker network 'front'"]
-            WEB["web<br/>nginx:1.27-alpine<br/>:80 published (HTTP_PORT)<br/>/ → SPA static<br/>/api/ → api:8080"]
-            NGX2["Planned M13: :443 TLS, 301 to https, rate limits,<br/>/grafana (admin IPs), /status"]:::planned
+            WEB["web<br/>nginx:1.27-alpine<br/>:80 + :443 published<br/>TLS, rate limits, SPA, /api/ proxy"]
+            NGX2["/grafana and /intranet<br/>IP allow-list"]
         end
         subgraph BackNet["Docker network 'back' (internal: true)"]
             API["api<br/>eclipse-temurin:21-jre-alpine<br/>:8080 API + /actuator/health"]
-            MONGO[("mongo:7.0<br/>replica set rs0, no auth in M0<br/>volume mongo-data")]
-            REDIS[("redis:7-alpine<br/>no password in M0<br/>volume redis-data")]
+            MONGO[("mongo:7.0.14<br/>replica set rs0 + keyfile auth<br/>volume mongo-data")]
+            REDIS[("redis:7.4-alpine<br/>password + maxmemory LRU<br/>volume redis-data")]
         end
-        subgraph MonNet["Docker network 'monitoring' (planned M13)"]
-            PROM[prometheus]:::planned
-            GRAF[grafana]:::planned
-            LOKI[loki + promtail]:::planned
-            EXP["node-exporter, cadvisor,<br/>mongodb-exporter, redis-exporter"]:::planned
-            KUMA[uptime-kuma]:::planned
+        subgraph MonNet["Docker network 'monitoring'"]
+            PROM[prometheus]
+            GRAF[grafana]
+            LOKI[loki + promtail]
+            EXP["node-exporter, cadvisor,<br/>mongodb-exporter, redis-exporter"]
+            KUMA[uptime-kuma]
         end
         VOL1[/"volume inbox-data<br/>/data/inbox (M10)"/]
         SIM["data-simulator<br/>Python script (M10)"]
-        BK["backup.sh (host cron 02:30, planned M13)<br/>/var/backups/oliveconnect"]:::planned
+        BK["backup.sh (host cron 02:30)<br/>/var/backups/oliveconnect"]
     end
-    OFF[("Off-site storage<br/>rclone → Google Drive / S3 (planned M13)")]:::planned
+    OFF[("Optional off-site storage<br/>rclone encrypted remote")]
 
-    BR -- HTTP 80 --> WEB
-    DEV -.-> HOST
-    GH -.-> HOST
+    BR -- HTTP 80 / HTTPS 443 --> WEB
+    DEV --> HOST
+    GH --> HOST
     WEB --> API
     API --> MONGO
     API --> REDIS
     API --> VOL1
     SIM --> VOL1
-    PROM -.-> API
-    PROM -.-> EXP
-    GRAF -.-> PROM
-    GRAF -.-> LOKI
-    KUMA -.-> WEB
-    BK -.-> MONGO
-    BK -.-> OFF
-    classDef planned stroke-dasharray: 5 5
+    PROM --> API
+    PROM --> EXP
+    GRAF --> PROM
+    GRAF --> LOKI
+    KUMA --> WEB
+    BK --> MONGO
+    BK -. optional .-> OFF
 ```
 
 ## 2. Build & release pipeline
@@ -69,21 +68,22 @@ flowchart TB
 ```mermaid
 flowchart LR
     A["git push / pull request"] --> CI
-    subgraph CI["ci.yml (3 parallel jobs)"]
+    subgraph CI["ci.yml (parallel jobs)"]
         B["backend<br/>./mvnw -B -U verify<br/>(tests with Testcontainers)"]
         C["frontend<br/>pnpm install --frozen-lockfile<br/>pnpm lint, pnpm test, pnpm build"]
         D["docker<br/>cp deploy/.env.example deploy/.env<br/>docker compose -f deploy/docker-compose.yml build"]
+        E2E["main push only<br/>compose stack + Playwright<br/>mobile and desktop"]
     end
     A --> DOC["docs.yml<br/>scripts/check-diagrams.sh"]
     CI --> M{"push to main<br/>and all green?"}
-    M -- yes --> E["Planned M13: deploy job, SSH to the VPS<br/>git pull<br/>docker compose -f deploy/docker-compose.yml up -d --build"]:::planned
-    E --> F{"/actuator/health UP?"}:::planned
-    F -- no --> G["git revert the commit<br/>and deploy again"]:::planned
-    F -- yes --> H[Done]:::planned
-    classDef planned stroke-dasharray: 5 5
+    M -- yes --> E["deploy.yml<br/>workflow_run after ci success<br/>SSH + backup + compose rebuild"]
+    E2E --> M
+    E --> F{"/actuator/health UP?"}
+    F -- no --> G["stop and investigate<br/>then redeploy the fixed commit"]
+    F -- yes --> H[Done]
 ```
 
-The images are built on the VPS by `docker compose up -d --build`. There is no image registry and no rollback script: a bad release is undone with `git revert` and a new deployment.
+The images are built on the VPS by `docker compose up -d --build`. There is no image registry or automatic rollback: a failed health check stops the SSH job; the operator fixes or reverts the commit and reruns the CI-gated deployment.
 
 **Backend Dockerfile** (`backend/Dockerfile`, comments omitted)
 ```dockerfile
@@ -99,6 +99,7 @@ RUN ./mvnw -q package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S app && adduser -S app -G app
 WORKDIR /app
+RUN mkdir -p /data/inbox /app/logs && chown -R app:app /data /app/logs
 COPY --from=build /app/target/oliveconnect-*.jar app.jar
 USER app
 EXPOSE 8080
@@ -123,9 +124,9 @@ EXPOSE 80
 
 ## 3. `docker-compose.yml`
 
-### 3.1 As built (M0): `deploy/docker-compose.yml`
+### 3.1 Historical M0 baseline (superseded)
 
-First copy `deploy/.env.example` to `deploy/.env` (gitignored) and set `JWT_SECRET`, `ADMIN_EMAIL` and `ADMIN_PASSWORD`. Run with `docker compose -f deploy/docker-compose.yml up --build`, then open `http://localhost` (or `http://localhost:$HTTP_PORT`). Comments omitted.
+The following excerpt records the M0 walking-skeleton topology. It is retained as design history; the current production file and its M13 additions are summarized in §3.2 and kept in `deploy/docker-compose.yml`.
 
 ```yaml
 name: oliveconnect
@@ -205,66 +206,28 @@ volumes:
   inbox-data:
 ```
 
-Only `web` publishes a port. MongoDB and Redis have no published port, so only the API can reach them. The replica set is initiated by the MongoDB healthcheck (container host name `mongo:27017`). The Actuator runs on the API port 8080 and is not reachable from outside, because Nginx only forwards `/api/`.
+In the M0 baseline only `web` published a port, MongoDB and Redis had no authentication, and the Actuator was health-only. The M13 current stack publishes web ports 80/443, keeps MongoDB and Redis unpublished, adds authenticated app/exporter/backup users and a Redis password, and exposes production Prometheus metrics only to the internal monitoring network.
 
 `deploy/docker-compose.dev.yml` starts MongoDB 8 and Redis 7, with ports bound to `127.0.0.1`, so the API and the frontend can run on the host during development.
 
 On startup, `MongoIndexInitializer` creates the declared indexes after reconciling the M2 orchard geospatial index. If an existing development database still has the legacy single-field index named `location`, the initializer removes that index only and recreates it as `location_2dsphere`; no orchard documents are deleted.
 
-### 3.2 Planned additions (M13)
+### 3.2 M13 services and isolation
 
-Outline of what is added on top of the file above. Not built yet.
+The current Compose file adds the following production concerns on top of the application services:
 
-```yaml
-services:
-  web:                                   # M13
-    ports: ["80:80", "443:443"]
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - nginx-logs:/var/log/nginx
+- `web` builds the SPA with `deploy/nginx/Dockerfile`, serves HTTP/HTTPS, mounts the certificate and log volumes, and joins `front`, `back` and `monitoring` only so it can proxy the internal Grafana path.
+- `api`, MongoDB and Redis use the internal `back` network. The API also joins `monitoring` for the Prometheus scrape; MongoDB and Redis remain unpublished.
+- Prometheus, Alertmanager, Grafana, Loki, Promtail, node-exporter, cAdvisor, the MongoDB and Redis exporters, and Uptime Kuma are pinned to explicit image versions. Grafana provisioning loads the Prometheus/Loki data sources and the OliveConnect overview dashboard automatically.
+- Named volumes isolate database, inbox, logs, monitoring state and the generated TLS key pair. Docker JSON logs are capped at 10 MB × 3 files per service.
 
-  api:                                   # M13 secrets (the inbox volume exists since M10)
-    env_file: .env                       # JWT_SECRET, MONGO_URI, REDIS_PASSWORD … (never committed)
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-    volumes: [inbox-data:/data/inbox, api-logs:/app/logs]
-    deploy: { resources: { limits: { memory: 1g } } }
+The exact image tags, environment interpolation, health checks and mounts are validated by `deploy/tests/validate.sh`; the file below is intentionally the source of truth.
 
-  mongo:                                 # M13: authentication and keyfile
-    command: ["--replSet", "rs0", "--bind_ip_all", "--keyFile", "/etc/mongo-keyfile", "--wiredTigerCacheSizeGB", "1"]
-    environment: { MONGO_INITDB_ROOT_USERNAME: root, MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo_root }
-    volumes: [./mongo/init:/docker-entrypoint-initdb.d:ro, ./mongo/keyfile:/etc/mongo-keyfile:ro]
-
-  redis:                                 # M13: password and memory limit
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--maxmemory", "256mb",
-              "--maxmemory-policy", "allkeys-lru", "--save", "900", "1"]
-
-    networks: [back]
-
-  # M13: monitoring stack
-  prometheus: { image: prom/prometheus, volumes: [./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro, prom-data:/prometheus], networks: [monitoring] }
-  grafana:    { image: grafana/grafana, volumes: [grafana-data:/var/lib/grafana, ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro], networks: [monitoring] }
-  loki:       { image: grafana/loki, networks: [monitoring] }
-  promtail:   { image: grafana/promtail, volumes: [api-logs:/logs/api:ro, nginx-logs:/logs/nginx:ro, ./monitoring/promtail.yml:/etc/promtail/config.yml:ro], networks: [monitoring] }
-  node-exporter: { image: prom/node-exporter, pid: host, volumes: ["/:/host:ro,rslave"], command: ["--path.rootfs=/host"], networks: [monitoring] }
-  cadvisor:   { image: gcr.io/cadvisor/cadvisor, volumes: ["/:/rootfs:ro", "/var/run:/var/run:ro", "/sys:/sys:ro", "/var/lib/docker/:/var/lib/docker:ro"], networks: [monitoring] }
-  mongodb-exporter: { image: percona/mongodb_exporter:0.40, networks: [back, monitoring] }
-  redis-exporter:   { image: oliver006/redis_exporter, networks: [back, monitoring] }
-  uptime-kuma: { image: louislam/uptime-kuma:1, volumes: [kuma-data:/app/data], networks: [front] }
-
-networks:
-  monitoring: {}                         # added to front and back
-volumes: { inbox-data: {}, api-logs: {}, nginx-logs: {}, prom-data: {}, grafana-data: {}, kuma-data: {} }
-```
-
-The image versions above are placeholders. Pin exact versions (for example `mongo:7.0.14`) in the real file. The Actuator `prometheus` endpoint is exposed in M13 (`management.endpoints.web.exposure.include` is `health,info` today).
-
-In M13, `mongo/init/01-init.js` creates the application user with the `readWrite` role on `oliveconnect` only, plus a read-only `exporter` user. The replica set is still initiated by the healthcheck shown in §3.1.
+`backend/src/main/resources/application-prod.yml` exposes `health,info,prometheus` and requires `MONGO_URI`, `REDIS_PASSWORD`, `JWT_SECRET`, `ADMIN_EMAIL` and `ADMIN_PASSWORD`. `deploy/mongo/init/01-users.js` creates the application, exporter and backup users on first initialization. The replica set is initiated by the authenticated healthcheck described in §3.1.
 
 ## 4. Nginx configuration
 
-### 4.1 As built (M0): `frontend/nginx.conf`
+### 4.1 Baseline configuration (M0)
 
 Copied into the `web` image as `/etc/nginx/conf.d/default.conf`. Comments omitted.
 
@@ -305,21 +268,21 @@ server {
 }
 ```
 
-### 4.2 Planned (M13): TLS, rate limiting, caches
+### 4.2 Current M13 hardening: TLS, rate limiting, caches
 
 ```nginx
-# /etc/nginx/conf.d/oliveconnect.conf (planned)
+# Policy excerpt from frontend/nginx.conf (the deploy image renders it at startup)
 limit_req_zone $binary_remote_addr zone=api:10m rate=20r/s;
 limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
 proxy_cache_path /var/cache/nginx/map levels=1:2 keys_zone=mapcache:10m max_size=200m inactive=10m;
 
-server { listen 80; server_name oliveconnect.example.tn; return 301 https://$host$request_uri; }
-
 server {
+  listen 80;
   listen 443 ssl http2;
   server_name oliveconnect.example.tn;
   ssl_certificate     /etc/letsencrypt/live/oliveconnect.example.tn/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/oliveconnect.example.tn/privkey.pem;
+  if ($scheme = http) { return 301 https://$host$request_uri; }
   add_header Strict-Transport-Security "max-age=31536000" always;
   add_header X-Content-Type-Options nosniff always;
   add_header Referrer-Policy strict-origin-when-cross-origin always;
@@ -338,7 +301,7 @@ server {
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
   }
-  location = /api/auth/login { limit_req zone=login burst=5; proxy_pass http://api:8080; }
+  location = /api/auth/login { limit_req zone=api burst=40 nodelay; limit_req zone=login burst=5 nodelay; proxy_pass http://api:8080; }
   location /api/events {                      # SSE: no buffering, long timeout
     proxy_pass http://api:8080;
     proxy_buffering off; proxy_cache off;
@@ -347,17 +310,21 @@ server {
     proxy_http_version 1.1;
   }
   location /api/map/public {                  # micro-cache public map (anonymous)
+    limit_req zone=api burst=40 nodelay;
     proxy_cache mapcache; proxy_cache_valid 200 30s;
     proxy_cache_key $request_uri;
+    proxy_cache_bypass $http_authorization; proxy_no_cache $http_authorization;
     add_header X-Cache-Status $upstream_cache_status;
     proxy_pass http://api:8080;
   }
+  location = /intranet { allow 10.0.0.0/8; allow <coop-public-ip>; deny all; return 301 /intranet/; }
   location /intranet/ { allow 10.0.0.0/8; allow <coop-public-ip>; deny all; try_files $uri /index.html; }
+  location = /grafana { allow <admin-ips>; deny all; return 301 /grafana/; }
   location /grafana/  { allow <admin-ips>; deny all; proxy_pass http://grafana:3000/; }
 }
 ```
 
-The Actuator (same port 8080 as the API) is never proxied: Nginx only forwards `/api/`. Prometheus and the Docker healthcheck reach it directly on the `back` network.
+The checked-in `frontend/nginx.conf` also forwards `X-Request-ID`, bypasses the map cache for authenticated requests, disables buffering for SSE, emits JSON access logs, and keeps the `/intranet/` and `/grafana/` allowlists. `deploy/nginx/entrypoint.sh` copies a mounted Let's Encrypt certificate when available, otherwise creates a local self-signed certificate, substitutes `INTRANET_ALLOWED_IP`, and only enables the HTTP→HTTPS redirect when `FORCE_HTTPS=true`. The Actuator (same port 8080 as the API) is never proxied: Nginx only forwards `/api/`. Prometheus and the Docker healthcheck reach it directly on the `back`/`monitoring` networks.
 
 The **cache layers** asked for in §V are, from the outside in:
 1. Browser cache for hashed static assets (1 year).
@@ -367,22 +334,22 @@ The **cache layers** asked for in §V are, from the outside in:
 
 ## 5. Step-by-step deployment procedure (goes into the report)
 
-Planned for M13. In M0 only step 6 is done locally, with `docker compose -f deploy/docker-compose.yml up --build`.
+The procedure below is implemented for M13. A local run uses the same Compose file with the example secrets and `FORCE_HTTPS=false`; the VPS-specific steps require operator credentials and a real domain.
 
 1. **Provision the VPS.** Create a non-root `deploy` user with SSH key login, set `PasswordAuthentication no`, and run `apt upgrade`. Enable `ufw allow 22,80,443` and `unattended-upgrades`, and install `fail2ban`.
 2. **Install Docker** Engine and the Compose plugin, and add `deploy` to the `docker` group.
 3. **DNS**: create an A record `oliveconnect.<domain>` pointing to the VPS IP. With no domain, use `http://<IP>` and skip TLS.
-4. **TLS**: `certbot certonly --standalone -d oliveconnect.<domain>`, with renewal by cron (`certbot renew --deploy-hook "docker compose exec nginx nginx -s reload"`).
-5. **Get the code**: `git clone` the repository to `/opt/oliveconnect`. In `deploy/`, create `.env` from `.env.example` with strong secrets (`openssl rand -base64 48`). Generate the Mongo keyfile (`openssl rand -base64 756 > mongo/keyfile && chmod 400`). Add the SSH deploy key and the VPS host as GitHub Actions secrets.
-6. `docker compose -f deploy/docker-compose.yml up -d --build`, then check `docker compose ps` (all healthy) and `docker compose exec api wget -qO- http://localhost:8080/actuator/health`. Later deployments are done by the GitHub Actions job over SSH: `git pull && docker compose -f deploy/docker-compose.yml up -d --build`.
+4. **TLS**: provision or renew the certificate for `oliveconnect.<domain>` and make its live directory available through `LETSENCRYPT_DIR`; the web entrypoint copies `fullchain.pem` and `privkey.pem` into its TLS volume. Set `FORCE_HTTPS=true` only after the certificate is present.
+5. **Get the code**: `git clone` the repository to `/opt/oliveconnect`. Create the operator-owned backup and node-exporter textfile directories (`sudo install -d -o deploy -g deploy -m 700 /var/backups/oliveconnect` and `sudo install -d -o deploy -g deploy -m 755 /var/lib/node_exporter/textfile`). In `deploy/`, create `.env` from `.env.example` with strong hexadecimal secrets (`openssl rand -hex 32` is suitable for the Mongo URI password). The first Compose start generates the Mongo keyfile in the named `mongo-keyfile` volume. Add the SSH deploy key and the VPS host as GitHub Actions secrets.
+6. `docker compose -f deploy/docker-compose.yml up -d --build`, then check `docker compose ps` (all healthy) and `docker compose exec -T api wget -qO- http://localhost:8080/actuator/health`. Later deployments are done by `deploy.yml` after the `ci` workflow succeeds: it fetches `main`, runs a pre-deploy backup when a stack is already running, rebuilds and checks the API.
 7. **Bootstrap**: the first start creates the Admin from `ADMIN_EMAIL`/`ADMIN_PASSWORD` in `deploy/.env` when no Admin exists (M1a). Forced password change comes with M9.
 8. **Load reference data**: run `python3 data-simulator/simulator.py <inbox dir> --only reference` against the inbox volume (or upload the files from `/intranet/imports`, or call `POST /api/imports/upload`), then run `POST /api/imports/run?type=REFERENCE` if needed, then check the import journal.
-9. **Monitoring**: open Grafana and import the provisioned dashboards (JVM Micrometer 4701, Node Exporter 1860, MongoDB, Redis, Nginx logs). Add the HTTP monitors in Uptime Kuma.
+9. **Monitoring**: open `/grafana/`; Prometheus/Loki data sources and the OliveConnect overview dashboard are provisioned automatically. Add the public `/` and internal API-health monitors in Uptime Kuma, and configure the Alertmanager `operations` receiver.
 10. **Smoke test**: log in with each role and run the E2E smoke suite against the public URL.
 
 ## 6. User & access-rights management (operations doc)
 
-Planned: depends on the accounts and admin screens of later milestones.
+The account and access procedures below are implemented by the existing admin screens and production network policy.
 
 | Task | How |
 |---|---|
@@ -396,45 +363,39 @@ Planned: depends on the accounts and admin screens of later milestones.
 
 ## 7. Backups & restore
 
-Planned for M13. `backup.sh` does not exist yet.
+`deploy/backup/backup.sh` wraps `scripts/backup-restore-drill.sh backup`. The script loads the gitignored `deploy/.env`, takes an exclusive lock, writes temporary files before renaming them into place, and never touches the production data volumes during a restore drill.
 
 | What | How | When | Retention |
 |---|---|---|---|
-| MongoDB (incl. GridFS photos) | `docker compose exec -T mongo mongodump --archive --gzip --oplog` → `/var/backups/oliveconnect/mongo-YYYYMMDD-HHmm.archive.gz` | daily 02:30 (host cron) + before each deployment | 7 daily, 4 weekly, 3 monthly |
-| Redis | copy `dump.rdb` (tokens only, non-critical) | daily | 3 days |
-| Config | `deploy/` is in Git; `.env` is encrypted with `age` and kept off-site | on change | — |
-| Grafana / Kuma data | volume tarball | weekly | 4 |
-| Off-site | `rclone copy` to cloud storage (encrypted remote) | after each backup | same as above |
+| MongoDB (incl. GridFS photos) | authenticated `mongodump --archive --gzip --oplog` → `/var/backups/oliveconnect/mongo-YYYYMMDD-HHmm.archive.gz` | daily 02:30 and before a deployment | 7 snapshots; weekly bundles 4; monthly bundles 3 |
+| Redis | authenticated `redis-cli --rdb` | daily | 3 snapshots |
+| Config | `deploy/` is in Git; `.env` is supplied out-of-band and must be kept in the operator's encrypted secret store | on change | — |
+| Grafana / Kuma data | tar archives of the named volumes | daily with the backup job | 4 snapshots |
+| Off-site | optional `rclone copy` when `OFFSITE_REMOTE` is set | after each backup | controlled by the remote |
 
-```bash
-#!/usr/bin/env bash
-# deploy/backup/backup.sh — called by cron: 30 2 * * * /opt/oliveconnect/backup/backup.sh
-set -euo pipefail
-TS=$(date +%Y%m%d-%H%M); DIR=/var/backups/oliveconnect; mkdir -p "$DIR"
-cd /opt/oliveconnect
-docker compose exec -T mongo mongodump --username backup --password "$MONGO_BACKUP_PWD" \
-  --authenticationDatabase admin --archive --gzip --oplog > "$DIR/mongo-$TS.archive.gz"
-docker compose exec -T redis redis-cli -a "$REDIS_PASSWORD" --rdb - > "$DIR/redis-$TS.rdb" 2>/dev/null
-find "$DIR" -name 'mongo-*' -mtime +7 ! -name '*-01-*' -delete   # simple rotation (refine for weekly/monthly)
-rclone copy "$DIR" offsite:oliveconnect-backups --max-age 25h
-echo "backup_last_success_timestamp $(date +%s)" > /var/lib/node_exporter/textfile/backup.prom
+The installed `/etc/cron.d/oliveconnect-backup` entry is:
+
+```cron
+30 2 * * * deploy cd /opt/oliveconnect && /opt/oliveconnect/deploy/backup/backup.sh >> /var/log/oliveconnect-backup.log 2>&1
 ```
+
+The implementation also writes a Prometheus textfile metric, creates deterministic weekly/monthly bundles, keeps the backup directory mode `0700`, and warns when no off-site remote is configured. The node-exporter textfile directory must exist and be writable by the `deploy` user on the VPS.
 
 The last line exposes a metric, so Grafana can **alert when no backup has succeeded in the last 26 h**.
 
-**Restore drill** (done once and documented with screenshots): `mongorestore --archive=mongo-….archive.gz --gzip --drop --oplogReplay` into a scratch container, then check document counts and log in to the restored instance. Target RPO is 24 h and target RTO is under 1 h.
+**Restore drill**: run `scripts/backup-restore-drill.sh restore` (or pass a specific archive name). It starts a disposable MongoDB container, runs `mongorestore --drop --oplogReplay`, prints the restored collection list and user count, and removes the scratch container automatically. Target RPO is 24 h and target RTO is under 1 h; screenshots and measured timings remain release evidence for the report.
 
 ## 8. Monitoring
 
-Planned for M13. Today only `/actuator/health` and `/actuator/info` are exposed (port 8080) and used by the Docker healthcheck.
+M13 monitoring is implemented in `deploy/monitoring/`. Production exposes `/actuator/health`, `/actuator/info` and `/actuator/prometheus` on port 8080; only the first two are needed by the API healthcheck, and none are proxied publicly.
 
 | Need (§V) | Tool | Metrics / view | Alert rule (Grafana / Alertmanager) |
 |---|---|---|---|
-| Availability rate | Uptime Kuma (HTTP probe `/`, and `http://api:8080/actuator/health` on the internal network, 60 s) + Prometheus `up` | uptime % over 24 h / 30 d, status page `/status` | down > 2 min → email/Telegram |
+| Availability rate | Uptime Kuma (HTTP probe `/`, and `http://api:8080/actuator/health` on the internal network, 60 s) + Prometheus `up` | uptime % over 24 h / 30 d in Kuma and Grafana | down > 2 min → configured Alertmanager receiver |
 | Resource consumption | node-exporter, cAdvisor | CPU, RAM, disk, network per host and per container | disk > 80 %, RAM > 90 % for 5 min |
-| Application | Spring Actuator + Micrometer (`/actuator/prometheus` on port 8080) | HTTP p95 per endpoint, error rate, JVM heap/GC, Mongo driver pool, cache hit ratio (`cache_gets_total{result="hit"}`), custom metrics: `oliveconnect_import_rejected_total`, `oliveconnect_alerts_created_total`, `oliveconnect_rounds_in_progress` | p95 > 2 s, 5xx rate > 1 % |
-| Database | mongodb-exporter, redis-exporter | opcounters, connections, replication lag, slow queries; Redis memory, hit rate, evictions | connections > 80 % |
-| Logs | Log4j2 JSON → file → Promtail → Loki; Nginx access/error logs | search by `traceId`, user, level; 4xx/5xx panels | > 20 ERROR/min |
+| Application | Spring Actuator + Micrometer (`/actuator/prometheus` on port 8080) | HTTP p95, error rate, JVM heap/GC and Mongo driver metrics | p95 > 2 s, 5xx rate > 1 % |
+| Database | mongodb-exporter, redis-exporter | exporter health, MongoDB operations/replication metrics, Redis memory and evictions | replication lag or Redis evictions require investigation |
+| Logs | Log4j2 JSON → rolling file → Promtail → Loki; Nginx JSON access/error logs | search by `traceId`, user, level; 4xx/5xx panels | investigate elevated errors |
 | Backups | textfile metric | time since last backup | > 26 h |
 
 **Log management**: Log4j2 rolling file appender (daily, 100 MB, 14 files kept). Each log line has a JSON layout with `traceId`, `userId` and `endpoint` (set through MDC by a filter). Docker logs use the `json-file` driver with `max-size: 10m, max-file: 3`.

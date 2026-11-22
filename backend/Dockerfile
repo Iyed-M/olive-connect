@@ -20,8 +20,8 @@ FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S app && adduser -S app -G app
 WORKDIR /app
 
-# Import inbox (a named volume mounted here keeps this owner)
-RUN mkdir -p /data/inbox && chown -R app:app /data
+# Import inbox and production logs (named volumes mounted here keep these owners)
+RUN mkdir -p /data/inbox /app/logs && chown -R app:app /data /app/logs
 
 # Copy only the finished jar out of the build stage.
 COPY --from=build /app/target/oliveconnect-*.jar app.jar
