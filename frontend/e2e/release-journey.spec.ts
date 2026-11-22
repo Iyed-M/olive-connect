@@ -41,7 +41,7 @@ async function login(page: Page, email: string, password: string) {
   await page.getByLabel('Password').fill(password)
   const response = page.waitForResponse((candidate) => apiResponse(candidate, '/api/auth/login', 'POST'))
   await page.getByRole('button', { name: 'Log in' }).click()
-  await expect(await response).toBeOK()
+  expect((await response).ok()).toBe(true)
 }
 
 async function logout(page: Page) {
@@ -59,7 +59,7 @@ test('visitor can open the public map', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Join the cooperative' })).toBeVisible()
   await expect(page.getByRole('form', { name: 'Map filters' })).toBeVisible()
   await expect(page.getByLabel('Variety')).toBeVisible()
-  await expect(await mapResponse).toBeOK()
+  expect((await mapResponse).ok()).toBe(true)
 })
 
 test('visitor can submit a registration request', async ({ page }, testInfo) => {
@@ -75,7 +75,7 @@ test('visitor can submit a registration request', async ({ page }, testInfo) => 
 
   const response = page.waitForResponse((candidate) => apiResponse(candidate, '/api/registrations', 'POST'))
   await page.getByRole('button', { name: 'Send request' }).click()
-  await expect(await response).toHaveStatus(201)
+  expect((await response).status()).toBe(201)
   await expect(page.getByRole('heading', { name: 'Request sent' })).toBeVisible()
   await expect(page.getByText('An administrator of the cooperative will review your request.')).toBeVisible()
 })
@@ -92,7 +92,7 @@ test('admin approval leads to a farmer role journey', async ({ page }, testInfo)
   await page.getByLabel('Message (optional)').fill(applicant.message)
   const registration = page.waitForResponse((candidate) => apiResponse(candidate, '/api/registrations', 'POST'))
   await page.getByRole('button', { name: 'Send request' }).click()
-  await expect(await registration).toHaveStatus(201)
+  expect((await registration).status()).toBe(201)
 
   await login(page, adminEmail, adminPassword)
   await expect(page).toHaveURL(/\/admin\/users\/?$/)
@@ -105,7 +105,7 @@ test('admin approval leads to a farmer role journey', async ({ page }, testInfo)
   await request.getByLabel('Delegation').selectOption('SFAX_VILLE')
   const approval = page.waitForResponse((candidate) => candidate.url().includes('/api/registrations/') && candidate.url().endsWith('/approve') && candidate.request().method() === 'POST')
   await request.getByRole('button', { name: 'Approve' }).click()
-  await expect(await approval).toBeOK()
+  expect((await approval).ok()).toBe(true)
 
   const approvalStatus = page.getByRole('status')
   await expect(approvalStatus).toContainText(applicant.email)
@@ -124,7 +124,7 @@ test('admin approval leads to a farmer role journey', async ({ page }, testInfo)
   await page.getByLabel('Confirm new password').fill(newPassword)
   const passwordChange = page.waitForResponse((candidate) => apiResponse(candidate, '/api/me/password', 'PATCH'))
   await page.getByRole('button', { name: 'Change password' }).click()
-  await expect(await passwordChange).toHaveStatus(204)
+  expect((await passwordChange).status()).toBe(204)
   await expect(page).toHaveURL(/\/farmer\/?$/)
   await expect(page.getByRole('heading', { name: 'Farmer home' })).toBeVisible()
 

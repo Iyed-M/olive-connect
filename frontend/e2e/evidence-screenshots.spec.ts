@@ -72,7 +72,7 @@ async function login(page: Page, account: EvidenceAccount) {
     return url.pathname === '/api/auth/login' && candidate.request().method() === 'POST'
   })
   await page.getByRole('button', { name: 'Log in' }).click()
-  await expect(await response).toBeOK()
+  expect((await response).ok()).toBe(true)
 }
 
 test('public pages — screenshots', async ({ page }, testInfo) => {
