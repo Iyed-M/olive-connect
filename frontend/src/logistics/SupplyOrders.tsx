@@ -19,7 +19,7 @@ import {
 } from './resources'
 
 function banner(err: unknown) {
-  return err instanceof ApiError ? errorBanner(err) : 'Could not reach the server.'
+  return err instanceof ApiError ? errorBanner(err) : 'Impossible de joindre le serveur.'
 }
 
 interface SupplyValues {
@@ -85,12 +85,12 @@ export function SupplyOrders() {
 
   return (
     <>
-      <h1 className="font-heading text-2xl font-bold text-primary">Supply orders</h1>
+      <h1 className="font-heading text-2xl font-bold text-primary">Commandes d’approvisionnement</h1>
 
       {canWrite && (
         <Card>
           <CardHeader>
-            <CardTitle>New supply order</CardTitle>
+            <CardTitle>Nouvelle commande</CardTitle>
           </CardHeader>
           <CardContent>
             <form
@@ -103,23 +103,23 @@ export function SupplyOrders() {
             >
               <div className="flex flex-col gap-2">
                 <label htmlFor="toolId" className="text-sm font-medium">
-                  Tool
+                  Outil
                 </label>
                 <select
                   id="toolId"
                   className={selectClass}
                   aria-invalid={!!errors.toolId}
-                  {...register('toolId', { required: 'Choose a tool.' })}
+                  {...register('toolId', { required: 'Choisissez un outil.' })}
                 >
-                  <option value="">Choose a net or a shaker</option>
-                  <optgroup label="Nets">
+                  <option value="">Choisir un filet ou un secoueur</option>
+                  <optgroup label="Filets">
                     {nets.data?.content.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.code} (stock {t.stockQuantity ?? 0})
                       </option>
                     ))}
                   </optgroup>
-                  <optgroup label="Shakers">
+                  <optgroup label="Secoueurs">
                     {shakers.data?.content.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.code} (stock {t.stockQuantity ?? 0})
@@ -131,35 +131,35 @@ export function SupplyOrders() {
               </div>
               <Field
                 id="quantity"
-                label="Quantity"
+                label="Quantité"
                 type="number"
                 min="1"
                 step="1"
                 error={errors.quantity?.message}
                 {...register('quantity', {
-                  required: 'Quantity is required.',
-                  validate: (v) => (Number.isInteger(Number(v)) && Number(v) >= 1) || 'Quantity must be at least 1.',
+                  required: 'La quantité est obligatoire.',
+                  validate: (v) => (Number.isInteger(Number(v)) && Number(v) >= 1) || 'La quantité doit être d’au moins 1.',
                 })}
               />
               <Field
                 id="supplier"
-                label="Supplier"
+                label="Fournisseur"
                 maxLength={120}
                 error={errors.supplier?.message}
                 {...register('supplier', {
-                  validate: (v) => v.trim().length > 0 || 'Supplier is required.',
+                  validate: (v) => v.trim().length > 0 || 'Le fournisseur est obligatoire.',
                 })}
               />
               <Field
                 id="expectedAt"
-                label="Expected on (optional)"
+                label="Attendue le (facultatif)"
                 type="date"
                 error={errors.expectedAt?.message}
                 {...register('expectedAt')}
               />
               {create.isError && <p role="alert" className="text-sm text-destructive">{banner(create.error)}</p>}
               <Button type="submit" className="h-11 w-fit" disabled={create.isPending}>
-                {create.isPending ? 'Saving...' : 'Create order'}
+                {create.isPending ? 'Enregistrement…' : 'Créer la commande'}
               </Button>
             </form>
           </CardContent>
@@ -167,7 +167,7 @@ export function SupplyOrders() {
       )}
 
       <select
-        aria-label="Filter by status"
+        aria-label="Filtrer par statut"
         value={status}
         onChange={(e) => {
           setStatus(e.target.value as SupplyStatus | '')
@@ -175,7 +175,7 @@ export function SupplyOrders() {
         }}
         className={selectClass + ' sm:w-60'}
       >
-        <option value="">All statuses</option>
+        <option value="">Tous les statuts</option>
         {(Object.keys(SUPPLY_STATUS_LABEL) as SupplyStatus[]).map((s) => (
           <option key={s} value={s}>
             {SUPPLY_STATUS_LABEL[s]}
@@ -183,10 +183,10 @@ export function SupplyOrders() {
         ))}
       </select>
 
-      {orders.isError && <p role="alert" className="text-sm text-destructive">Could not load the supply orders.</p>}
+      {orders.isError && <p role="alert" className="text-sm text-destructive">Impossible de charger les commandes.</p>}
       {receive.isError && <p role="alert" className="text-sm text-destructive">{banner(receive.error)}</p>}
-      {orders.isPending && <p className="text-muted-foreground">Loading...</p>}
-      {data && data.content.length === 0 && <p className="text-muted-foreground">No supply order.</p>}
+      {orders.isPending && <p className="text-muted-foreground">Chargement…</p>}
+      {data && data.content.length === 0 && <p className="text-muted-foreground">Aucune commande.</p>}
 
       {data && data.content.length > 0 && (
         <>
@@ -214,7 +214,7 @@ export function SupplyOrders() {
                           disabled={receive.isPending}
                           onClick={() => receive.mutate(o.id)}
                         >
-                          Mark received
+                          Marquer reçue
                         </Button>
                       )}
                     </div>

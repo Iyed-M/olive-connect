@@ -32,33 +32,33 @@ function WorkersList() {
   return (
     <>
       <div className="flex items-center justify-between gap-2">
-        <h1 className="font-heading text-2xl font-bold text-primary">Workers</h1>
+        <h1 className="font-heading text-2xl font-bold text-primary">Ouvriers</h1>
         <Link to="/logistics/workers/new" className={buttonVariants({ className: 'h-11' })}>
-          <Plus aria-hidden /> New worker
+          <Plus aria-hidden /> Nouvel ouvrier
         </Link>
       </div>
       <Link to="/logistics/equipment" className="w-fit text-sm text-primary hover:underline">
-        Go to equipment
+        Aller aux équipements
       </Link>
 
       <select
-        aria-label="Filter by status"
+        aria-label="Filtrer par statut"
         value={filters.active}
         onChange={(e) => setFilters({ active: e.target.value as WorkerFilters['active'], page: 0 })}
         className={selectClass}
       >
-        <option value="">Active and inactive</option>
-        <option value="true">Active</option>
-        <option value="false">Inactive</option>
+        <option value="">Actifs et inactifs</option>
+        <option value="true">Actif</option>
+        <option value="false">Inactif</option>
       </select>
 
       {query.isError && (
         <p role="alert" className="text-sm text-destructive">
-          Could not load the workers.
+          Impossible de charger les ouvriers.
         </p>
       )}
-      {query.isPending && <p className="text-muted-foreground">Loading...</p>}
-      {data && data.content.length === 0 && <p className="text-muted-foreground">No workers found.</p>}
+      {query.isPending && <p className="text-muted-foreground">Chargement…</p>}
+      {data && data.content.length === 0 && <p className="text-muted-foreground">Aucun ouvrier trouvé.</p>}
 
       {data && data.content.length > 0 && (
         <>
@@ -76,7 +76,7 @@ function WorkersList() {
                         <ActiveBadge active={w.active} />
                       </div>
                       <span className="text-sm text-muted-foreground">
-                        {w.skills.join(', ') || 'No skills'} · {w.dailyRate} TND/day
+                        {w.skills.join(', ') || 'Aucune compétence'} · {w.dailyRate} TND/day
                       </span>
                     </CardContent>
                   </Card>
@@ -89,11 +89,11 @@ function WorkersList() {
           <table className="hidden w-full text-left text-sm md:table">
             <thead className="border-b text-muted-foreground">
               <tr>
-                <th className="py-2">Name</th>
+                <th className="py-2">Nom</th>
                 <th>CIN</th>
-                <th>Skills</th>
-                <th>Daily rate</th>
-                <th>Status</th>
+                <th>Compétences</th>
+                <th>Tarif journalier</th>
+                <th>Statut</th>
               </tr>
             </thead>
             <tbody>
@@ -123,5 +123,5 @@ function WorkersList() {
 }
 
 function ActiveBadge({ active }: { active: boolean }) {
-  return <Badge variant={active ? 'default' : 'outline'}>{active ? 'Active' : 'Inactive'}</Badge>
+  return <Badge variant={active ? 'default' : 'outline'}>{active ? 'Actif' : 'Inactif'}</Badge>
 }

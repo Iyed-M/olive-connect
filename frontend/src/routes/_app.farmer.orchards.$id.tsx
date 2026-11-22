@@ -12,8 +12,8 @@ function Page() {
   const query = useQuery({ queryKey: ['orchard', id], queryFn: () => getOrchard(id) })
   const error = query.error instanceof ApiError ? query.error : null
   return <RequireRole role="FARMER">
-    {query.isPending && <p className="text-muted-foreground">Loading orchard...</p>}
-    {query.isError && <p role="alert" className="text-sm text-destructive">{error?.detail ?? 'Could not load the orchard.'}</p>}
+    {query.isPending && <p className="text-muted-foreground">Chargement du verger…</p>}
+    {query.isError && <p role="alert" className="text-sm text-destructive">{error?.detail ?? 'Impossible de charger le verger.'}</p>}
     {query.data && <OrchardForm orchard={query.data} />}
   </RequireRole>
 }

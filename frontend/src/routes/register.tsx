@@ -12,7 +12,7 @@ import { ApiError } from '@/lib/api'
 
 export const Route = createFileRoute('/register')({ component: RegisterPage })
 
-const required = { required: 'Required' }
+const required = { required: 'Obligatoire' }
 
 function RegisterPage() {
   const [sent, setSent] = useState(false)
@@ -32,7 +32,7 @@ function RegisterPage() {
       await createRegistration(values)
       setSent(true)
     } catch (err) {
-      const error = err instanceof ApiError ? err : new ApiError(0, 'NETWORK', 'Cannot reach the server.')
+      const error = err instanceof ApiError ? err : new ApiError(0, 'NETWORK', 'Impossible de joindre le serveur.')
       if (error.code === 'VALIDATION_FAILED') setServerErrors(error.errors, setError)
       setBanner(errorBanner(error))
     }
@@ -43,14 +43,14 @@ function RegisterPage() {
       <PublicPage>
         <Card>
           <CardHeader>
-            <CardTitle className="font-heading text-xl">Request sent</CardTitle>
+            <CardTitle className="font-heading text-xl">Demande envoyée</CardTitle>
             <CardDescription>
-              Thank you. An administrator of the cooperative will review your request.
+              Merci. Un administrateur de la coopérative examinera votre demande.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link to="/" className={buttonVariants({ variant: 'outline' })}>
-              Back to home
+              Retour à l’accueil
             </Link>
           </CardContent>
         </Card>
@@ -62,13 +62,13 @@ function RegisterPage() {
     <PublicPage>
       <Card>
         <CardHeader>
-          <CardTitle className="font-heading text-xl">Join the cooperative</CardTitle>
-          <CardDescription>Send a registration request. An administrator will approve it.</CardDescription>
+          <CardTitle className="font-heading text-xl">Rejoindre la coopérative</CardTitle>
+          <CardDescription>Envoyez une demande d’inscription. Un administrateur la validera.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-            <Field id="firstName" label="First name" error={errors.firstName?.message} {...register('firstName', required)} />
-            <Field id="lastName" label="Last name" error={errors.lastName?.message} {...register('lastName', required)} />
+            <Field id="firstName" label="Prénom" error={errors.firstName?.message} {...register('firstName', required)} />
+            <Field id="lastName" label="Nom" error={errors.lastName?.message} {...register('lastName', required)} />
             <Field
               id="email"
               label="Email"
@@ -76,20 +76,20 @@ function RegisterPage() {
               autoComplete="email"
               error={errors.email?.message}
               {...register('email', {
-                required: 'Required',
-                pattern: { value: /^\S+@\S+\.\S+$/, message: 'Enter a valid email' },
+                required: 'Obligatoire',
+                pattern: { value: /^\S+@\S+\.\S+$/, message: 'Saisissez un e-mail valide' },
               })}
             />
-            <Field id="phone" label="Phone" type="tel" error={errors.phone?.message} {...register('phone', required)} />
+            <Field id="phone" label="Téléphone" type="tel" error={errors.phone?.message} {...register('phone', required)} />
             <Field
               id="cin"
               label="CIN"
-              hint="National identity card number (8 digits)"
+              hint="Numéro de carte d’identité nationale (8 chiffres)"
               error={errors.cin?.message}
-              {...register('cin', { required: 'Required', pattern: { value: /^\d{8}$/, message: '8 digits' } })}
+              {...register('cin', { required: 'Obligatoire', pattern: { value: /^\d{8}$/, message: '8 chiffres' } })}
             />
             <div className="flex flex-col gap-2">
-              <Label htmlFor="message">Message (optional)</Label>
+              <Label htmlFor="message">Message (facultatif)</Label>
               <textarea
                 id="message"
                 rows={3}
@@ -105,7 +105,7 @@ function RegisterPage() {
               </p>
             )}
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Sending...' : 'Send request'}
+              {isSubmitting ? 'Envoi…' : 'Envoyer la demande'}
             </Button>
           </form>
         </CardContent>

@@ -35,20 +35,20 @@ function UsersList() {
   return (
     <>
       <div className="flex items-center justify-between gap-2">
-        <h1 className="font-heading text-2xl font-bold text-primary">Users</h1>
+        <h1 className="font-heading text-2xl font-bold text-primary">Utilisateurs</h1>
         <Link to="/admin/users/new" className={buttonVariants({ className: 'h-11' })}>
-          <Plus aria-hidden /> New user
+          <Plus aria-hidden /> Nouvel utilisateur
         </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <select
-          aria-label="Filter by role"
+          aria-label="Filtrer par rôle"
           value={filters.role}
           onChange={(e) => setFilters({ ...filters, role: e.target.value as UserFilters['role'], page: 0 })}
           className={selectClass}
         >
-          <option value="">All roles</option>
+          <option value="">Tous les rôles</option>
           {ROLE_PRIORITY.map((r) => (
             <option key={r} value={r}>
               {ROLE_LABEL[r]}
@@ -56,24 +56,24 @@ function UsersList() {
           ))}
         </select>
         <select
-          aria-label="Filter by status"
+          aria-label="Filtrer par statut"
           value={filters.enabled}
           onChange={(e) => setFilters({ ...filters, enabled: e.target.value as UserFilters['enabled'], page: 0 })}
           className={selectClass}
         >
-          <option value="">Enabled and disabled</option>
-          <option value="true">Enabled</option>
-          <option value="false">Disabled</option>
+          <option value="">Actifs et désactivés</option>
+          <option value="true">Actifs</option>
+          <option value="false">Désactivés</option>
         </select>
       </div>
 
       {query.isError && (
         <p role="alert" className="text-sm text-destructive">
-          Could not load the users.
+          Impossible de charger les utilisateurs.
         </p>
       )}
-      {query.isPending && <p className="text-muted-foreground">Loading...</p>}
-      {data && data.content.length === 0 && <p className="text-muted-foreground">No users found.</p>}
+      {query.isPending && <p className="text-muted-foreground">Chargement…</p>}
+      {data && data.content.length === 0 && <p className="text-muted-foreground">Aucun utilisateur trouvé.</p>}
 
       {data && data.content.length > 0 && (
         <>
@@ -103,10 +103,10 @@ function UsersList() {
           <table className="hidden w-full text-left text-sm md:table">
             <thead className="border-b text-muted-foreground">
               <tr>
-                <th className="py-2">Name</th>
+                <th className="py-2">Nom</th>
                 <th>Email</th>
-                <th>Roles</th>
-                <th>Status</th>
+                <th>Rôles</th>
+                <th>Statut</th>
               </tr>
             </thead>
             <tbody>
@@ -136,10 +136,10 @@ function UsersList() {
               disabled={filters.page === 0}
               onClick={() => setFilters({ ...filters, page: filters.page - 1 })}
             >
-              Previous
+              Précédent
             </Button>
             <span className="text-sm text-muted-foreground">
-              Page {filters.page + 1} of {lastPage + 1}
+              Page {filters.page + 1} sur {lastPage + 1}
             </span>
             <Button
               variant="outline"
@@ -147,7 +147,7 @@ function UsersList() {
               disabled={filters.page >= lastPage}
               onClick={() => setFilters({ ...filters, page: filters.page + 1 })}
             >
-              Next
+              Suivant
             </Button>
           </div>
         </>
@@ -169,5 +169,5 @@ function RoleBadges({ roles }: { roles: Role[] }) {
 }
 
 function StatusBadge({ enabled }: { enabled: boolean }) {
-  return <Badge variant={enabled ? 'default' : 'outline'}>{enabled ? 'Enabled' : 'Disabled'}</Badge>
+  return <Badge variant={enabled ? 'default' : 'outline'}>{enabled ? 'Actif' : 'Désactivé'}</Badge>
 }

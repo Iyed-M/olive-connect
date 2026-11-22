@@ -14,8 +14,8 @@ function Page() {
   const error = query.error instanceof ApiError ? query.error : null
   return (
     <RequireRole role={['COLLECTION_MANAGER', 'LOGISTICS_MANAGER', 'ADMIN']}>
-      {query.isPending && <p className="text-muted-foreground">Loading orchard...</p>}
-      {query.isError && <p role="alert" className="text-sm text-destructive">{error?.detail ?? 'Could not load the orchard.'}</p>}
+      {query.isPending && <p className="text-muted-foreground">Chargement du verger…</p>}
+      {query.isError && <p role="alert" className="text-sm text-destructive">{error?.detail ?? 'Impossible de charger le verger.'}</p>}
       {query.data && <OrchardForm key={query.data.version} orchard={query.data} staff />}
       {query.data && <CorrectionHistory items={query.data.corrections} />}
     </RequireRole>

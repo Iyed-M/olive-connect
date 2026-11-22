@@ -35,10 +35,10 @@ export interface ImportFilters {
 }
 
 export const IMPORT_STATUS_LABEL: Record<ImportStatus, string> = {
-  RUNNING: 'Running',
-  SUCCESS: 'Success',
-  PARTIAL: 'Partial',
-  FAILED: 'Failed',
+  RUNNING: 'En cours',
+  SUCCESS: 'Réussi',
+  PARTIAL: 'Partiel',
+  FAILED: 'Échoué',
 }
 
 export function listImports({ dataset, status, page }: ImportFilters) {

@@ -66,12 +66,12 @@ async function capture(page: Page, project: string, role: string, route: string)
 async function login(page: Page, account: EvidenceAccount) {
   await page.goto('/login', { waitUntil: 'domcontentloaded' })
   await page.getByLabel('Email').fill(account.email!)
-  await page.getByLabel('Password').fill(account.password!)
+  await page.getByLabel('Mot de passe').fill(account.password!)
   const response = page.waitForResponse((candidate) => {
     const url = new URL(candidate.url())
     return url.pathname === '/api/auth/login' && candidate.request().method() === 'POST'
   })
-  await page.getByRole('button', { name: 'Log in' }).click()
+  await page.getByRole('button', { name: 'Se connecter' }).click()
   expect((await response).ok()).toBe(true)
 }
 

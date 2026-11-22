@@ -37,8 +37,8 @@ describe('errorBanner', () => {
     expect(errorBanner(e)).toBeNull()
   })
   it('explains SELF_LOCKOUT and conflicts', () => {
-    expect(errorBanner(new ApiError(422, 'SELF_LOCKOUT', 'x'))).toMatch(/yourself/)
-    expect(errorBanner(new ApiError(409, 'EMAIL_TAKEN', 'x'))).toMatch(/email/)
+    expect(errorBanner(new ApiError(422, 'SELF_LOCKOUT', 'x'))).toMatch(/désactiver/)
+    expect(errorBanner(new ApiError(409, 'EMAIL_TAKEN', 'x'))).toMatch(/e-mail/)
   })
   it('falls back to the server detail', () => {
     expect(errorBanner(new ApiError(500, 'UNKNOWN', 'Boom'))).toBe('Boom')

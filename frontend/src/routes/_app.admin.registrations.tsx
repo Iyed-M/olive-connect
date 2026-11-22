@@ -48,7 +48,7 @@ function Registrations() {
     try {
       await run()
     } catch (err) {
-      setError(err instanceof ApiError ? err.detail : 'Cannot reach the server.')
+      setError(err instanceof ApiError ? err.detail : 'Impossible de joindre le serveur.')
     }
     await queryClient.invalidateQueries({ queryKey: ['registrations'] })
   }
@@ -57,9 +57,9 @@ function Registrations() {
 
   return (
     <>
-      <h1 className="font-heading text-2xl font-bold text-primary">Registrations</h1>
+      <h1 className="font-heading text-2xl font-bold text-primary">Inscriptions</h1>
 
-      <div role="tablist" aria-label="Status" className="flex gap-2">
+      <div role="tablist" aria-label="Statut" className="flex gap-2">
         {STATUSES.map((s) => (
           <Button
             key={s}
@@ -77,14 +77,14 @@ function Registrations() {
       {approved && (
         <div role="status" className="rounded-lg border border-primary bg-muted p-4">
           <p>
-            Account created for <strong>{approved.email}</strong>. Temporary password (shown only once):
+            Compte créé pour <strong>{approved.email}</strong>. Mot de passe temporaire (affiché une seule fois) :
           </p>
           <p className="my-2 break-all font-mono text-lg font-bold">{approved.password}</p>
           <p className="text-sm text-muted-foreground">
-            Give it to the farmer. They must change it at their first login.
+            Transmettez-le à l’agriculteur. Il devra le changer à sa première connexion.
           </p>
           <Button variant="outline" className="mt-2 h-11" onClick={() => setApproved(null)}>
-            Done
+            Terminé
           </Button>
         </div>
       )}
@@ -96,10 +96,10 @@ function Registrations() {
       )}
       {query.isError && (
         <p role="alert" className="text-sm text-destructive">
-          Could not load the registrations.
+          Impossible de charger les inscriptions.
         </p>
       )}
-      {query.isPending && <p className="text-muted-foreground">Loading...</p>}
+      {query.isPending && <p className="text-muted-foreground">Chargement…</p>}
       {query.data?.length === 0 && (
         <p className="text-muted-foreground">No {STATUS_LABEL[status].toLowerCase()} requests.</p>
       )}
@@ -151,14 +151,14 @@ function RegistrationCard({
           {r.status === 'PENDING' && (
             <div className="flex flex-wrap gap-2">
               <input
-                aria-label="Member number"
-                placeholder="Member number"
+                aria-label="Numéro de membre"
+                placeholder="Numéro de membre"
                 className="h-11 rounded-lg border border-input bg-background px-2 text-sm"
                 value={memberNumber}
                 onChange={(e) => setMemberNumber(e.target.value)}
               />
               <select
-                aria-label="Delegation"
+                aria-label="Délégation"
                 className="h-11 rounded-lg border border-input bg-background px-2 text-sm"
                 value={delegation}
                 onChange={(e) => setDelegation(e.target.value as Delegation)}
@@ -174,10 +174,10 @@ function RegistrationCard({
                 disabled={busy || memberNumber.trim() === ''}
                 onClick={() => onApprove({ memberNumber: memberNumber.trim(), delegation })}
               >
-                Approve
+                Approuver
               </Button>
               <Button variant="outline" className="h-11" disabled={busy} onClick={onReject}>
-                Reject
+                Refuser
               </Button>
             </div>
           )}

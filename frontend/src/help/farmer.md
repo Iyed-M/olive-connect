@@ -1,9 +1,9 @@
-# Farmer home
+# Accueil agriculteur
 
-This is your starting point for the harvest season.
+C’est votre point de départ pour la saison de récolte.
 
-- Open Harvest requests to follow a declaration and its status history.
-- Open Orchards to review or update your own orchards.
-- Use the quick actions to declare a harvest or report a field alert.
+- Ouvrez Demandes pour suivre une déclaration et l’historique de ses statuts.
+- Ouvrez Vergers pour consulter ou modifier vos propres vergers.
+- Utilisez les actions rapides pour déclarer une récolte ou signaler une alerte terrain.
 
-Only your own farmer data is shown here. Use the help button on a form for field-specific guidance.
+Seules vos propres données d’agriculteur sont affichées ici. Utilisez le bouton d’aide d’un formulaire pour obtenir des conseils sur ses champs.

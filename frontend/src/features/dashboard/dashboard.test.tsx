@@ -120,9 +120,9 @@ describe('dashboard render state', () => {
   })
 
   it('renders distinct loading, empty, and API-error messages', () => {
-    expect(renderToStaticMarkup(<DashboardStateView state="loading" />)).toMatch(/Loading dashboard/)
-    expect(renderToStaticMarkup(<DashboardStateView state="empty" />)).toMatch(/No dashboard data/)
-    expect(renderToStaticMarkup(<DashboardStateView state="error" error={new Error('API down')} />)).toMatch(/could not be loaded/)
+    expect(renderToStaticMarkup(<DashboardStateView state="loading" />)).toMatch(/Chargement du tableau de bord/)
+    expect(renderToStaticMarkup(<DashboardStateView state="empty" />)).toMatch(/Aucune donnée/)
+    expect(renderToStaticMarkup(<DashboardStateView state="error" error={new Error('API down')} />)).toMatch(/Impossible de charger/)
   })
 
   it('keeps the dashboard layout usable at the 360px mobile baseline', () => {

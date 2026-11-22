@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ROLE_LABEL } from '@/auth/roles'
 import type { Role } from '@/auth/types'
 import { shouldStartTour, tourStepsForRole } from './index'
 
@@ -10,7 +11,7 @@ describe('role guided tours', () => {
       const steps = tourStepsForRole(role)
       expect(steps.length).toBeGreaterThanOrEqual(3)
       expect(steps.every((step) => step.target.startsWith('[data-tour='))).toBe(true)
-      expect(steps.some((step) => step.content.includes(role))).toBe(true)
+      expect(steps.some((step) => step.content.includes(ROLE_LABEL[role]))).toBe(true)
     }
   })
 

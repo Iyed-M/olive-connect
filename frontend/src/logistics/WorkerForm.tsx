@@ -96,21 +96,21 @@ export function WorkerForm({ worker }: { worker?: WorkerDto }) {
 
   const error = save.error instanceof ApiError ? save.error : null
   const removeError = remove.error instanceof ApiError ? remove.error : null
-  const banner = save.error ? (error ? errorBanner(error) : 'Cannot reach the server.') : null
+  const banner = save.error ? (error ? errorBanner(error) : 'Impossible de joindre le serveur.') : null
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
       <Card>
         <CardContent className="flex flex-col gap-4">
-          <Field id="firstName" label="First name" error={errors.firstName?.message} {...register('firstName')} />
-          <Field id="lastName" label="Last name" error={errors.lastName?.message} {...register('lastName')} />
-          <Field id="cin" label="CIN" hint="8 digits" error={errors.cin?.message} {...register('cin')} />
-          <Field id="phone" label="Phone (optional)" type="tel" hint="+216 followed by 8 digits" error={errors.phone?.message} {...register('phone')} />
-          <Field id="skills" label="Skills" hint="Separated by commas, for example picking, driving" error={errors.skills?.message} {...register('skills')} />
-          <Field id="dailyRate" label="Daily rate (TND)" type="number" error={errors.dailyRate?.message} {...register('dailyRate')} />
+          <Field id="firstName" label="Prénom" error={errors.firstName?.message} {...register('firstName')} />
+          <Field id="lastName" label="Nom" error={errors.lastName?.message} {...register('lastName')} />
+          <Field id="cin" label="CIN" hint="8 chiffres" error={errors.cin?.message} {...register('cin')} />
+          <Field id="phone" label="Téléphone (facultatif)" type="tel" hint="+216 suivi de 8 chiffres" error={errors.phone?.message} {...register('phone')} />
+          <Field id="skills" label="Compétences" hint="Séparées par des virgules, par exemple cueillette, conduite" error={errors.skills?.message} {...register('skills')} />
+          <Field id="dailyRate" label="Tarif journalier (TND)" type="number" error={errors.dailyRate?.message} {...register('dailyRate')} />
           <label className="flex min-h-11 items-center gap-3 text-sm">
             <input type="checkbox" className="size-5" {...register('active')} />
-            Active
+            Actif
           </label>
         </CardContent>
       </Card>
@@ -122,38 +122,38 @@ export function WorkerForm({ worker }: { worker?: WorkerDto }) {
       )}
       {saved && !save.isPending && !save.error && (
         <p role="status" className="text-sm text-primary">
-          Saved.
+          Enregistré.
         </p>
       )}
       <div className="flex flex-wrap gap-2">
         <Button type="submit" className="h-11" disabled={save.isPending}>
-          {save.isPending ? 'Saving...' : worker ? 'Save' : 'Create worker'}
+          {save.isPending ? 'Enregistrement…' : worker ? 'Enregistrer' : 'Créer l’ouvrier'}
         </Button>
         <Button type="button" variant="outline" className="h-11" onClick={() => void navigate({ to: '/logistics/workers' })}>
-          Back to list
+          Retour à la liste
         </Button>
         {worker && !confirmDelete && (
           <Button type="button" variant="destructive" className="h-11" onClick={() => setConfirmDelete(true)}>
-            Delete
+            Supprimer
           </Button>
         )}
       </div>
       {worker && confirmDelete && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm">Delete this worker? This cannot be undone.</p>
+          <p className="text-sm">Supprimer cet ouvrier ? Cette action est irréversible.</p>
           <div className="flex gap-2">
             <Button type="button" variant="destructive" className="h-11" disabled={remove.isPending} onClick={() => remove.mutate()}>
-              Yes, delete
+              Oui, supprimer
             </Button>
             <Button type="button" variant="outline" className="h-11" onClick={() => setConfirmDelete(false)}>
-              Cancel
+              Annuler
             </Button>
           </div>
         </div>
       )}
       {remove.error && (
         <p role="alert" className="text-sm text-destructive">
-          {removeError ? errorBanner(removeError) : 'Cannot reach the server.'}
+          {removeError ? errorBanner(removeError) : 'Impossible de joindre le serveur.'}
         </p>
       )}
     </form>

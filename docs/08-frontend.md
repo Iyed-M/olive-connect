@@ -71,7 +71,7 @@ The `Role` type is a **hand-written union** in `src/auth/types.ts` with the same
 ## 3. Navigation per role
 
 The route `/` is the public map landing page (GeoJSON data from `GET /api/map/public`)
-with a "Log in" link, or "Go to my home" when the User is logged in. The M0 system-status
+with a "Se connecter" link, or "Aller à mon accueil" when the User is logged in. The M0 system-status
 read model remains available through `GET /api/system/status` for health and diagnostics.
 
 **Role priority** (highest first): ADMIN > COLLECTION_MANAGER > MILL_MANAGER > LOGISTICS_MANAGER > TEAM_LEADER > FARMER. After login the User lands on the Role home of the **Active role**: the role chosen in the switcher if the User still holds it, else the priority role.

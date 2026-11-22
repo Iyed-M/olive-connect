@@ -56,15 +56,15 @@ export function UnavailabilityPanel({
   })
 
   const apiError = save.error instanceof ApiError ? save.error : null
-  const banner = save.error ? (apiError ? errorBanner(apiError) : 'Cannot reach the server.') : null
+  const banner = save.error ? (apiError ? errorBanner(apiError) : 'Impossible de joindre le serveur.') : null
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Unavailabilities</CardTitle>
+        <CardTitle>Indisponibilités</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {items.length === 0 && <p className="text-sm text-muted-foreground">None yet.</p>}
+        {items.length === 0 && <p className="text-sm text-muted-foreground">Aucune pour le moment.</p>}
         <ul className="flex flex-col gap-2">
           {items.map((u, i) => (
             <li key={i} className="rounded-md border p-2 text-sm">
@@ -76,23 +76,23 @@ export function UnavailabilityPanel({
 
         <form onSubmit={onSubmit} className="flex flex-col gap-3" noValidate>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="from">From</Label>
+            <Label htmlFor="from">Du</Label>
             <Input
               id="from"
               type="datetime-local"
               aria-invalid={!!errors.from}
-              {...register('from', { required: 'Choose a start.' })}
+              {...register('from', { required: 'Choisissez un début.' })}
             />
             {errors.from && <p className="text-sm text-destructive">{errors.from.message}</p>}
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="to">To</Label>
+            <Label htmlFor="to">Au</Label>
             <Input
               id="to"
               type="datetime-local"
               aria-invalid={!!errors.to}
               {...register('to', {
-                required: 'Choose an end.',
+                required: 'Choisissez une fin.',
                 // the end must be after the start (the server checks again, 422)
                 validate: (to, { from }) => (from && unavailabilityError(from, to)) || true,
               })}
@@ -100,7 +100,7 @@ export function UnavailabilityPanel({
             {errors.to && <p className="text-sm text-destructive">{errors.to.message}</p>}
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="reason">Reason (optional)</Label>
+            <Label htmlFor="reason">Motif (facultatif)</Label>
             <Input id="reason" aria-invalid={!!errors.reason} {...register('reason')} />
             {errors.reason && <p className="text-sm text-destructive">{errors.reason.message}</p>}
           </div>
@@ -110,7 +110,7 @@ export function UnavailabilityPanel({
             </p>
           )}
           <Button type="submit" className="h-11 w-fit" disabled={save.isPending}>
-            {save.isPending ? 'Adding...' : 'Add unavailability'}
+            {save.isPending ? 'Ajout…' : 'Ajouter une indisponibilité'}
           </Button>
         </form>
       </CardContent>

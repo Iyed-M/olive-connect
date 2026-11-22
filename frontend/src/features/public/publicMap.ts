@@ -3,10 +3,10 @@ import { api } from '@/lib/api'
 export type HarvestStatus = 'NOT_HARVESTED' | 'SCHEDULED' | 'IN_PROGRESS' | 'HARVESTED'
 
 export const STATUS_LABEL: Record<HarvestStatus, string> = {
-  NOT_HARVESTED: 'Not harvested',
-  SCHEDULED: 'Scheduled',
-  IN_PROGRESS: 'In progress',
-  HARVESTED: 'Harvested',
+  NOT_HARVESTED: 'Non récolté',
+  SCHEDULED: 'Planifié',
+  IN_PROGRESS: 'En cours',
+  HARVESTED: 'Récolté',
 }
 
 // docs/08 §5: grey not harvested, blue scheduled, orange in progress, green harvested.

@@ -1,7 +1,7 @@
-# Harvest requests
+# Demandes de récolte
 
-Create a request when one of your orchards is ready for collection. Keep the desired window and estimated quantity realistic so the collection manager can plan a route.
+Créez une demande lorsqu’un de vos vergers est prêt pour la collecte. Gardez une fenêtre souhaitée et une quantité estimée réalistes afin que le responsable de collecte puisse planifier une tournée.
 
-- Open a request to read its timeline and available actions.
-- Edit or cancel only while the API says the action is allowed.
-- Refresh after a manager validates or rejects a request.
+- Ouvrez une demande pour lire sa chronologie et les actions disponibles.
+- Ne modifiez ou n’annulez une demande que lorsque l’API autorise l’action.
+- Actualisez après qu’un responsable a validé ou refusé une demande.

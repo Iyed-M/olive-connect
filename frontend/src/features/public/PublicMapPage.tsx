@@ -60,8 +60,8 @@ function ClusterMarker({ feature }: { feature: PublicFeature }) {
     iconSize: [36, 36],
   })
   return (
-    <Marker position={[lat, lng]} icon={icon} title={`${count} orchards`}>
-      <Popup>{count} orchards. Zoom in to see them.</Popup>
+    <Marker position={[lat, lng]} icon={icon} title={`${count} vergers`}>
+      <Popup>{count} vergers. Zoomez pour les voir.</Popup>
     </Marker>
   )
 }
@@ -75,11 +75,11 @@ function OrchardMarker({ feature }: { feature: PublicFeature }) {
   return (
     <CircleMarker center={[lat, lng]} radius={9} pathOptions={{ color, fillColor: color, fillOpacity: opacity, weight: 3 }}>
       <Popup>
-        Variety: {varietyCode}
+        Variété : {varietyCode}
         <br />
-        Status: {harvestStatus ? STATUS_LABEL[harvestStatus] : '-'}
+        Statut : {harvestStatus ? STATUS_LABEL[harvestStatus] : '-'}
         <br />
-        Maturity: {maturityIndex}
+        Maturité : {maturityIndex}
       </Popup>
     </CircleMarker>
   )
@@ -107,19 +107,19 @@ export function PublicMapPage() {
       <header className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-primary">OliveConnect</h1>
-          <p className="text-sm text-muted-foreground">Olive orchards of the Sfax region.</p>
+          <p className="text-sm text-muted-foreground">Vergers d’oliviers de la région de Sfax.</p>
         </div>
         <div className="flex gap-2">
           <Link to="/register" className={buttonVariants({ variant: 'outline' })}>
-            Join the cooperative
+            Rejoindre la coopérative
           </Link>
           {activeRole ? (
             <Link to={ROLE_HOME[activeRole]} className={buttonVariants()}>
-              Go to my home
+              Aller à mon accueil
             </Link>
           ) : (
             <Link to="/login" className={buttonVariants()}>
-              Log in
+              Se connecter
             </Link>
           )}
         </div>
@@ -128,12 +128,12 @@ export function PublicMapPage() {
       <form
         className="grid grid-cols-2 gap-3 border-b px-4 py-3 sm:grid-cols-5"
         onSubmit={(e) => e.preventDefault()}
-        aria-label="Map filters"
+        aria-label="Filtres de la carte"
       >
         <div className="flex flex-col gap-1">
-          <Label htmlFor="f-variety">Variety</Label>
+          <Label htmlFor="f-variety">Variété</Label>
           <select id="f-variety" className={selectClass} value={filters.variety} onChange={(e) => set('variety')(e.target.value)}>
-            <option value="">All</option>
+            <option value="">Tous</option>
             {(varieties.data ?? []).map((v) => (
               <option key={v.code} value={v.code}>
                 {v.name}
@@ -142,9 +142,9 @@ export function PublicMapPage() {
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <Label htmlFor="f-status">Harvest status</Label>
+          <Label htmlFor="f-status">Statut de récolte</Label>
           <select id="f-status" className={selectClass} value={filters.status} onChange={(e) => set('status')(e.target.value)}>
-            <option value="">All</option>
+            <option value="">Tous</option>
             {STATUSES.map((s) => (
               <option key={s} value={s}>
                 {STATUS_LABEL[s]}
@@ -153,9 +153,9 @@ export function PublicMapPage() {
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <Label htmlFor="f-delegation">Delegation</Label>
+          <Label htmlFor="f-delegation">Délégation</Label>
           <select id="f-delegation" className={selectClass} value={filters.delegation} onChange={(e) => set('delegation')(e.target.value)}>
-            <option value="">All</option>
+            <option value="">Tous</option>
             {(Object.keys(DELEGATION_LABEL) as Delegation[]).map((d) => (
               <option key={d} value={d}>
                 {DELEGATION_LABEL[d]}
@@ -164,11 +164,11 @@ export function PublicMapPage() {
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <Label htmlFor="f-min">Maturity min</Label>
+          <Label htmlFor="f-min">Maturité min</Label>
           <Input id="f-min" type="number" min={0} step="0.1" value={filters.maturityMin} onChange={(e) => set('maturityMin')(e.target.value)} />
         </div>
         <div className="flex flex-col gap-1">
-          <Label htmlFor="f-max">Maturity max</Label>
+          <Label htmlFor="f-max">Maturité max</Label>
           <Input id="f-max" type="number" min={0} step="0.1" value={filters.maturityMax} onChange={(e) => set('maturityMax')(e.target.value)} />
         </div>
       </form>
@@ -196,11 +196,11 @@ export function PublicMapPage() {
               {STATUS_LABEL[s]}
             </div>
           ))}
-          <div className="mt-1 text-xs text-muted-foreground">Fainter = less mature</div>
+          <div className="mt-1 text-xs text-muted-foreground">Plus pâle = moins mature</div>
         </div>
         {map.isError && (
           <p role="alert" className="absolute left-1/2 top-4 z-[1000] -translate-x-1/2 rounded-lg bg-destructive px-3 py-2 text-sm text-white">
-            Cannot load the map data.
+            Impossible de charger les données de la carte.
           </p>
         )}
       </div>

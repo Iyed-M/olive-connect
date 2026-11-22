@@ -1,6 +1,6 @@
 # AGENTS.md
 
-OliveConnect: smart olive-collection platform (Spring Boot + MongoDB/Redis API, React + Vite + pnpm frontend, Docker/Nginx deployment). Work is planned as vertical slices in `MILESTONES.md`; design reference (names, rules, schemas) lives in `docs/01..11`. All docs and code are written in English.
+OliveConnect: smart olive-collection platform (Spring Boot + MongoDB/Redis API, React + Vite + pnpm frontend, Docker/Nginx deployment). Work is planned as vertical slices in `MILESTONES.md`; design reference (names, rules, schemas) lives in `docs/01..11`. All docs and code are written in English; the only exception is the user-facing UI text, which is French (see `docs/08-frontend.md`).
 
 Keep it simple (KISS): the team must understand and defend every line; prefer plain Spring code and standard conventions over clever abstractions.
 

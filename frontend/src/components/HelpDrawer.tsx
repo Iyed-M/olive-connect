@@ -35,7 +35,7 @@ export function HelpDrawer({ open, pathname, role, onClose }: HelpDrawerProps) {
       <button
         type="button"
         className="absolute inset-0 bg-slate-950/40"
-        aria-label="Close contextual help"
+        aria-label="Fermer l’aide contextuelle"
         onClick={onClose}
       />
       <aside
@@ -46,12 +46,12 @@ export function HelpDrawer({ open, pathname, role, onClose }: HelpDrawerProps) {
       >
         <div className="flex items-start justify-between gap-3 border-b px-4 py-4 sm:px-6">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Help for this page</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Aide pour cette page</p>
             <h2 id="contextual-help-title" className="font-heading text-xl font-bold text-primary">
               {helpDocument.title}
             </h2>
           </div>
-          <Button ref={closeButtonRef} type="button" variant="outline" size="icon" onClick={onClose} aria-label="Close contextual help">
+          <Button ref={closeButtonRef} type="button" variant="outline" size="icon" onClick={onClose} aria-label="Fermer l’aide contextuelle">
             <X aria-hidden />
           </Button>
         </div>

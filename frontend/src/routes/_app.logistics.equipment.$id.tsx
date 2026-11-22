@@ -23,8 +23,8 @@ function EquipmentDetail() {
 
   return (
     <>
-      <h1 className="font-heading text-2xl font-bold text-primary">Edit equipment</h1>
-      {query.isPending && <p className="text-muted-foreground">Loading...</p>}
+      <h1 className="font-heading text-2xl font-bold text-primary">Modifier l’équipement</h1>
+      {query.isPending && <p className="text-muted-foreground">Chargement…</p>}
       {query.isError && (
         <p role="alert" className="text-sm text-destructive">
           {query.error.message}

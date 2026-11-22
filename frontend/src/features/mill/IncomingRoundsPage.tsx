@@ -11,8 +11,10 @@ import {
   getAssignedMillId,
   getBinsForStop,
   listIncomingRounds,
+  listReceptions,
   type IncomingRound,
   type IncomingStop,
+  type MillReception,
 } from './receptions'
 
 export function IncomingRoundsPage() {
@@ -31,6 +33,14 @@ function IncomingRounds() {
     enabled: Boolean(millId),
     staleTime: 30_000,
   })
+
+  const receptionsQuery = useQuery({
+    queryKey: ['receptions', 'mill', millId],
+    queryFn: () => listReceptions(false),
+    enabled: Boolean(millId),
+    staleTime: 30_000,
+  })
+  const receptions = receptionsQuery.data?.content ?? []
 
   const error = query.error instanceof ApiError ? formatReceptionError(query.error) : query.error ? formatReceptionError(query.error) : null
 
@@ -65,14 +75,14 @@ function IncomingRounds() {
       )}
       {query.data && query.data.length > 0 && (
         <div className="flex flex-col gap-3">
-          {query.data.map((round) => <IncomingRoundCard key={round.id} round={round} />)}
+          {query.data.map((round) => <IncomingRoundCard key={round.id} round={round} receptions={receptions} />)}
         </div>
       )}
     </div>
   )
 }
 
-function IncomingRoundCard({ round }: { round: IncomingRound }) {
+function IncomingRoundCard({ round, receptions }: { round: IncomingRound; receptions: MillReception[] }) {
   return (
     <Card>
       <CardHeader className="gap-1">
@@ -85,14 +95,17 @@ function IncomingRoundCard({ round }: { round: IncomingRound }) {
         </p>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        {round.stops.map((stop) => <IncomingStopRow key={stop.order} round={round} stop={stop} />)}
+        {round.stops.map((stop) => <IncomingStopRow key={stop.order} round={round} stop={stop} receptions={receptions} />)}
       </CardContent>
     </Card>
   )
 }
 
-function IncomingStopRow({ round, stop }: { round: IncomingRound; stop: IncomingStop }) {
+function IncomingStopRow({ round, stop, receptions }: { round: IncomingRound; stop: IncomingStop; receptions: MillReception[] }) {
   const bins = getBinsForStop(round, stop)
+  // A stop is fully weighed when each of its bins has a reception (at least one bin is expected).
+  const received = receptions.filter((reception) => reception.roundId === round.id && reception.orchardId === stop.orchardId).length
+  const done = received >= Math.max(bins.length, 1)
   const skipped = stop.status === 'SKIPPED'
   return (
     <div className="flex min-w-0 flex-col gap-3 rounded-lg border bg-background p-3 sm:flex-row sm:items-center sm:justify-between">
@@ -104,6 +117,8 @@ function IncomingStopRow({ round, stop }: { round: IncomingRound; stop: Incoming
       </div>
       {skipped ? (
         <span className="text-sm text-muted-foreground">Arrêt ignoré</span>
+      ) : done ? (
+        <span className="text-sm font-medium text-primary">Pesée enregistrée</span>
       ) : (
         <Link
           to="/mill/receptions/new"
