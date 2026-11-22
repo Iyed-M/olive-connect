@@ -22,6 +22,16 @@ if web.get("command") != expected:
     raise SystemExit(f"web command must be {expected!r}")
 '
 
+printf 'Checking the backend builder...\n'
+if ! grep -q '^FROM maven:3\.10\.0-eclipse-temurin-21-alpine AS build$' "$ROOT_DIR/backend/Dockerfile"; then
+    echo 'backend/Dockerfile must use the pinned Maven builder image' >&2
+    exit 1
+fi
+if grep -qE '(^|[[:space:]])\./mvnw([[:space:]]|$)' "$ROOT_DIR/backend/Dockerfile"; then
+    echo 'backend/Dockerfile must not download Maven through the wrapper' >&2
+    exit 1
+fi
+
 printf 'Checking shell scripts...\n'
 bash -n "$ROOT_DIR/scripts/backup-restore-drill.sh"
 bash -n "$ROOT_DIR/deploy/backup/backup.sh"

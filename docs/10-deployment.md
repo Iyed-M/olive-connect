@@ -87,21 +87,18 @@ The images are built on the VPS by `docker compose up -d --build`. There is no i
 
 **Backend Dockerfile** (`backend/Dockerfile`, comments omitted)
 ```dockerfile
-FROM eclipse-temurin:21-jdk AS build
+FROM maven:3.10.0-eclipse-temurin-21-alpine AS build
 WORKDIR /app
-COPY mvnw ./
-COPY .mvn .mvn
 COPY pom.xml ./
-# Retry transient Maven Central failures on clean builders.
 RUN for attempt in 1 2 3 4 5; do \
-      if MVNW_VERBOSE=true ./mvnw -q dependency:go-offline; then exit 0; fi; \
+      if mvn -B -q dependency:go-offline; then exit 0; fi; \
       echo "Maven dependency prefetch failed (attempt ${attempt}/5); retrying" >&2; \
       sleep $((attempt * 5)); \
     done; \
     exit 1
 COPY src src
 RUN for attempt in 1 2 3 4 5; do \
-      if MVNW_VERBOSE=true ./mvnw -q package -DskipTests; then exit 0; fi; \
+      if mvn -B -q package -DskipTests; then exit 0; fi; \
       echo "Maven package failed (attempt ${attempt}/5); retrying" >&2; \
       sleep $((attempt * 5)); \
     done; \
