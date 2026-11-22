@@ -38,7 +38,7 @@ frontend/
 │   │   ├── public/            # PublicMapPage, RegistrationPage, AboutPage
 │   │   ├── farmer/            # FarmerHome, OrchardsPage, OrchardForm, OrchardMap, orchard API (M2); HarvestRequestForm, MyRequests, HarvestRequestDetail, RequestActions, harvest request API/tests (M3); MyReceptions (M7)
 │   │   ├── alerts/            # AlertForm, AlertsMap, alert API/tests (M8)
-│   │   ├── collection/        # RequestQueue, PlanningBoard, RoundForm, AlertsBoard, OperationsMap
+│   │   ├── collection/        # RequestQueue, PlanningBoard, RoundForm, AlertsBoard, PlanningMap
 │   │   ├── teamleader/        # MyRounds, RoundRunner (stop-by-stop)
 │   │   ├── logistics/         # (the Logistics pages live in src/logistics/: Workers and Equipment M4, ResourceCalendar and SupplyOrders M12)
 │   │   ├── mill/              # IncomingRounds, ReceptionForm, CapacityPage
@@ -70,7 +70,9 @@ The `Role` type is a **hand-written union** in `src/auth/types.ts` with the same
 
 ## 3. Navigation per role
 
-The route `/` is a temporary public status page (API, MongoDB, Redis, version, from `GET /api/system/status`) with a "Log in" link, or "Go to my home" when the User is logged in. It is replaced by the real landing page in a later milestone.
+The route `/` is the public map landing page (GeoJSON data from `GET /api/map/public`)
+with a "Log in" link, or "Go to my home" when the User is logged in. The M0 system-status
+read model remains available through `GET /api/system/status` for health and diagnostics.
 
 **Role priority** (highest first): ADMIN > COLLECTION_MANAGER > MILL_MANAGER > LOGISTICS_MANAGER > TEAM_LEADER > FARMER. After login the User lands on the Role home of the **Active role**: the role chosen in the switcher if the User still holds it, else the priority role.
 
@@ -169,9 +171,9 @@ flowchart TB
     FH --> FRC["/farmer/receptions"]
     R -- COLLECTION_MANAGER --> CQ["/collection/requests queue"]
     CQ --> CP["/collection/planning board"]
-    CP --> CR["/collection/rounds/:id"]
+    CP --> CR["Future: /collection/rounds/:id"]
     CQ --> CA["/collection/alerts"]
-    CQ --> CMAP["/collection/map"]
+    CQ --> CMAP["Future: /collection/map"]
     CQ --> IO
     CQ --> LC
     CQ --> IR["/intranet/rounds<br/>correct a completed round"]
@@ -249,7 +251,8 @@ The runner first records `IN_PROGRESS` when the team arrives, so the documented
 - **react-leaflet** with OpenStreetMap tiles. Clustering is done by the server (grid cells with a `count`), which the page draws as numbered markers; Leaflet.markercluster is not used, to avoid clustering twice.
 - Marker colour = `harvestStatus` (grey not harvested, blue scheduled, orange in progress, green harvested). A ring or opacity shows the maturity level. The variety is shown in the marker popup.
 - The page is the public home `/` (`PublicMapPage`, no login, no role navigation), centred on Sfax. The visible bbox and the zoom level are sent to `/api/map/public` on `moveend` (debounced 300 ms) with the filters `variety` (from `GET /varieties`), `status`, `delegation` (zone, labels from `DELEGATION_LABEL`), `maturityMin` and `maturityMax`. The response is GeoJSON; features with `cluster: true` and a `count` are clusters, the others are single orchards (`id`, `varietyCode`, `harvestStatus`, `maturityIndex`; no owner, no name). Zoom < 13 returns server-side clusters to keep payloads small: the API loads the matching orchards (at most 5000) and groups them into grid cells in Java, not in MongoDB. The map starts at zoom 11 and cannot be zoomed out below 10, so the bbox stays under the 4 degree limit of the API. The page has links to `/login` (or the Role home) and to `/register`.
-- Private layers (manager): open alerts (red pins, pulsing when NEW), today's rounds (polyline through the stops, ordered).
+- Private layers (manager) are future work: open alerts (red pins, pulsing when NEW) and today's
+  rounds (polyline through the stops, ordered) are not exposed by a shipped private-map route yet.
 
 ## 6. Real-time
 

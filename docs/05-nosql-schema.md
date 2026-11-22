@@ -182,6 +182,7 @@ erDiagram
         int errorCount
         array errors "embedded, at most 500"
         date startedAt
+        date finishedAt
     }
     system_settings {
         string _id "global"
@@ -415,7 +416,9 @@ Overlap check and insert happen **in the same transaction** as the round creatio
 // equipment — single collection for the hierarchy (R8)
 { "_id": ObjectId("..."), "_class": "tn.oliveconnect.resource.Bin", "type": "BIN", "code": "B-07",
   "status": "AVAILABLE", "serialNumber": "BN-2019-07", "capacityKg": 4000,
-  "unavailabilities": [ { "from": ISODate("..."), "to": ISODate("..."), "reason": "Welding repair" } ] }
+  "unavailabilities": [ { "from": ISODate("..."), "to": ISODate("..."), "reason": "Welding repair" } ],
+  "createdAt": ISODate("..."), "createdBy": "665e...",
+  "lastModifiedAt": ISODate("..."), "lastModifiedBy": "665e...", "version": 0 }
 { "_id": ObjectId("..."), "_class": "tn.oliveconnect.resource.Tractor", "type": "TRACTOR", "code": "TR-02",
   "status": "AVAILABLE", "plateNumber": "123 TU 4567", "powerHp": 90, "unavailabilities": [] }
 { "_id": ObjectId("..."), "_class": "tn.oliveconnect.resource.Tool", "type": "SHAKER", "code": "VIB-STOCK",
@@ -425,7 +428,9 @@ Overlap check and insert happen **in the same transaction** as the round creatio
 // workers
 { "_id": ObjectId("..."), "externalRef": "WRK-0001", "firstName": "Sami", "lastName": "Trabelsi", "cin": "12345678", "phone": "+21620123456",
   "skills": ["HARVEST", "TRACTOR"], "dailyRate": 45.0, "active": true,
-  "unavailabilities": [ { "from": ISODate("..."), "to": ISODate("..."), "reason": "Leave" } ] }
+  "unavailabilities": [ { "from": ISODate("..."), "to": ISODate("..."), "reason": "Leave" } ],
+  "createdAt": ISODate("..."), "createdBy": "665e...",
+  "lastModifiedAt": ISODate("..."), "lastModifiedBy": "665e...", "version": 0 }
 ```
 `type` always equals `toolType` for a `Tool` (`NET` or `SHAKER`). `unavailabilities` is append-only in M4 and does not change `status`. Deletion is a hard delete until the bookings of M5 exist. Every update of an equipment appends a `corrections` entry (FR-6.5).
 Indexes: `{ type: 1, status: 1 }`, `{ code: 1 }` unique. Workers: `{ active: 1, skills: 1 }`, `{ cin: 1 }` unique, `{ externalRef: 1 }` unique sparse (import key, M10). The import upserts workers on `externalRef`, and equipment (tractors, bins) on `code` (equal to the `externalRef` of the file).
@@ -527,7 +532,7 @@ The latest maturity value is also copied onto `orchards.currentMaturityIndex` (R
   Indexes are `{ recipientId: 1, read: 1, createdAt: -1 }`, plus a **TTL** index `{ createdAt: 1 }, expireAfterSeconds: 7776000` (90 days).
 - `import_jobs`: `{ checksum: 1 }` unique (idempotency), `{ startedAt: -1 }`, `{ dataset: 1, status: 1 }`. `dataset` is `ORCHARDS`, `VARIETIES`, `MILLS`, `RESOURCES`, `WEATHER`, `MATURITY`, `MILL_CAPACITY` or `RECEPTIONS`. A file that is already imported (status `SUCCESS` or `PARTIAL`) creates no job. A `FAILED` file that is dropped again is retried on the same job (the checksum is unique). `errors[]` holds at most 500 entries and `errorCount` keeps the total (R2 bounded).
 - `registration_requests`: `{ status: 1, createdAt: -1 }`, `{ email: 1 }`. Document: `{ firstName, lastName, email, phone, cin, message, status: PENDING|APPROVED|REJECTED, createdAt, processedById, createdUserId }`. `processedById` and `createdUserId` are set on approval; `processedById` alone on rejection. `users.mustChangePassword` is `true` for an account created by an approval until the Farmer changes the temporary password.
-- `system_settings`: a single document with `_id: "global"` and the fields `rainAlertMm24h` (default 20, mm of rain in 24 h that raises a `RAIN` alert) and `defaultBinCapacityKg` (default 4000, default bin capacity, editable by the admin and not read by any code yet). The document is created on the first `PUT /api/settings`, and the defaults are returned until then.
+- `system_settings`: a single document with `_id: "global"` and the fields `rainAlertMm24h` (default 20, mm of rain in 24 h that raises a `RAIN` alert) and `defaultBinCapacityKg` (default 4000, default bin capacity, editable by the admin). `GET /api/settings` returns the defaults until the first `PUT /api/settings`, which persists the document.
 
 ## 5. Partitioning (sharding) strategy
 
@@ -567,7 +572,7 @@ flowchart LR
 | Lead time by delegation or ISO week | aggregation with average and p90 | `season_received_at` | < 1 s for 10⁵ receptions |
 | Fill rate by ISO week, bin or round | aggregation with under-filled count | `season_received_at` | < 1 s for 10⁵ receptions |
 | Mill volume by day | aggregation by `millId` and `$dateTrunc` day | `mill_received_at` (mill filter) | < 1 s for 10⁵ receptions |
-| Latest maturity history | `maturity_readings.find({"meta.orchardId": X}).sort({timestamp: -1}).limit(30)` | `meta.orchardId_1_timestamp_-1` | < 50 ms |
+| Latest maturity history (**future orchard history endpoint**) | `maturity_readings.find({"meta.orchardId": X}).sort({timestamp: -1}).limit(30)` | `meta.orchardId_1_timestamp_-1` | < 50 ms |
 
 Each of these queries gets checked with `explain("executionStats")`; the first `$match` is deliberately kept before the aggregation stages so the season/date indexes can be used. The explicit M11 evidence test is `KpiPerformanceEvidenceIT` (excluded from the normal `*Test` suite because it seeds 90,000 facts). In the final local MongoDB run, after warming the plan cache, it reported summary 311 ms, yield/orchard 338 ms, lead-time/delegation 242 ms, fill-rate/week 230 ms and mill-volumes/day 320 ms; the five corresponding explain outputs each reported 90,000 keys and 90,000 documents examined. This is the recorded baseline for further index tuning rather than an unverified claim of a covered query.
 

@@ -415,3 +415,15 @@ flowchart LR
     GRAF -- alert --> MAIL[Email / Telegram]
     KUMA -- alert --> MAIL
 ```
+
+## 9. M14 report build and release evidence
+
+From a clean clone, `report/build.sh` renders the Mermaid sources, derives the
+three focused class views from `docs/04-uml-design.md`, and builds
+`report/OliveConnect-report.pdf` and `report/OliveConnect-report.docx`. It uses
+local Pandoc or the pinned `pandoc/extra:3.6.3` container; Mermaid rendering
+requires Chrome or Chromium (`CHROME_PATH` selects a non-default executable).
+The runtime evidence
+register is produced separately by `scripts/collect-evidence.sh`; build-time
+missing evidence is recorded as `not collected` rather than replaced with a
+claim.

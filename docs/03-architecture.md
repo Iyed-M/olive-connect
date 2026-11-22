@@ -116,8 +116,8 @@ Cross-cutting: `GlobalExceptionHandler` (`@RestControllerAdvice`) → RFC 7807 `
 tn.oliveconnect
 ├── OliveConnectApplication.java
 ├── config/            (M1a) SecurityConfig, ProblemSecurityHandler, AppProperties, AuditingConfig,
-│                      RequestContextFilter.
-│                      RedisEventConfig, GridFsConfig, CacheConfig, OpenApiConfig, AsyncConfig, SchedulingConfig
+│                      RequestContextFilter, RedisEventConfig, GridFsConfig,
+│                      MongoIndexInitializer, MongoTransactionConfig, SchedulingConfig
 ├── auth/              (M1a) AuthController, MeController, AuthService, JwtService, RefreshTokenStore,
 │                      LoginRateLimiter, LoginRequest, LoginResponse, AccessToken, Session,
 │                      InvalidCredentialsException, UnauthenticatedException, TooManyAttemptsException
@@ -125,11 +125,11 @@ tn.oliveconnect
 │                      BusinessRuleException, FieldValidationException, PageResponse, StatusChange
 ├── user/              (M1a) User, FarmerProfile, Role, Delegation, MeDto, UserRepository, AdminSeeder.
 │                      RegistrationRequest, RegistrationStatus, RegistrationRequestRepository, RegistrationService,
-│                      RegistrationController and their DTOs (M9).
-│                      Planned: UserService, UserController (admin)
+│                      RegistrationController and their DTOs (M9), UserService,
+│                      UserController (admin)
 ├── orchard/           Orchard, Plot, GeoPoint, OliveVariety, HarvestStatus, DTOs, repositories,
 │                      OrchardService, OrchardController, OliveVarietyController, OliveVarietySeeder,
-│                      MapController (public + private layers, future)
+│                      MapController (public layer; private map remains future work)
 ├── harvest/           HarvestRequest, OrchardSnapshot, HarvestRequestStatus, HarvestType,
 │                      DTOs, PriorityCalculator, HarvestRequestRepository,
 │                      HarvestRequestService, HarvestRequestController

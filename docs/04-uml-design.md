@@ -90,7 +90,6 @@ classDiagram
         +String ownerId
         +Map~String,String~ owner
         +GeoPoint location
-        +GeoPolygon boundary
         +List~Plot~ plots
         +double areaHa
         +String delegation
@@ -259,6 +258,11 @@ classDiagram
         +double dailyRate
         +boolean active
         +List~Unavailability~ unavailabilities
+        +Instant createdAt
+        +String createdBy
+        +Instant lastModifiedAt
+        +String lastModifiedBy
+        +Long version
     }
     class Equipment {
         <<abstract>>
@@ -268,6 +272,11 @@ classDiagram
         +EquipmentStatus status
         +List~Unavailability~ unavailabilities
         +List~Correction~ corrections
+        +Instant createdAt
+        +String createdBy
+        +Instant lastModifiedAt
+        +String lastModifiedBy
+        +Long version
     }
     class Tractor {
         +String plateNumber
@@ -440,18 +449,18 @@ classDiagram
     }
 
     class WeatherReading {
+        +String id
         +Instant timestamp
-        +String stationId
-        +String delegation
+        +Meta meta
         +double temperatureC
         +double humidityPct
         +double rainfallMm
         +double windKmh
     }
     class MaturityReading {
+        +String id
         +Instant timestamp
-        +String orchardId
-        +String source
+        +Meta meta
         +double maturityIndex
         +String varietyCode
     }

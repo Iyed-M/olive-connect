@@ -163,4 +163,4 @@ The subject requires "a small intranet application dedicated to enriching data a
 | Rounds history | Correct quantities after the fact (with history entry), attach comments |
 | Import journal (`/intranet/imports`, `/intranet/imports/$id`) | ADMIN only. List with `dataset` and `status` filters, detail with the rejected rows (line, field, reason) and a CSV download, manual run (`REFERENCE` or `DYNAMIC`) and file upload |
 | Settings (`/intranet/settings`) | ADMIN only. Form for `rainAlertMm24h` and `defaultBinCapacityKg` (`system_settings`) |
-| Reference data | Varieties (optimal maturity window), delegations (planned) |
+| Reference data | Varieties (optimal maturity window), delegations (code-defined `Delegation` enum; labels live in the frontend) |

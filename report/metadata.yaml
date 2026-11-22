@@ -1,0 +1,13 @@
+title: OliveConnect — Smart Olive-Collection Platform
+subtitle: Final report and defence pack
+author: OliveConnect team
+date: 2026-11-22
+lang: en-GB
+geometry: margin=22mm
+toc-title: Contents
+colorlinks: true
+linkcolor: OliveGreen
+header-includes:
+  - |
+    \usepackage{xcolor}
+    \definecolor{OliveGreen}{HTML}{536B2F}

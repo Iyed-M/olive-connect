@@ -1,6 +1,6 @@
 # 06 — REST API & Security
 
-Base URL: `/api`. Format: JSON, dates in ISO-8601 UTC, GeoJSON for positions. API docs: Swagger UI at `/api/docs` (springdoc), disabled or protected in production.
+Base URL: `/api`. Format: JSON, dates in ISO-8601 UTC, GeoJSON for positions. API docs: Swagger UI at `/swagger-ui.html` and JSON at `/v3/api-docs` on the API port (springdoc), disabled or protected in production.
 
 ## 1. Conventions
 
@@ -94,11 +94,11 @@ Users are never deleted: disabling replaces deletion, so there is no `DELETE /us
 | GET | `/orchards/{id}` | F own, CM, LM, AD | detail; another Farmer's orchard is indistinguishable from missing and returns 404 | FR-1.1 |
 | PUT | `/orchards/{id}` | F own, CM, LM, AD | replace name, delegation, position and plots; totals are recomputed; an edit by someone other than the owner appends a `corrections` entry (staff correction, FR-6.5) | FR-1.1, FR-6.5 |
 | DELETE | `/orchards/{id}` | F own, AD | delete an owned orchard | FR-1.1 |
-| GET | `/orchards/{id}/maturity` | F own, CM | maturity time series, query `days` (default 30) | FR-4.3 |
+| GET | `/orchards/{id}/maturity` | — | **Future work:** maturity time series endpoint; no controller is shipped yet | FR-4.3 |
 | GET | `/orchards/nearest` | F | own orchard nearest to GPS position, query `lng`, `lat` (alert form) | FR-2.1 |
 | GET | `/varieties` | PUB | reference list | — |
 | GET | `/map/public` | PUB | GeoJSON FeatureCollection **without personal data**, query `bbox=w,s,e,n` (required), `zoom` (0-22, default 15, below 13 orchards are grouped into grid clusters `{cluster: true, count}`), `variety`, `status`, `delegation` (a Delegation code, FR-4.2 zone), `maturityMin`, `maturityMax`; features carry only `id`, `varietyCode`, `harvestStatus`, `maturityIndex`; 400 `VALIDATION_FAILED` on a bad `bbox` (including one wider or taller than 4 degrees), `zoom`, `status` or `delegation`; cached 60 s in Redis; response header `Cache-Control: public, max-age=60` (Nginx micro-cache 30 s) | FR-4.1, 4.2, 4.4 |
-| GET | `/map/private` | F (own), CM, AD | enriched layers, query `bbox`, `layers=orchards,alerts,rounds` | FR-4.3 |
+| GET | `/map/private` | — | **Future work:** enriched authenticated layers; the shipped map endpoint is `/map/public` | FR-4.3 |
 
 `POST` and `PUT /orchards` accept `{name, delegation, location: {type: "Point", coordinates: [lng, lat]}, plots}`.
 Each plot contains `{code, varietyCode, areaHa, treeCount, plantingYear, irrigated}`. The service
@@ -112,7 +112,7 @@ creating an orchard for a Farmer; a Farmer's owner is always the authenticated U
 |---|---|---|---|---|
 | POST | `/harvest-requests` | F | declare | FR-1.2 |
 | GET | `/harvest-requests` | F (own list), CM (priority queue) | paged list, query `status`, `type`, `mine`, `page`, `size` → `PageResponse<HarvestRequestDto>`; farmer results sort by creation time and the manager queue by priority | FR-1.4 |
-| GET | `/harvest-requests/{id}` | F own, CM, TL (round membership planned) | detail + history | FR-1.8 |
+| GET | `/harvest-requests/{id}` | F own, CM, TL (round-membership guard is future work) | detail + history | FR-1.8 |
 | PUT | `/harvest-requests/{id}` | F own | modify (rules SD-4) | FR-1.3 |
 | POST | `/harvest-requests/{id}/cancel` | F own | cancel | FR-1.3 |
 | POST | `/harvest-requests/{id}/validate` | CM | validate | FR-1.4 |
@@ -359,7 +359,7 @@ flowchart LR
 
 ### 4.2 Authorisation: three levels
 
-1. **URL level** (`SecurityFilterChain`): `/api/map/public/**`, `/api/varieties`, `/api/auth/**` and `POST /api/registrations` are `permitAll`. Everything else is `authenticated`. `/api/system/status` is also `permitAll` (M0), as are `/actuator/health`, `/actuator/info`, `/actuator/prometheus` and the Swagger UI paths. A missing or invalid token returns 401 `UNAUTHENTICATED`. The Actuator is public at the application layer so the Docker healthcheck and Prometheus can call it, but Nginx never proxies it. The springdoc pages (`/swagger-ui/**`, `/v3/api-docs/**`, `/api/docs/**`) and CORS preflight `OPTIONS` requests are also permitted.
+1. **URL level** (`SecurityFilterChain`): `/api/map/public/**`, `/api/varieties`, `/api/auth/**` and `POST /api/registrations` are `permitAll`. Everything else is `authenticated`. `/api/system/status` is also `permitAll` (M0), as are `/actuator/health`, `/actuator/info`, `/actuator/prometheus` and the Swagger UI paths. A missing or invalid token returns 401 `UNAUTHENTICATED`. The Actuator is public at the application layer so the Docker healthcheck and Prometheus can call it, but Nginx never proxies it. The springdoc pages (`/swagger-ui/**`, `/v3/api-docs/**`) and CORS preflight `OPTIONS` requests are also permitted.
 2. **Method level** (`@PreAuthorize("hasRole('COLLECTION_MANAGER')")`) on controllers.
 3. **Data level (ownership)** in services. For example, `OrchardService.getForUser(id, user)` loads with `findByIdAndOwnerId(id, user.id())` when the user is only a FARMER. Missing → `NotFoundException` (404, not 403, so the existence of other farmers' data is never revealed). Mill managers are restricted to `assignedMillId`, team leaders to their own rounds.
 
