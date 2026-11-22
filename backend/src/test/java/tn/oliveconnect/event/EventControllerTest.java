@@ -115,10 +115,10 @@ class EventControllerTest extends AbstractIntegrationTest {
 
         notificationService.notifyUser(recipient.getId(), NotificationType.REQUEST_VALIDATED,
                 "Request validated", "Your request was validated", "/requests/1");
-        waitForResponse(stream, "event:notification");
+        waitForResponse(stream, "REQUEST_VALIDATED");
         notificationService.notifyUser(recipient.getId(), NotificationType.NEW_ALERT,
                 "New alert", "A field alert was reported", "/alerts/1");
-        waitForResponse(stream, "event:alert");
+        waitForResponse(stream, "NEW_ALERT");
 
         assertThat(stream.getResponse().getContentAsString())
                 .contains("REQUEST_VALIDATED")
