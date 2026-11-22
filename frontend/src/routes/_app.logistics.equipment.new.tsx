@@ -7,7 +7,7 @@ export const Route = createFileRoute('/_app/logistics/equipment/new')({ componen
 function Page() {
   return (
     <RequireRole role={['LOGISTICS_MANAGER', 'ADMIN']}>
-      <h1 className="font-heading text-2xl font-bold text-primary">New equipment</h1>
+      <h1 className="font-heading text-2xl font-bold text-primary">Nouvel équipement</h1>
       <EquipmentForm />
     </RequireRole>
   )

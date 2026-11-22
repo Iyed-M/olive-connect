@@ -106,13 +106,13 @@ export function GuidedTour({ open, steps, onComplete }: GuidedTourProps) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Step {stepIndex + 1} of {steps.length}
+              Étape {stepIndex + 1} sur {steps.length}
             </p>
             <h2 id="guided-tour-title" className="mt-1 font-heading text-lg font-bold text-primary">
               {currentStep.title}
             </h2>
           </div>
-          <Button type="button" variant="ghost" size="icon" onClick={onComplete} aria-label="Close guided tour">
+          <Button type="button" variant="ghost" size="icon" onClick={onComplete} aria-label="Fermer la visite guidée">
             <X aria-hidden />
           </Button>
         </div>
@@ -121,14 +121,14 @@ export function GuidedTour({ open, steps, onComplete }: GuidedTourProps) {
         </p>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
           <Button type="button" variant="ghost" className="px-2" onClick={onComplete}>
-            Skip tour
+            Passer la visite
           </Button>
           <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={() => setStepIndex((index) => index - 1)} disabled={stepIndex === 0}>
-              Back
+              Précédent
             </Button>
             <Button ref={nextButtonRef} type="button" onClick={goNext}>
-              {lastStep ? 'Finish' : 'Next'}
+              {lastStep ? 'Terminer' : 'Suivant'}
             </Button>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm, useWatch, type SubmitHandler } from 'react-hook-form'
 import { Field } from '@/components/Field'
@@ -83,9 +83,18 @@ export function RoundForm({
     reset(defaults)
   }, [defaults, reset])
 
+  // Tell the board only when the user changes the date in this form. Depending on the callback
+  // would push a stale date back to the board each time the planning date changes (endless loop).
+  const lastDate = useRef(defaultDate)
   useEffect(() => {
-    onDateChange(date)
+    if (date && date !== lastDate.current) {
+      lastDate.current = date
+      onDateChange(date)
+    }
   }, [date, onDateChange])
+  useEffect(() => {
+    lastDate.current = defaultDate
+  }, [defaultDate])
 
   const teamLeaders = useMemo(() => {
     const values = [...(suggestions?.teamLeaders ?? [])]

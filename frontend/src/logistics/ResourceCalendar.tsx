@@ -48,23 +48,23 @@ export function ResourceCalendar() {
 
   return (
     <>
-      <h1 className="font-heading text-2xl font-bold text-primary">Resource calendar</h1>
+      <h1 className="font-heading text-2xl font-bold text-primary">Calendrier des ressources</h1>
 
       <select
-        aria-label="Resource"
+        aria-label="Ressource"
         value={resourceId}
         onChange={(e) => setResourceId(e.target.value)}
         className={selectClass}
       >
-        <option value="">Choose a worker or an equipment</option>
-        <optgroup label="Workers">
+        <option value="">Choisir un ouvrier ou un équipement</option>
+        <optgroup label="Ouvriers">
           {workers.data?.content.map((w) => (
             <option key={w.id} value={w.id}>
               {w.firstName} {w.lastName}
             </option>
           ))}
         </optgroup>
-        <optgroup label="Equipment">
+        <optgroup label="Équipements">
           {equipment.data?.content.map((e) => (
             <option key={e.id} value={e.id}>
               {e.code}
@@ -72,7 +72,7 @@ export function ResourceCalendar() {
           ))}
         </optgroup>
       </select>
-      <p className="text-xs text-muted-foreground">The lists show the first 20 resources of each kind.</p>
+      <p className="text-xs text-muted-foreground">Les listes affichent les 20 premières ressources de chaque type.</p>
 
       <div className="flex gap-2">
         {(['day', 'week'] as const).map((v) => (
@@ -84,13 +84,13 @@ export function ResourceCalendar() {
             aria-pressed={view === v}
             onClick={() => changeView(v)}
           >
-            {v === 'day' ? 'Day' : 'Week'}
+            {v === 'day' ? 'Jour' : 'Semaine'}
           </Button>
         ))}
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        <Button variant="outline" className="h-11" aria-label={`Previous ${view}`} onClick={() => setStart(addDays(start, -span))}>
+        <Button variant="outline" className="h-11" aria-label={view === 'week' ? 'Semaine précédente' : 'Jour précédent'} onClick={() => setStart(addDays(start, -span))}>
           <ChevronLeft aria-hidden />
         </Button>
         <div className="flex flex-col items-center">
@@ -100,19 +100,19 @@ export function ResourceCalendar() {
               : start.toLocaleDateString()}
           </span>
           <button type="button" className="text-sm text-primary hover:underline" onClick={today}>
-            {view === 'week' ? 'This week' : 'Today'}
+            {view === 'week' ? 'Cette semaine' : 'Aujourd’hui'}
           </button>
         </div>
-        <Button variant="outline" className="h-11" aria-label={`Next ${view}`} onClick={() => setStart(addDays(start, span))}>
+        <Button variant="outline" className="h-11" aria-label={view === 'week' ? 'Semaine suivante' : 'Jour suivant'} onClick={() => setStart(addDays(start, span))}>
           <ChevronRight aria-hidden />
         </Button>
       </div>
 
-      {resourceId === '' && <p className="text-muted-foreground">Choose a resource to see its calendar.</p>}
-      {calendar.isPending && resourceId !== '' && <p className="text-muted-foreground">Loading...</p>}
+      {resourceId === '' && <p className="text-muted-foreground">Choisissez une ressource pour voir son calendrier.</p>}
+      {calendar.isPending && resourceId !== '' && <p className="text-muted-foreground">Chargement…</p>}
       {calendar.isError && (
         <p role="alert" className="text-sm text-destructive">
-          Could not load the calendar.
+          Impossible de charger le calendrier.
         </p>
       )}
 
@@ -127,7 +127,7 @@ export function ResourceCalendar() {
                   <h2 className="text-sm font-medium">
                     {day.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'numeric' })}
                   </h2>
-                  {slots.length === 0 && <p className="text-xs text-muted-foreground">Free</p>}
+                  {slots.length === 0 && <p className="text-xs text-muted-foreground">Libre</p>}
                   {slots.map((s, i) => (
                     <div
                       key={i}
@@ -138,7 +138,7 @@ export function ResourceCalendar() {
                       }
                     >
                       <div className="font-medium">{s.label}</div>
-                      <div>{s.kind === 'booking' ? 'Booked by a round' : s.text}</div>
+                      <div>{s.kind === 'booking' ? 'Réservé par une tournée' : s.text}</div>
                     </div>
                   ))}
                 </section>

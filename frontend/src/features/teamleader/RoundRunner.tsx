@@ -159,7 +159,7 @@ function RoundRunner({ id }: { id: string }) {
       if (mutation.action === 'COMPLETE') {
         await store.deleteDraft(id).catch(() => undefined)
         setRound(response)
-        setDraft(null)
+        setDraft(draftForServerRound(optimisticDraft, response, mutation))
       } else {
         const responseDraft = draftForServerRound(optimisticDraft, response, mutation)
         setRound(response)

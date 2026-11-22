@@ -1,9 +1,9 @@
-# Team leader field work
+# Travail de terrain du chef d’équipe
 
-Open My rounds to see the rounds assigned to your team.
+Ouvrez Mes tournées pour voir les tournées affectées à votre équipe.
 
-- Start a round only on its scheduled date.
-- Record each stop as done, or provide a reason when it is skipped.
-- Keep the runner open while offline; saved drafts and pending synchronisation are shown on the page.
+- Ne démarrez une tournée qu’à sa date prévue.
+- Enregistrez chaque arrêt comme terminé, ou indiquez un motif s’il est ignoré.
+- Gardez le carnet de terrain ouvert hors connexion ; les brouillons enregistrés et les synchronisations en attente sont affichés sur la page.
 
-Use the large controls at the bottom of the stop card when working in the field.
+Utilisez les grands boutons en bas de la fiche d’arrêt lorsque vous travaillez sur le terrain.

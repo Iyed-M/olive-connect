@@ -112,7 +112,7 @@ export function EquipmentForm({ equipment }: { equipment?: EquipmentDto }) {
 
   const error = save.error instanceof ApiError ? save.error : null
   const removeError = remove.error instanceof ApiError ? remove.error : null
-  const banner = save.error ? (error ? errorBanner(error) : 'Cannot reach the server.') : null
+  const banner = save.error ? (error ? errorBanner(error) : 'Impossible de joindre le serveur.') : null
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
@@ -137,7 +137,7 @@ export function EquipmentForm({ equipment }: { equipment?: EquipmentDto }) {
           </div>
           <Field id="code" label="Code" error={errors.code?.message} {...register('code')} />
           <div className="flex flex-col gap-2">
-            <Label htmlFor="status">Status</Label>
+            <Label htmlFor="status">Statut</Label>
             <select id="status" aria-invalid={!!errors.status} className={selectClass} {...register('status')}>
               {(Object.keys(EQUIPMENT_STATUS_LABEL) as EquipmentStatus[]).map((s) => (
                 <option key={s} value={s}>
@@ -150,20 +150,20 @@ export function EquipmentForm({ equipment }: { equipment?: EquipmentDto }) {
 
           {type === 'TRACTOR' && (
             <>
-              <Field id="plateNumber" label="Plate number" error={errors.plateNumber?.message} {...register('plateNumber')} />
-              <Field id="powerHp" label="Power (hp)" type="number" error={errors.powerHp?.message} {...register('powerHp')} />
+              <Field id="plateNumber" label="Plaque d’immatriculation" error={errors.plateNumber?.message} {...register('plateNumber')} />
+              <Field id="powerHp" label="Puissance (ch)" type="number" error={errors.powerHp?.message} {...register('powerHp')} />
             </>
           )}
           {type === 'BIN' && (
             <>
-              <Field id="serialNumber" label="Serial number" error={errors.serialNumber?.message} {...register('serialNumber')} />
-              <Field id="capacityKg" label="Capacity (kg)" type="number" error={errors.capacityKg?.message} {...register('capacityKg')} />
+              <Field id="serialNumber" label="Numéro de série" error={errors.serialNumber?.message} {...register('serialNumber')} />
+              <Field id="capacityKg" label="Capacité (kg)" type="number" error={errors.capacityKg?.message} {...register('capacityKg')} />
             </>
           )}
           {isTool && (
             <>
               <p className="text-sm text-muted-foreground">Tool type: {EQUIPMENT_TYPE_LABEL[type]}</p>
-              <Field id="stockQuantity" label="Stock quantity" type="number" error={errors.stockQuantity?.message} {...register('stockQuantity')} />
+              <Field id="stockQuantity" label="Quantité en stock" type="number" error={errors.stockQuantity?.message} {...register('stockQuantity')} />
             </>
           )}
         </CardContent>
@@ -176,38 +176,38 @@ export function EquipmentForm({ equipment }: { equipment?: EquipmentDto }) {
       )}
       {saved && !save.isPending && !save.error && (
         <p role="status" className="text-sm text-primary">
-          Saved.
+          Enregistré.
         </p>
       )}
       <div className="flex flex-wrap gap-2">
         <Button type="submit" className="h-11" disabled={save.isPending}>
-          {save.isPending ? 'Saving...' : equipment ? 'Save' : 'Create equipment'}
+          {save.isPending ? 'Enregistrement…' : equipment ? 'Enregistrer' : 'Créer l’équipement'}
         </Button>
         <Button type="button" variant="outline" className="h-11" onClick={() => void navigate({ to: '/logistics/equipment' })}>
-          Back to list
+          Retour à la liste
         </Button>
         {equipment && !confirmDelete && (
           <Button type="button" variant="destructive" className="h-11" onClick={() => setConfirmDelete(true)}>
-            Delete
+            Supprimer
           </Button>
         )}
       </div>
       {equipment && confirmDelete && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm">Delete this equipment? This cannot be undone.</p>
+          <p className="text-sm">Supprimer cet équipement ? Cette action est irréversible.</p>
           <div className="flex gap-2">
             <Button type="button" variant="destructive" className="h-11" disabled={remove.isPending} onClick={() => remove.mutate()}>
-              Yes, delete
+              Oui, supprimer
             </Button>
             <Button type="button" variant="outline" className="h-11" onClick={() => setConfirmDelete(false)}>
-              Cancel
+              Annuler
             </Button>
           </div>
         </div>
       )}
       {remove.error && (
         <p role="alert" className="text-sm text-destructive">
-          {removeError ? errorBanner(removeError) : 'Cannot reach the server.'}
+          {removeError ? errorBanner(removeError) : 'Impossible de joindre le serveur.'}
         </p>
       )}
     </form>

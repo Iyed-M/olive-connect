@@ -33,9 +33,9 @@ export function RoundsGrid() {
 
   return (
     <>
-      <h1 className="font-heading text-2xl font-bold text-primary">Rounds</h1>
+      <h1 className="font-heading text-2xl font-bold text-primary">Tournées</h1>
       <select
-        aria-label="Filter by status"
+        aria-label="Filtrer par statut"
         value={status}
         onChange={(e) => {
           setStatus(e.target.value as RoundStatus | '')
@@ -43,16 +43,16 @@ export function RoundsGrid() {
         }}
         className={selectClass + ' sm:w-60'}
       >
-        <option value="">All statuses</option>
+        <option value="">Tous les statuts</option>
         {(Object.keys(ROUND_STATUS_LABEL) as RoundStatus[]).map((s) => (
           <option key={s} value={s}>
             {ROUND_STATUS_LABEL[s]}
           </option>
         ))}
       </select>
-      {query.isPending && <p className="text-muted-foreground">Loading...</p>}
-      {query.isError && <p role="alert" className="text-sm text-destructive">Could not load the rounds.</p>}
-      {query.data && rounds.length === 0 && <p className="text-muted-foreground">No round found.</p>}
+      {query.isPending && <p className="text-muted-foreground">Chargement…</p>}
+      {query.isError && <p role="alert" className="text-sm text-destructive">Impossible de charger les tournées.</p>}
+      {query.data && rounds.length === 0 && <p className="text-muted-foreground">Aucune tournée trouvée.</p>}
       <ul className="flex flex-col gap-2">
         {rounds.map((r) => (
           <li key={r.id}>
@@ -64,14 +64,14 @@ export function RoundsGrid() {
                       {r.code} · {r.date}
                     </span>
                     <span className="text-sm text-muted-foreground">
-                      Estimated {r.estimatedTotalKg} kg · harvested {r.totalHarvestedKg} kg
+                      Estimé {r.estimatedTotalKg} kg · récolté {r.totalHarvestedKg} kg
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">{ROUND_STATUS_LABEL[r.status]}</Badge>
                     {r.status === 'COMPLETED' && (
                       <Button variant="outline" className="h-11" onClick={() => setEditing(editing === r.id ? null : r.id)}>
-                        {editing === r.id ? 'Close' : 'Correct'}
+                        {editing === r.id ? 'Fermer' : 'Corriger'}
                       </Button>
                     )}
                   </div>
@@ -116,30 +116,30 @@ function CorrectionForm({ round, onDone }: { round: CollectionRound; onDone: () 
     <form onSubmit={handleSubmit((v) => save.mutate(v))} className="flex flex-col gap-3 rounded-lg border p-3" noValidate>
       <Field
         id="totalHarvestedKg"
-        label="Harvested weight (kg)"
+        label="Poids récolté (kg)"
         type="number"
         min="0"
         step="0.1"
         error={errors.totalHarvestedKg?.message}
         {...register('totalHarvestedKg', {
-          required: 'Weight is required.',
-          validate: (v) => Number(v) >= 0 || 'Weight cannot be negative.',
+          required: 'Le poids est obligatoire.',
+          validate: (v) => Number(v) >= 0 || 'Le poids ne peut pas être négatif.',
         })}
       />
       <Field
         id="comment"
-        label="Reason for the correction"
+        label="Motif de la correction"
         maxLength={500}
         error={errors.comment?.message}
-        {...register('comment', { validate: (v) => v.trim().length > 0 || 'The reason is required.' })}
+        {...register('comment', { validate: (v) => v.trim().length > 0 || 'Le motif est obligatoire.' })}
       />
       {save.isError && (
         <p role="alert" className="text-sm text-destructive">
-          {save.error instanceof ApiError ? save.error.detail : 'Could not save the correction.'}
+          {save.error instanceof ApiError ? save.error.detail : 'Impossible d’enregistrer la correction.'}
         </p>
       )}
       <Button type="submit" className="h-11 w-fit" disabled={save.isPending}>
-        {save.isPending ? 'Saving...' : 'Save correction'}
+        {save.isPending ? 'Enregistrement…' : 'Enregistrer la correction'}
       </Button>
     </form>
   )

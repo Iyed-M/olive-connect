@@ -1,12 +1,12 @@
 import type { Role } from './types'
 
 export const ROLE_LABEL: Record<Role, string> = {
-  FARMER: 'Farmer',
-  COLLECTION_MANAGER: 'Collection manager',
-  TEAM_LEADER: 'Team leader',
-  LOGISTICS_MANAGER: 'Logistics manager',
-  MILL_MANAGER: 'Mill manager',
-  ADMIN: 'Admin',
+  FARMER: 'Agriculteur',
+  COLLECTION_MANAGER: 'Responsable de collecte',
+  TEAM_LEADER: 'Chef d’équipe',
+  LOGISTICS_MANAGER: 'Responsable logistique',
+  MILL_MANAGER: 'Responsable de moulin',
+  ADMIN: 'Administrateur',
 }
 
 // Highest priority first (decision 24).

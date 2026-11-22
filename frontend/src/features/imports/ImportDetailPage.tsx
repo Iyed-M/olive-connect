@@ -15,12 +15,12 @@ export function ImportDetailPage({ id }: { id: string }) {
   return (
     <>
       <Link to="/intranet/imports" className="text-sm text-primary hover:underline">
-        Back to the journal
+        Retour au journal
       </Link>
-      {query.isPending && <p className="text-muted-foreground">Loading...</p>}
+      {query.isPending && <p className="text-muted-foreground">Chargement…</p>}
       {query.isError && (
         <p role="alert" className="text-sm text-destructive">
-          Could not load this import.
+          Impossible de charger cet import.
         </p>
       )}
       {job && (
@@ -31,45 +31,45 @@ export function ImportDetailPage({ id }: { id: string }) {
           </div>
           <Card>
             <CardContent className="grid grid-cols-2 gap-2 text-sm">
-              <span className="text-muted-foreground">Dataset</span>
+              <span className="text-muted-foreground">Jeu de données</span>
               <span>{job.dataset}</span>
               <span className="text-muted-foreground">Source</span>
               <span>{job.source}</span>
-              <span className="text-muted-foreground">Started</span>
+              <span className="text-muted-foreground">Démarré</span>
               <span>{new Date(job.startedAt).toLocaleString()}</span>
-              <span className="text-muted-foreground">Finished</span>
+              <span className="text-muted-foreground">Terminé</span>
               <span>{job.finishedAt ? new Date(job.finishedAt).toLocaleString() : '-'}</span>
-              <span className="text-muted-foreground">Rows</span>
+              <span className="text-muted-foreground">Lignes</span>
               <span>{job.totalRows}</span>
-              <span className="text-muted-foreground">Inserted / updated</span>
+              <span className="text-muted-foreground">Insérées / mises à jour</span>
               <span>
                 {job.insertedRows} / {job.updatedRows}
               </span>
-              <span className="text-muted-foreground">Rejected</span>
+              <span className="text-muted-foreground">Rejetées</span>
               <span>{job.rejectedRows}</span>
             </CardContent>
           </Card>
 
           <div className="flex items-center justify-between gap-2">
-            <h2 className="font-heading text-lg font-semibold">Rejected rows ({total})</h2>
+            <h2 className="font-heading text-lg font-semibold">Lignes rejetées ({total})</h2>
             {errors.length > 0 && (
               <Button variant="outline" className="h-11" onClick={() => downloadErrorsCsv(job)}>
-                <Download aria-hidden /> Download CSV
+                <Download aria-hidden /> Télécharger le CSV
               </Button>
             )}
           </div>
-          {errors.length === 0 && <p className="text-muted-foreground">No rejected row.</p>}
+          {errors.length === 0 && <p className="text-muted-foreground">Aucune ligne rejetée.</p>}
           {total > errors.length && (
-            <p className="text-sm text-muted-foreground">Only the first {errors.length} rejected rows are kept.</p>
+            <p className="text-sm text-muted-foreground">Seules les {errors.length} premières lignes rejetées sont conservées.</p>
           )}
           {errors.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="border-b text-muted-foreground">
                   <tr>
-                    <th className="py-2 pr-2">Line</th>
-                    <th className="pr-2">Field</th>
-                    <th>Reason</th>
+                    <th className="py-2 pr-2">Ligne</th>
+                    <th className="pr-2">Champ</th>
+                    <th>Motif</th>
                   </tr>
                 </thead>
                 <tbody>

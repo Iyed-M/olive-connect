@@ -1,7 +1,7 @@
-# Mill operations
+# Opérations du moulin
 
-Incoming rounds show the loads expected at your assigned mill.
+Les tournées entrantes montrent les chargements attendus à votre moulin.
 
-- Choose the correct round stop and bin before recording a weighing.
-- Enter gross and tare weights to review the net weight and fill rate.
-- The server checks mill ownership, duplicate receptions and weight limits before saving.
+- Choisissez le bon arrêt de tournée et la bonne benne avant d’enregistrer une pesée.
+- Saisissez le poids brut et la tare pour voir le poids net et le taux de remplissage.
+- Le serveur vérifie l’appartenance au moulin, les réceptions en double et les limites de poids avant d’enregistrer.

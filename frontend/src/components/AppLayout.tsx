@@ -44,7 +44,7 @@ export function AppLayout() {
     void completeOnboarding()
   }, [completeOnboarding])
 
-  // The session ended without a click on "Log out" (refresh failed): the guard only runs on
+  // The session ended without a click on "Se déconnecter" (refresh failed): the guard only runs on
   // navigation, so send the User to /login here, with ?redirect= to come back.
   // After an explicit logout we go to plain /login instead (onLogout), so render nothing meanwhile.
   if (!user || !activeRole) {
@@ -85,12 +85,12 @@ export function AppLayout() {
         </span>
         <div className="flex min-w-0 items-center gap-1 sm:gap-2">
           <NotificationBell sseActive={eventStream.active} />
-          <Button type="button" variant="outline" size="icon" onClick={openHelp} aria-label="Open contextual help" data-tour="context-help">
+          <Button type="button" variant="outline" size="icon" onClick={openHelp} aria-label="Ouvrir l’aide contextuelle" data-tour="context-help">
             <CircleHelp aria-hidden />
           </Button>
           {user.roles.length >= 2 && (
             <select
-              aria-label="Active role"
+              aria-label="Rôle actif"
               value={activeRole}
               onChange={(e) => onSwitch(e.target.value as Role)}
               className="h-11 max-w-28 truncate rounded-md border bg-background px-2 text-sm sm:max-w-40"
@@ -108,7 +108,7 @@ export function AppLayout() {
               type="button"
               variant="outline"
               size="icon"
-              aria-label="Open profile menu"
+              aria-label="Ouvrir le menu du profil"
               aria-haspopup="menu"
               aria-expanded={profileOpen}
               onClick={() => setProfileOpen((open) => !open)}
@@ -116,22 +116,22 @@ export function AppLayout() {
               <UserCircle aria-hidden />
             </Button>
             {profileOpen && (
-              <div className="absolute right-0 top-full z-30 mt-2 flex w-64 max-w-[calc(100vw-1rem)] flex-col gap-2 rounded-xl border bg-background p-3 shadow-xl" role="menu" aria-label="Profile menu">
+              <div className="absolute right-0 top-full z-30 mt-2 flex w-64 max-w-[calc(100vw-1rem)] flex-col gap-2 rounded-xl border bg-background p-3 shadow-xl" role="menu" aria-label="Menu du profil">
                 <div className="flex items-start justify-between gap-2 border-b pb-2">
                   <div className="min-w-0">
                     <p className="truncate font-medium">{user.firstName} {user.lastName}</p>
                     <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                   </div>
-                  <Button type="button" variant="ghost" size="icon-xs" aria-label="Close profile menu" onClick={() => setProfileOpen(false)}>
+                  <Button type="button" variant="ghost" size="icon-xs" aria-label="Fermer le menu du profil" onClick={() => setProfileOpen(false)}>
                     <X aria-hidden />
                   </Button>
                 </div>
                 <Button type="button" role="menuitem" variant="ghost" className="w-full justify-start" onClick={replayTour}>
-                  Replay guided tour
+                  Revoir la visite guidée
                 </Button>
                 <Button type="button" role="menuitem" variant="ghost" className="w-full justify-start" onClick={() => void onLogout()}>
                   <LogOut aria-hidden />
-                  Log out
+                  Se déconnecter
                 </Button>
               </div>
             )}
@@ -140,7 +140,7 @@ export function AppLayout() {
       </header>
 
       <div className="flex flex-1">
-        <nav aria-label="Main" className="hidden w-56 shrink-0 flex-col gap-1 border-r p-3 md:flex" data-tour="role-navigation">
+        <nav aria-label="Principal" className="hidden w-56 shrink-0 flex-col gap-1 border-r p-3 md:flex" data-tour="role-navigation">
           {items.map(({ to, label, icon: Icon }) => (
             <Link
               key={label}
@@ -160,7 +160,7 @@ export function AppLayout() {
       </div>
 
       <nav
-        aria-label="Main"
+        aria-label="Principal"
         className="fixed inset-x-0 bottom-0 z-10 flex justify-around border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
         data-tour="role-navigation"
       >

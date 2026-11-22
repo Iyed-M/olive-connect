@@ -57,7 +57,7 @@ function errorText(error: { message?: unknown } | undefined) {
 
 function serverMessage(field: string, message: string) {
   return field === 'name' && (message === 'must not be blank' || message === 'is required')
-    ? 'Name is required.'
+    ? 'Le nom est obligatoire.'
     : message
 }
 
@@ -147,39 +147,39 @@ export function OrchardForm({ orchard, staff = false }: { orchard?: Orchard; sta
 
   const error = mutation.error instanceof ApiError ? mutation.error : null
   const banner = mutation.isError && (!error || error.code !== 'VALIDATION_FAILED' || error.errors.length === 0)
-    ? error?.detail ?? 'Could not save the orchard.'
+    ? error?.detail ?? 'Impossible d’enregistrer le verger.'
     : null
 
   return (
     <form onSubmit={handleSubmit(save)} className="flex flex-col gap-4" noValidate>
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-primary">{orchard ? 'Edit orchard' : 'Add orchard'}</h1>
-          <p className="text-sm text-muted-foreground">Choose the position, then add each plot.</p>
+          <h1 className="font-heading text-2xl font-bold text-primary">{orchard ? 'Modifier le verger' : 'Ajouter un verger'}</h1>
+          <p className="text-sm text-muted-foreground">Choisissez la position, puis ajoutez chaque parcelle.</p>
         </div>
-        <Link to={listPath} className="text-sm text-primary underline">Cancel</Link>
+        <Link to={listPath} className="text-sm text-primary underline">Annuler</Link>
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Orchard details</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Détails du verger</CardTitle></CardHeader>
         <CardContent className="flex flex-col gap-4">
           <Field
             id="name"
-            label="Name"
+            label="Nom"
             error={errorText(errors.name)}
             maxLength={120}
             {...register('name', {
-              required: 'Name is required.',
-              validate: (value) => value.trim().length > 0 || 'Name is required.',
+              required: 'Le nom est obligatoire.',
+              validate: (value) => value.trim().length > 0 || 'Le nom est obligatoire.',
             })}
           />
           <div className="flex flex-col gap-2">
-            <Label htmlFor="delegation">Delegation</Label>
+            <Label htmlFor="delegation">Délégation</Label>
             <select
               id="delegation"
               className={selectClass}
               aria-invalid={!!errorText(errors.delegation)}
-              {...register('delegation', { required: 'Delegation is required.' })}
+              {...register('delegation', { required: 'La délégation est obligatoire.' })}
             >
               {DELEGATIONS.map((code) => <option key={code} value={code}>{displayDelegation(code)}</option>)}
             </select>
@@ -187,13 +187,13 @@ export function OrchardForm({ orchard, staff = false }: { orchard?: Orchard; sta
           </div>
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2">
-              <Label>GPS position</Label>
+              <Label>Position GPS</Label>
               <span className="font-mono text-xs text-muted-foreground">
                 {location.coordinates[1].toFixed(5)}, {location.coordinates[0].toFixed(5)}
               </span>
             </div>
             <OrchardMap value={location} onChange={(point) => setValue('location', point, { shouldDirty: true })} />
-            <p className="text-xs text-muted-foreground">Tap the map to adjust the marker.</p>
+            <p className="text-xs text-muted-foreground">Touchez la carte pour ajuster le repère.</p>
             {errorText(errors.location?.coordinates) && <p className="text-sm text-destructive">{errorText(errors.location?.coordinates)}</p>}
           </div>
         </CardContent>
@@ -201,15 +201,15 @@ export function OrchardForm({ orchard, staff = false }: { orchard?: Orchard; sta
 
       <Card>
         <CardHeader className="flex-row items-center justify-between gap-2">
-          <CardTitle>Plots</CardTitle>
-          <Button type="button" variant="outline" size="sm" onClick={addPlot}><Plus aria-hidden /> Add plot</Button>
+          <CardTitle>Parcelles</CardTitle>
+          <Button type="button" variant="outline" size="sm" onClick={addPlot}><Plus aria-hidden /> Ajouter une parcelle</Button>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {fields.map((field, index) => (
             <div key={field.id} className="flex flex-col gap-3 rounded-lg border p-3">
               <div className="flex items-center justify-between gap-2">
-                <h2 className="font-medium">Plot {index + 1}</h2>
-                <Button type="button" variant="ghost" size="icon" aria-label={`Remove plot ${index + 1}`} disabled={fields.length === 1} onClick={() => remove(index)}>
+                <h2 className="font-medium">Parcelle {index + 1}</h2>
+                <Button type="button" variant="ghost" size="icon" aria-label={`Supprimer la parcelle ${index + 1}`} disabled={fields.length === 1} onClick={() => remove(index)}>
                   <Trash2 aria-hidden />
                 </Button>
               </div>
@@ -218,15 +218,15 @@ export function OrchardForm({ orchard, staff = false }: { orchard?: Orchard; sta
                   id={`plots.${index}.code`}
                   label="Code"
                   error={errorText(errors.plots?.[index]?.code)}
-                  {...register(`plots.${index}.code`, { required: 'Plot code is required.' })}
+                  {...register(`plots.${index}.code`, { required: 'Le code de la parcelle est obligatoire.' })}
                 />
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor={`plots.${index}.varietyCode`}>Variety</Label>
+                  <Label htmlFor={`plots.${index}.varietyCode`}>Variété</Label>
                   <select
                     id={`plots.${index}.varietyCode`}
                     className={selectClass}
                     aria-invalid={!!errorText(errors.plots?.[index]?.varietyCode)}
-                    {...register(`plots.${index}.varietyCode`, { required: 'Variety is required.' })}
+                    {...register(`plots.${index}.varietyCode`, { required: 'La variété est obligatoire.' })}
                   >
                     {(varieties.data ?? []).map((variety) => <option key={variety.code} value={variety.code}>{variety.name}</option>)}
                   </select>
@@ -234,47 +234,47 @@ export function OrchardForm({ orchard, staff = false }: { orchard?: Orchard; sta
                 </div>
                 <Field
                   id={`plots.${index}.areaHa`}
-                  label="Area (ha)"
+                  label="Surface (ha)"
                   type="number"
                   min="0.01"
                   step="0.01"
                   error={errorText(errors.plots?.[index]?.areaHa)}
                   {...register(`plots.${index}.areaHa`, {
                     valueAsNumber: true,
-                    required: 'Area is required.',
-                    min: { value: 0.01, message: 'Area must be at least 0.01 ha.' },
+                    required: 'La surface est obligatoire.',
+                    min: { value: 0.01, message: 'La surface doit être d’au moins 0,01 ha.' },
                   })}
                 />
                 <Field
                   id={`plots.${index}.treeCount`}
-                  label="Trees"
+                  label="Arbres"
                   type="number"
                   min="1"
                   step="1"
                   error={errorText(errors.plots?.[index]?.treeCount)}
                   {...register(`plots.${index}.treeCount`, {
                     valueAsNumber: true,
-                    required: 'Tree count is required.',
-                    min: { value: 1, message: 'Tree count must be at least 1.' },
+                    required: 'Le nombre d’arbres est obligatoire.',
+                    min: { value: 1, message: 'Le nombre d’arbres doit être d’au moins 1.' },
                   })}
                 />
                 <Field
                   id={`plots.${index}.plantingYear`}
-                  label="Planting year"
+                  label="Année de plantation"
                   type="number"
                   min="1800"
                   max="2100"
                   error={errorText(errors.plots?.[index]?.plantingYear)}
                   {...register(`plots.${index}.plantingYear`, {
                     valueAsNumber: true,
-                    required: 'Planting year is required.',
-                    min: { value: 1800, message: 'Planting year must be from 1800 to 2100.' },
-                    max: { value: 2100, message: 'Planting year must be from 1800 to 2100.' },
+                    required: 'L’année de plantation est obligatoire.',
+                    min: { value: 1800, message: 'L’année de plantation doit être comprise entre 1800 et 2100.' },
+                    max: { value: 2100, message: 'L’année de plantation doit être comprise entre 1800 et 2100.' },
                   })}
                 />
                 <label className="flex min-h-11 items-center gap-3 text-sm">
                   <input type="checkbox" className="size-5" {...register(`plots.${index}.irrigated`)} />
-                  Irrigated
+                  Irrigué
                 </label>
               </div>
             </div>
@@ -283,20 +283,20 @@ export function OrchardForm({ orchard, staff = false }: { orchard?: Orchard; sta
       </Card>
 
       {banner && <p role="alert" className="text-sm text-destructive">{banner}</p>}
-      {mutation.isError && !error && <p role="alert" className="text-sm text-destructive">Could not save the orchard.</p>}
-      {deleteMutation.isError && <p role="alert" className="text-sm text-destructive">Could not delete the orchard.</p>}
+      {mutation.isError && !error && <p role="alert" className="text-sm text-destructive">Impossible d’enregistrer le verger.</p>}
+      {deleteMutation.isError && <p role="alert" className="text-sm text-destructive">Impossible de supprimer le verger.</p>}
       <div className="flex gap-2">
-        <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Saving...' : 'Save orchard'}</Button>
-        <Link to={listPath} className="inline-flex h-11 items-center rounded-lg border px-4 text-sm">Back to orchards</Link>
+        <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Enregistrement…' : 'Enregistrer le verger'}</Button>
+        <Link to={listPath} className="inline-flex h-11 items-center rounded-lg border px-4 text-sm">Retour aux vergers</Link>
         {orchard && !staff && <Button
           type="button"
           variant="destructive"
           disabled={deleteMutation.isPending}
           onClick={() => {
-            if (window.confirm('Delete this orchard?')) deleteMutation.mutate()
+            if (window.confirm('Supprimer ce verger ?')) deleteMutation.mutate()
           }}
         >
-          {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+          {deleteMutation.isPending ? 'Suppression…' : 'Supprimer'}
         </Button>}
       </div>
     </form>

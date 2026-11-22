@@ -115,11 +115,11 @@ export function errorBanner(error: ApiError): string | null {
   if (error.code === 'VALIDATION_FAILED' && error.errors.length > 0) return null
   switch (error.code) {
     case 'EMAIL_TAKEN':
-      return 'This email is already used.'
+      return 'Cet e-mail est déjà utilisé.'
     case 'MEMBER_NUMBER_TAKEN':
-      return 'This member number is already used.'
+      return 'Ce numéro de membre est déjà utilisé.'
     case 'SELF_LOCKOUT':
-      return 'You cannot disable yourself or remove your own Admin role.'
+      return 'Vous ne pouvez pas vous désactiver ni retirer votre propre rôle d’administrateur.'
     default:
       return error.detail
   }

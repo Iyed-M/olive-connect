@@ -13,9 +13,9 @@ import { ApiError } from '@/lib/api'
 
 // The message above the form for a login error that is not a field error.
 function loginBanner(error: ApiError): string {
-  if (error.code === 'INVALID_CREDENTIALS') return 'Invalid email or password.'
+  if (error.code === 'INVALID_CREDENTIALS') return 'E-mail ou mot de passe incorrect.'
   if (error.code === 'TOO_MANY_ATTEMPTS') {
-    return `Too many attempts. Try again in ${Math.max(1, Math.ceil((error.retryAfterSeconds ?? 900) / 60))} min.`
+    return `Trop de tentatives. Réessayez dans ${Math.max(1, Math.ceil((error.retryAfterSeconds ?? 900) / 60))} min.`
   }
   return error.detail
 }
@@ -60,7 +60,7 @@ function LoginPage() {
       router.history.push(safeRedirect(target) ?? currentHome())
     } catch (err) {
       // An unreachable API throws a TypeError: show it as a generic error.
-      const error = err instanceof ApiError ? err : new ApiError(0, 'NETWORK', 'Cannot reach the server.')
+      const error = err instanceof ApiError ? err : new ApiError(0, 'NETWORK', 'Impossible de joindre le serveur.')
       if (error.code === 'VALIDATION_FAILED') setServerErrors(error.errors, setError)
       else setBanner(loginBanner(error))
     }
@@ -70,8 +70,8 @@ function LoginPage() {
     <PublicPage>
       <Card>
         <CardHeader>
-          <CardTitle className="font-heading text-xl">Log in</CardTitle>
-          <CardDescription>Use the email and password given by your cooperative.</CardDescription>
+          <CardTitle className="font-heading text-xl">Se connecter</CardTitle>
+          <CardDescription>Utilisez l’e-mail et le mot de passe fournis par votre coopérative.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
@@ -85,7 +85,7 @@ function LoginPage() {
             />
             <Field
               id="password"
-              label="Password"
+              label="Mot de passe"
               type="password"
               autoComplete="current-password"
               error={errors.password?.message}
@@ -97,13 +97,13 @@ function LoginPage() {
               </p>
             )}
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Logging in...' : 'Log in'}
+              {isSubmitting ? 'Connexion…' : 'Se connecter'}
             </Button>
           </form>
           <p className="mt-4 text-sm text-muted-foreground">
-            Not a member yet?{' '}
+            Pas encore membre ?{' '}
             <Link to="/register" className="text-primary underline">
-              Request to join
+              Demander à rejoindre
             </Link>
           </p>
         </CardContent>

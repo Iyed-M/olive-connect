@@ -22,24 +22,24 @@ export type HelpBlock =
   | { type: 'list'; items: string[] }
 
 const documents: Record<string, HelpDocument> = {
-  admin: { key: 'admin', title: 'Administration and operations', markdown: adminMarkdown },
+  admin: { key: 'admin', title: 'Administration et exploitation', markdown: adminMarkdown },
   'collection-manager': {
     key: 'collection-manager',
-    title: 'Collection management',
+    title: 'Gestion de la collecte',
     markdown: collectionManagerMarkdown,
   },
-  farmer: { key: 'farmer', title: 'Farmer home', markdown: farmerMarkdown },
-  'farmer-orchards': { key: 'farmer-orchards', title: 'Orchards', markdown: farmerOrchardsMarkdown },
-  'farmer-requests': { key: 'farmer-requests', title: 'Harvest requests', markdown: farmerRequestsMarkdown },
-  global: { key: 'global', title: 'OliveConnect help', markdown: globalMarkdown },
+  farmer: { key: 'farmer', title: 'Accueil agriculteur', markdown: farmerMarkdown },
+  'farmer-orchards': { key: 'farmer-orchards', title: 'Vergers', markdown: farmerOrchardsMarkdown },
+  'farmer-requests': { key: 'farmer-requests', title: 'Demandes de récolte', markdown: farmerRequestsMarkdown },
+  global: { key: 'global', title: 'Aide OliveConnect', markdown: globalMarkdown },
   'logistics-manager': {
     key: 'logistics-manager',
-    title: 'Logistics',
+    title: 'Logistique',
     markdown: logisticsManagerMarkdown,
   },
-  'mill-manager': { key: 'mill-manager', title: 'Mill operations', markdown: millManagerMarkdown },
+  'mill-manager': { key: 'mill-manager', title: 'Opérations du moulin', markdown: millManagerMarkdown },
   notifications: { key: 'notifications', title: 'Notifications', markdown: notificationsMarkdown },
-  'team-leader': { key: 'team-leader', title: 'Team leader field work', markdown: teamLeaderMarkdown },
+  'team-leader': { key: 'team-leader', title: 'Travail de terrain du chef d’équipe', markdown: teamLeaderMarkdown },
 }
 
 const routeDocuments: Array<{ prefix: string; key: string }> = [

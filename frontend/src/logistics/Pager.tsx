@@ -6,13 +6,13 @@ export function Pager({ page, total, onChange }: { page: number; total: number; 
   return (
     <div className="flex items-center justify-between gap-2">
       <Button variant="outline" className="h-11" disabled={page === 0} onClick={() => onChange(page - 1)}>
-        Previous
+        Précédent
       </Button>
       <span className="text-sm text-muted-foreground">
-        Page {page + 1} of {lastPage + 1}
+        Page {page + 1} sur {lastPage + 1}
       </span>
       <Button variant="outline" className="h-11" disabled={page >= lastPage} onClick={() => onChange(page + 1)}>
-        Next
+        Suivant
       </Button>
     </div>
   )

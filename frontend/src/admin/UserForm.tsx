@@ -126,7 +126,7 @@ export function UserForm({ user }: { user?: UserDto }) {
 
   const error = save.error instanceof ApiError ? save.error : null
   const toggleError = toggle.error instanceof ApiError ? toggle.error : null
-  const banner = save.error ? (error ? errorBanner(error) : 'Cannot reach the server.') : null
+  const banner = save.error ? (error ? errorBanner(error) : 'Impossible de joindre le serveur.') : null
 
   return (
     <div className="flex flex-col gap-4">
@@ -134,34 +134,34 @@ export function UserForm({ user }: { user?: UserDto }) {
         <Card>
           <CardContent className="flex flex-col gap-3">
             <p className="text-sm">
-              Status: <strong>{user.enabled ? 'Enabled' : 'Disabled'}</strong>
+              Statut : <strong>{user.enabled ? 'Actif' : 'Désactivé'}</strong>
             </p>
             {user.enabled && !confirmDisable && (
               <Button variant="destructive" className="h-11 w-fit" onClick={() => setConfirmDisable(true)}>
-                Disable
+                Désactiver
               </Button>
             )}
             {user.enabled && confirmDisable && (
               <div className="flex flex-col gap-2">
-                <p className="text-sm">Disable this user? All their sessions will be closed.</p>
+                <p className="text-sm">Désactiver cet utilisateur ? Toutes ses sessions seront fermées.</p>
                 <div className="flex gap-2">
                   <Button variant="destructive" className="h-11" disabled={toggle.isPending} onClick={() => toggle.mutate(false)}>
-                    Yes, disable
+                    Oui, désactiver
                   </Button>
                   <Button variant="outline" className="h-11" onClick={() => setConfirmDisable(false)}>
-                    Cancel
+                    Annuler
                   </Button>
                 </div>
               </div>
             )}
             {!user.enabled && (
               <Button className="h-11 w-fit" disabled={toggle.isPending} onClick={() => toggle.mutate(true)}>
-                Enable
+                Activer
               </Button>
             )}
             {toggle.error && (
               <p role="alert" className="text-sm text-destructive">
-                {toggleError ? errorBanner(toggleError) : 'Cannot reach the server.'}
+                {toggleError ? errorBanner(toggleError) : 'Impossible de joindre le serveur.'}
               </p>
             )}
           </CardContent>
@@ -171,19 +171,19 @@ export function UserForm({ user }: { user?: UserDto }) {
       <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
         <Card>
           <CardHeader>
-            <CardTitle>Details</CardTitle>
+            <CardTitle>Détails</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <Field id="email" label="Email" type="email" error={errors.email?.message} {...register('email')} />
-            <Field id="firstName" label="First name" error={errors.firstName?.message} {...register('firstName')} />
-            <Field id="lastName" label="Last name" error={errors.lastName?.message} {...register('lastName')} />
-            <Field id="phone" label="Phone (optional)" type="tel" hint="+216 followed by 8 digits" error={errors.phone?.message} {...register('phone')} />
+            <Field id="firstName" label="Prénom" error={errors.firstName?.message} {...register('firstName')} />
+            <Field id="lastName" label="Nom" error={errors.lastName?.message} {...register('lastName')} />
+            <Field id="phone" label="Téléphone (facultatif)" type="tel" hint="+216 suivi de 8 chiffres" error={errors.phone?.message} {...register('phone')} />
             <Field
               id="password"
-              label={user ? 'New password (optional)' : 'Password'}
+              label={user ? 'Nouveau mot de passe (facultatif)' : 'Mot de passe'}
               type="password"
               autoComplete="new-password"
-              hint={user ? 'Leave empty to keep the current one. A reset closes all sessions.' : '8 to 72 characters'}
+              hint={user ? 'Laissez vide pour conserver l’actuel. Une réinitialisation ferme toutes les sessions.' : 'De 8 à 72 caractères'}
               error={errors.password?.message}
               {...register('password')}
             />
@@ -192,7 +192,7 @@ export function UserForm({ user }: { user?: UserDto }) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Roles</CardTitle>
+            <CardTitle>Rôles</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-1">
             {ROLE_PRIORITY.map((role) => (
@@ -213,11 +213,11 @@ export function UserForm({ user }: { user?: UserDto }) {
         {isFarmer && (
           <Card>
             <CardHeader>
-              <CardTitle>Farmer profile</CardTitle>
+              <CardTitle>Profil agriculteur</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <Field id="memberNumber" label="Member number" error={errors.memberNumber?.message} {...register('memberNumber')} />
-              <Field id="cin" label="CIN" hint="8 digits" error={errors.cin?.message} {...register('cin')} />
+              <Field id="memberNumber" label="Numéro de membre" error={errors.memberNumber?.message} {...register('memberNumber')} />
+              <Field id="cin" label="CIN" hint="8 chiffres" error={errors.cin?.message} {...register('cin')} />
               <div className="flex flex-col gap-2">
                 <Label htmlFor="delegation">Delegation</Label>
                 <select
@@ -226,7 +226,7 @@ export function UserForm({ user }: { user?: UserDto }) {
                   className={selectClass}
                   {...register('delegation')}
                 >
-                  <option value="">Choose...</option>
+                  <option value="">Choisir…</option>
                   {(Object.keys(DELEGATION_LABEL) as Delegation[]).map((d) => (
                     <option key={d} value={d}>
                       {DELEGATION_LABEL[d]}
@@ -235,7 +235,7 @@ export function UserForm({ user }: { user?: UserDto }) {
                 </select>
                 {errors.delegation && <p className="text-sm text-destructive">{errors.delegation.message}</p>}
               </div>
-              <Field id="address" label="Address (optional)" error={errors.address?.message} {...register('address')} />
+              <Field id="address" label="Adresse (facultative)" error={errors.address?.message} {...register('address')} />
             </CardContent>
           </Card>
         )}
@@ -243,17 +243,17 @@ export function UserForm({ user }: { user?: UserDto }) {
         {isMillManager && (
           <Card>
             <CardHeader>
-              <CardTitle>Mill assignment</CardTitle>
+              <CardTitle>Affectation au moulin</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
-              <Label htmlFor="assignedMillId">Assigned mill</Label>
+              <Label htmlFor="assignedMillId">Moulin affecté</Label>
               <select
                 id="assignedMillId"
                 aria-invalid={!!errors.assignedMillId}
                 className={selectClass}
-                {...register('assignedMillId', { required: 'Choose a mill.' })}
+                {...register('assignedMillId', { required: 'Choisissez un moulin.' })}
               >
-                <option value="">Choose...</option>
+                <option value="">Choisir…</option>
                 {millsQuery.data?.map((mill) => (
                   <option key={mill.id} value={mill.id}>
                     {mill.name}
@@ -264,7 +264,7 @@ export function UserForm({ user }: { user?: UserDto }) {
                 )}
               </select>
               {errors.assignedMillId && <p className="text-sm text-destructive">{errors.assignedMillId.message}</p>}
-              {millsQuery.isError && <p className="text-sm text-destructive">Unable to load mills.</p>}
+              {millsQuery.isError && <p className="text-sm text-destructive">Impossible de charger les moulins.</p>}
             </CardContent>
           </Card>
         )}
@@ -276,15 +276,15 @@ export function UserForm({ user }: { user?: UserDto }) {
         )}
         {saved && !save.isPending && !save.error && (
           <p role="status" className="text-sm text-primary">
-            Saved.
+            Enregistré.
           </p>
         )}
         <div className="flex gap-2">
           <Button type="submit" className="h-11" disabled={save.isPending}>
-            {save.isPending ? 'Saving...' : user ? 'Save' : 'Create user'}
+            {save.isPending ? 'Enregistrement…' : user ? 'Enregistrer' : 'Créer l’utilisateur'}
           </Button>
           <Button type="button" variant="outline" className="h-11" onClick={() => void navigate({ to: '/admin/users' })}>
-            Back to list
+            Retour à la liste
           </Button>
         </div>
       </form>

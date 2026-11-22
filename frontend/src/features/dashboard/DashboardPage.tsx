@@ -100,7 +100,7 @@ function DashboardContent() {
     try {
       await downloadDashboardCsv(canSeeDetailedKpis ? 'yield' : 'mill-volumes', filters, assignedMillId)
     } catch (error) {
-      setExportError(error instanceof ApiError ? error.detail : 'Could not download the CSV export.')
+      setExportError(error instanceof ApiError ? error.detail : 'Impossible de télécharger l’export CSV.')
     } finally {
       setExporting(false)
     }
@@ -110,12 +110,12 @@ function DashboardContent() {
     <div className={DASHBOARD_PAGE_CLASS} data-testid="dashboard-page">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <h1 className="font-heading text-2xl font-bold text-primary">Dashboard</h1>
+          <h1 className="font-heading text-2xl font-bold text-primary">Tableau de bord</h1>
           <p className="text-sm text-muted-foreground">Suivez la saison de collecte et les performances des moulins.</p>
         </div>
         {state === 'ready' && (
           <Button type="button" className="h-11 w-full sm:w-fit" onClick={() => void exportCsv()} disabled={exporting}>
-            <Download aria-hidden /> {exporting ? 'Exporting…' : 'Export CSV'}
+            <Download aria-hidden /> {exporting ? 'Export…' : 'Exporter en CSV'}
           </Button>
         )}
       </div>
@@ -154,16 +154,16 @@ interface DashboardQuery {
 export function DashboardStateView({ state, error }: { state: ReturnType<typeof dashboardState>; error?: unknown }) {
   if (state === 'ready') return null
   if (state === 'loading') {
-    return <p data-testid="dashboard-loading" role="status" aria-live="polite" className="text-muted-foreground">Loading dashboard…</p>
+    return <p data-testid="dashboard-loading" role="status" aria-live="polite" className="text-muted-foreground">Chargement du tableau de bord…</p>
   }
   if (state === 'error') {
-    const detail = error instanceof ApiError ? error.detail : 'The dashboard data could not be loaded.'
+    const detail = error instanceof ApiError ? error.detail : 'Impossible de charger les données du tableau de bord.'
     return <p data-testid="dashboard-error" role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{detail}</p>
   }
   return (
     <Card data-testid="dashboard-empty">
       <CardContent className="py-6">
-        <p>No dashboard data matches these filters.</p>
+        <p>Aucune donnée ne correspond à ces filtres.</p>
       </CardContent>
     </Card>
   )
@@ -173,14 +173,14 @@ function DashboardFilters({ filters, onChange }: { filters: DashboardFilters; on
   return (
     <Card>
       <CardHeader className="gap-1">
-        <CardTitle>Filters</CardTitle>
-        <p className="text-sm text-muted-foreground">Refine the season, period, variety or delegation.</p>
+        <CardTitle>Filtres</CardTitle>
+        <p className="text-sm text-muted-foreground">Affinez par saison, période, variété ou délégation.</p>
       </CardHeader>
       <CardContent className={DASHBOARD_FILTER_GRID_CLASS}>
         <label className="flex min-w-0 flex-col gap-2 text-sm font-medium">
-          Season
+          Saison
           <Input
-            aria-label="Season"
+            aria-label="Saison"
             className="h-11"
             value={filters.season}
             onChange={(event) => onChange({ ...filters, season: event.target.value })}
@@ -188,36 +188,36 @@ function DashboardFilters({ filters, onChange }: { filters: DashboardFilters; on
           />
         </label>
         <label className="flex min-w-0 flex-col gap-2 text-sm font-medium">
-          Period
+          Période
           <select
-            aria-label="Period"
+            aria-label="Période"
             className={selectClass}
             value={filters.period}
             onChange={(event) => onChange({ ...filters, period: event.target.value as DashboardPeriod })}
           >
-            <option value="season">Full season</option>
-            <option value="last-7-days">Last 7 days</option>
-            <option value="last-30-days">Last 30 days</option>
+            <option value="season">Saison complète</option>
+            <option value="last-7-days">7 derniers jours</option>
+            <option value="last-30-days">30 derniers jours</option>
           </select>
         </label>
         <label className="flex min-w-0 flex-col gap-2 text-sm font-medium">
-          Variety
+          Variété
           <Input
-            aria-label="Variety"
+            aria-label="Variété"
             className="h-11"
             value={filters.variety}
             onChange={(event) => onChange({ ...filters, variety: event.target.value })}
-            placeholder="All varieties"
+            placeholder="Toutes les variétés"
           />
         </label>
         <label className="flex min-w-0 flex-col gap-2 text-sm font-medium">
-          Delegation
+          Délégation
           <Input
-            aria-label="Delegation"
+            aria-label="Délégation"
             className="h-11"
             value={filters.delegation}
             onChange={(event) => onChange({ ...filters, delegation: event.target.value })}
-            placeholder="All delegations"
+            placeholder="Toutes les délégations"
           />
         </label>
       </CardContent>
@@ -249,32 +249,32 @@ function DashboardReady({
   return (
     <>
       <div className={DASHBOARD_KPI_GRID_CLASS}>
-        <KpiTile label="Season tonnage" value={formatTonnes(summary.seasonTonnageKg)} />
-        <KpiTile label="Average yield" value={`${formatNumber(summary.avgYieldKgHa)} kg/ha`} />
-        <KpiTile label="Average lead time" value={`${formatNumber(summary.avgLeadTimeHours)} h`} />
-        <KpiTile label="Average fill rate" value={formatPercent(summary.avgFillRate)} />
+        <KpiTile label="Tonnage de la saison" value={formatTonnes(summary.seasonTonnageKg)} />
+        <KpiTile label="Rendement moyen" value={`${formatNumber(summary.avgYieldKgHa)} kg/ha`} />
+        <KpiTile label="Délai moyen" value={`${formatNumber(summary.avgLeadTimeHours)} h`} />
+        <KpiTile label="Taux de remplissage moyen" value={formatPercent(summary.avgFillRate)} />
       </div>
 
       <div className={DASHBOARD_CHART_GRID_CLASS}>
         {canSeeDetailedKpis && (
-          <ChartCard title="Yield per delegation" description="Average yield in kilograms per hectare.">
+          <ChartCard title="Rendement par délégation" description="Rendement moyen en kilogrammes par hectare.">
             <YieldChart points={yieldPoints} />
           </ChartCard>
         )}
         {canSeeDetailedKpis && (
-          <ChartCard title="Yield per orchard (top 20)" description="Highest orchard yields for the selected filters.">
+          <ChartCard title="Rendement par verger (top 20)" description="Meilleurs rendements de vergers pour les filtres choisis.">
             <YieldChart points={orchardYieldPoints.slice(0, 20)} />
           </ChartCard>
         )}
-        <ChartCard title="Fill rate per week" description="The dashed line marks the 70% target.">
+        <ChartCard title="Taux de remplissage par semaine" description="La ligne en pointillés marque l’objectif de 70 %.">
           <FillRateChart points={fillRatePoints} />
         </ChartCard>
         {canSeeDetailedKpis && (
-          <ChartCard title="Collection lead time" description="Average and p90 hours by delegation.">
+          <ChartCard title="Délai de collecte" description="Heures moyennes et p90 par délégation.">
             <LeadTimeChart points={leadTimePoints} />
           </ChartCard>
         )}
-        <ChartCard title="Mill daily volumes" description="Received olive volume by mill and day.">
+        <ChartCard title="Volumes quotidiens des moulins" description="Volume d’olives reçu par moulin et par jour.">
           <MillVolumeChart points={millVolumePoints} />
         </ChartCard>
       </div>
@@ -284,7 +284,7 @@ function DashboardReady({
       {canSeeDetailedKpis && <OrchardTable points={orchardYieldPoints} />}
 
       <Button type="button" variant="outline" className="h-11 w-fit" onClick={onRefresh} disabled={refreshing}>
-        <RefreshCw aria-hidden /> {refreshing ? 'Refreshing…' : 'Refresh dashboard'}
+        <RefreshCw aria-hidden /> {refreshing ? 'Actualisation…' : 'Actualiser le tableau de bord'}
       </Button>
     </>
   )
@@ -316,7 +316,7 @@ function ChartCard({ title, description, children }: { title: string; descriptio
 }
 
 function ChartEmpty() {
-  return <p className="flex h-full items-center justify-center text-sm text-muted-foreground">No data for this chart.</p>
+  return <p className="flex h-full items-center justify-center text-sm text-muted-foreground">Aucune donnée pour ce graphique.</p>
 }
 
 function YieldChart({ points }: { points: YieldPoint[] }) {
@@ -328,7 +328,7 @@ function YieldChart({ points }: { points: YieldPoint[] }) {
         <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
         <YAxis tick={{ fontSize: 11 }} width={48} />
         <Tooltip />
-        <Bar dataKey="yieldKgHa" name="Yield kg/ha" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="yieldKgHa" name="Rendement kg/ha" fill="var(--primary)" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )
@@ -344,7 +344,7 @@ function FillRateChart({ points }: { points: FillRatePoint[] }) {
         <YAxis tick={{ fontSize: 11 }} width={48} tickFormatter={(value: number) => `${Math.round(value * 100)}%`} />
         <Tooltip />
         <ReferenceLine y={0.7} stroke="var(--destructive)" strokeDasharray="4 4" label="70%" />
-        <Line type="monotone" dataKey="avgFillRate" name="Average fill rate" stroke="var(--primary)" strokeWidth={2} dot={{ r: 3 }} />
+        <Line type="monotone" dataKey="avgFillRate" name="Taux de remplissage moyen" stroke="var(--primary)" strokeWidth={2} dot={{ r: 3 }} />
       </LineChart>
     </ResponsiveContainer>
   )
@@ -360,8 +360,8 @@ function LeadTimeChart({ points }: { points: LeadTimePoint[] }) {
         <YAxis tick={{ fontSize: 11 }} width={48} />
         <Tooltip />
         <Legend />
-        <Bar dataKey="avgLeadTimeHours" name="Average hours" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="p90LeadTimeHours" name="P90 hours" fill="var(--secondary-foreground)" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="avgLeadTimeHours" name="Heures moyennes" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="p90LeadTimeHours" name="Heures p90" fill="var(--secondary-foreground)" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )
@@ -390,19 +390,19 @@ function MillVolumeDetails({ points }: { points: MillVolumePoint[] }) {
   return (
     <Card className="min-w-0">
       <CardHeader className="gap-1">
-        <CardTitle>Mill quality and capacity details</CardTitle>
-        <p className="text-sm text-muted-foreground">Quality counts and daily capacity use for the selected period.</p>
+        <CardTitle>Détails qualité et capacité des moulins</CardTitle>
+        <p className="text-sm text-muted-foreground">Effectifs par qualité et utilisation quotidienne de la capacité sur la période choisie.</p>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[38rem] text-left text-sm" aria-label="Mill quality and capacity details">
+          <table className="w-full min-w-[38rem] text-left text-sm" aria-label="Détails qualité et capacité des moulins">
             <thead className="border-b text-muted-foreground">
               <tr>
                 <th className="py-2 pr-3">Date</th>
-                <th className="py-2 pr-3">Mill</th>
+                <th className="py-2 pr-3">Moulin</th>
                 <th className="py-2 pr-3">Volume</th>
-                <th className="py-2 pr-3">Quality (E/G/A/P)</th>
-                <th className="py-2">Capacity use</th>
+                <th className="py-2 pr-3">Qualité (E/B/M/F)</th>
+                <th className="py-2">Utilisation de la capacité</th>
               </tr>
             </thead>
             <tbody>
@@ -428,15 +428,15 @@ function MillVolumeDetails({ points }: { points: MillVolumePoint[] }) {
 
 function OrchardTable({ points }: { points: YieldPoint[] }) {
   const sorted = [...points].sort((left, right) => right.yieldKgHa - left.yieldKgHa)
-  const top = sorted.slice(0, 5).map((point) => ({ point, segment: 'Top' }))
-  const bottom = sorted.length > 5 ? sorted.slice(-5).reverse().map((point) => ({ point, segment: 'Bottom' })) : []
+  const top = sorted.slice(0, 5).map((point) => ({ point, segment: 'Meilleurs' }))
+  const bottom = sorted.length > 5 ? sorted.slice(-5).reverse().map((point) => ({ point, segment: 'Moins bons' })) : []
   const rows = [...top, ...bottom]
 
   return (
     <Card className="min-w-0">
       <CardHeader className="gap-1">
-        <CardTitle>Top and bottom orchards</CardTitle>
-        <p className="text-sm text-muted-foreground">Yield ranking for the selected filters.</p>
+        <CardTitle>Meilleurs et moins bons vergers</CardTitle>
+        <p className="text-sm text-muted-foreground">Classement des rendements pour les filtres choisis.</p>
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (
@@ -447,13 +447,13 @@ function OrchardTable({ points }: { points: YieldPoint[] }) {
               {rows.map(({ point, segment }) => <OrchardCard key={`${segment}-${point.label}`} point={point} segment={segment} />)}
             </ul>
             <div className="hidden overflow-x-auto sm:block">
-              <table className="w-full text-left text-sm" aria-label="Top and bottom orchards">
+              <table className="w-full text-left text-sm" aria-label="Meilleurs et moins bons vergers">
                 <thead className="border-b text-muted-foreground">
                   <tr>
-                    <th className="py-2 pr-3">Orchard</th>
-                    <th className="py-2 pr-3">Delegation</th>
-                    <th className="py-2 pr-3">Yield</th>
-                    <th className="py-2">Ranking</th>
+                    <th className="py-2 pr-3">Verger</th>
+                    <th className="py-2 pr-3">Délégation</th>
+                    <th className="py-2 pr-3">Rendement</th>
+                    <th className="py-2">Classement</th>
                   </tr>
                 </thead>
                 <tbody>

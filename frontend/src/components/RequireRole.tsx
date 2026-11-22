@@ -6,7 +6,7 @@ import type { Role } from '@/auth/types'
 import { buttonVariants } from '@/components/ui/button'
 
 // Role guard of a page. It sits inside the layout, so a User without the role sees the
-// "Not allowed" page with header and nav (not a redirect). The API checks roles again anyway.
+// "Accès refusé" page with header and nav (not a redirect). The API checks roles again anyway.
 // `role` is one Role or a list: the User needs at least one of them.
 export function RequireRole({ role, children }: { role: Role | Role[]; children: ReactNode }) {
   const { user, activeRole } = useAuth()
@@ -16,10 +16,10 @@ export function RequireRole({ role, children }: { role: Role | Role[]; children:
 
   return (
     <>
-      <h1 className="font-heading text-2xl font-bold text-primary">Not allowed</h1>
-      <p className="text-muted-foreground">This page is for the role "{allowed.map((r) => ROLE_LABEL[r]).join('" or "')}".</p>
+      <h1 className="font-heading text-2xl font-bold text-primary">Accès refusé</h1>
+      <p className="text-muted-foreground">Cette page est réservée au rôle « {allowed.map((r) => ROLE_LABEL[r]).join(' » ou « ')} ».</p>
       <Link to={ROLE_HOME[activeRole]} className={buttonVariants({ className: 'w-fit' })}>
-        Go to my home
+        Aller à mon accueil
       </Link>
     </>
   )

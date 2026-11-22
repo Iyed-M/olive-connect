@@ -1,7 +1,7 @@
 # Notifications
 
-Notifications link you to the page where an event needs attention.
+Les notifications mènent à la page où un événement demande votre attention.
 
-- Open an unread notification to follow its related request, round or alert.
-- If a link is no longer available, use the role navigation to find the current work queue.
-- The header bell remains available from every authenticated page.
+- Ouvrez une notification non lue pour suivre la demande, la tournée ou l’alerte concernée.
+- Si un lien n’est plus disponible, utilisez la navigation de votre rôle pour retrouver la file de travail en cours.
+- La cloche de l’en-tête reste disponible depuis toutes les pages authentifiées.

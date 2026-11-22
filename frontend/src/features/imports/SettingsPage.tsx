@@ -16,11 +16,11 @@ export function SettingsPage() {
   const query = useQuery({ queryKey: ['settings'], queryFn: getSettings })
   return (
     <>
-      <h1 className="font-heading text-2xl font-bold text-primary">Settings</h1>
-      {query.isPending && <p className="text-muted-foreground">Loading...</p>}
+      <h1 className="font-heading text-2xl font-bold text-primary">Paramètres</h1>
+      {query.isPending && <p className="text-muted-foreground">Chargement…</p>}
       {query.isError && (
         <p role="alert" className="text-sm text-destructive">
-          Could not load the settings.
+          Impossible de charger les paramètres.
         </p>
       )}
       {query.data && <SettingsForm settings={query.data} />}
@@ -62,7 +62,7 @@ function SettingsForm({ settings }: { settings: SystemSettings }) {
       ? save.error.errors.length > 0
         ? null
         : save.error.detail
-      : 'Cannot reach the server.'
+      : 'Impossible de joindre le serveur.'
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
@@ -70,14 +70,14 @@ function SettingsForm({ settings }: { settings: SystemSettings }) {
         <CardContent className="flex flex-col gap-4">
           <Field
             id="rainAlertMm24h"
-            label="Rain alert threshold (mm in 24 h)"
+            label="Seuil d’alerte pluie (mm en 24 h)"
             type="number"
-            hint="A rain alert is raised when the last 24 h reach this value"
+            hint="Une alerte pluie est déclenchée lorsque les dernières 24 h atteignent cette valeur"
             error={errors.rainAlertMm24h?.message}
             {...register('rainAlertMm24h', {
               validate: (value) => {
                 const n = parseNumber(value)
-                return n !== null && n > 0 ? true : 'Enter a number greater than 0'
+                return n !== null && n > 0 ? true : 'Saisissez un nombre supérieur à 0'
               },
             })}
           />
@@ -90,11 +90,11 @@ function SettingsForm({ settings }: { settings: SystemSettings }) {
       )}
       {saved && !save.isPending && !save.error && (
         <p role="status" className="text-sm text-primary">
-          Saved.
+          Enregistré.
         </p>
       )}
       <Button type="submit" className="h-11 self-start" disabled={save.isPending}>
-        {save.isPending ? 'Saving...' : 'Save'}
+        {save.isPending ? 'Enregistrement…' : 'Enregistrer'}
       </Button>
     </form>
   )

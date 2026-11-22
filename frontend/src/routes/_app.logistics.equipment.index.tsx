@@ -40,23 +40,23 @@ function EquipmentList() {
   return (
     <>
       <div className="flex items-center justify-between gap-2">
-        <h1 className="font-heading text-2xl font-bold text-primary">Equipment</h1>
+        <h1 className="font-heading text-2xl font-bold text-primary">Équipements</h1>
         <Link to="/logistics/equipment/new" className={buttonVariants({ className: 'h-11' })}>
-          <Plus aria-hidden /> New equipment
+          <Plus aria-hidden /> Nouvel équipement
         </Link>
       </div>
       <Link to="/logistics/workers" className="w-fit text-sm text-primary hover:underline">
-        Go to workers
+        Aller aux ouvriers
       </Link>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <select
-          aria-label="Filter by type"
+          aria-label="Filtrer par type"
           value={filters.type}
           onChange={(e) => setFilters({ ...filters, type: e.target.value as EquipmentFilters['type'], page: 0 })}
           className={selectClass}
         >
-          <option value="">All types</option>
+          <option value="">Tous les types</option>
           {(Object.keys(EQUIPMENT_TYPE_LABEL) as EquipmentType[]).map((t) => (
             <option key={t} value={t}>
               {EQUIPMENT_TYPE_LABEL[t]}
@@ -64,12 +64,12 @@ function EquipmentList() {
           ))}
         </select>
         <select
-          aria-label="Filter by status"
+          aria-label="Filtrer par statut"
           value={filters.status}
           onChange={(e) => setFilters({ ...filters, status: e.target.value as EquipmentFilters['status'], page: 0 })}
           className={selectClass}
         >
-          <option value="">All statuses</option>
+          <option value="">Tous les statuts</option>
           {(Object.keys(EQUIPMENT_STATUS_LABEL) as EquipmentStatus[]).map((s) => (
             <option key={s} value={s}>
               {EQUIPMENT_STATUS_LABEL[s]}
@@ -80,11 +80,11 @@ function EquipmentList() {
 
       {query.isError && (
         <p role="alert" className="text-sm text-destructive">
-          Could not load the equipment.
+          Impossible de charger les équipements.
         </p>
       )}
-      {query.isPending && <p className="text-muted-foreground">Loading...</p>}
-      {data && data.content.length === 0 && <p className="text-muted-foreground">No equipment found.</p>}
+      {query.isPending && <p className="text-muted-foreground">Chargement…</p>}
+      {data && data.content.length === 0 && <p className="text-muted-foreground">Aucun équipement trouvé.</p>}
 
       {data && data.content.length > 0 && (
         <>
@@ -115,8 +115,8 @@ function EquipmentList() {
               <tr>
                 <th className="py-2">Code</th>
                 <th>Type</th>
-                <th>Details</th>
-                <th>Status</th>
+                <th>Détails</th>
+                <th>Statut</th>
               </tr>
             </thead>
             <tbody>

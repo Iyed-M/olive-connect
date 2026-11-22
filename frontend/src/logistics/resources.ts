@@ -7,17 +7,17 @@ import { PAGE_SIZE, type PageResponse } from '@/admin/users'
 
 // Same values as the Java EquipmentType, EquipmentStatus and ToolType enums.
 export const EQUIPMENT_TYPE_LABEL = {
-  TRACTOR: 'Tractor',
-  BIN: 'Bin',
-  NET: 'Net',
-  SHAKER: 'Shaker',
+  TRACTOR: 'Tracteur',
+  BIN: 'Benne',
+  NET: 'Filet',
+  SHAKER: 'Secoueur',
 } as const
 export type EquipmentType = keyof typeof EQUIPMENT_TYPE_LABEL
 
 export const EQUIPMENT_STATUS_LABEL = {
-  AVAILABLE: 'Available',
+  AVAILABLE: 'Disponible',
   MAINTENANCE: 'Maintenance',
-  OUT_OF_ORDER: 'Out of order',
+  OUT_OF_ORDER: 'Hors service',
 } as const
 export type EquipmentStatus = keyof typeof EQUIPMENT_STATUS_LABEL
 
@@ -159,8 +159,8 @@ export function toInstant(local: string): string | null {
 export function unavailabilityError(from: string, to: string): string | null {
   const f = toInstant(from)
   const t = toInstant(to)
-  if (!f || !t) return 'Choose a start and an end.'
-  if (t <= f) return 'The end must be after the start.'
+  if (!f || !t) return 'Choisissez un début et une fin.'
+  if (t <= f) return 'La fin doit être postérieure au début.'
   return null
 }
 
@@ -168,11 +168,11 @@ export function unavailabilityError(from: string, to: string): string | null {
 export function equipmentSummary(e: EquipmentDto): string {
   switch (e.type) {
     case 'TRACTOR':
-      return `${e.plateNumber ?? '-'} · ${e.powerHp ?? '-'} hp`
+      return `${e.plateNumber ?? '-'} · ${e.powerHp ?? '-'} ch`
     case 'BIN':
       return `${e.serialNumber ?? '-'} · ${e.capacityKg ?? '-'} kg`
     default:
-      return `Stock: ${e.stockQuantity ?? '-'}`
+      return `Stock : ${e.stockQuantity ?? '-'}`
   }
 }
 
@@ -231,12 +231,12 @@ export function daySlots(day: Date, cal: ResourceCalendarDto): DaySlot[] {
     const toLabel = to === dayEnd ? '24:00' : hhmm(to)
     slots.push({ at: from, label: `${hhmm(from)} - ${toLabel}`, text, kind })
   }
-  for (const b of cal.bookings) add(b.start, b.end, 'booking', 'Round')
-  for (const u of cal.unavailabilities) add(u.from, u.to, 'unavailable', u.reason ?? 'Unavailable')
+  for (const b of cal.bookings) add(b.start, b.end, 'booking', 'Tournée')
+  for (const u of cal.unavailabilities) add(u.from, u.to, 'unavailable', u.reason ?? 'Indisponible')
   return slots.sort((a, b) => a.at - b.at).map(({ label, text, kind }) => ({ label, text, kind }))
 }
 
-export const SUPPLY_STATUS_LABEL = { ORDERED: 'Ordered', RECEIVED: 'Received' } as const
+export const SUPPLY_STATUS_LABEL = { ORDERED: 'Commandée', RECEIVED: 'Reçue' } as const
 export type SupplyStatus = keyof typeof SUPPLY_STATUS_LABEL
 
 // Dates are ISO local dates (2026-11-21).

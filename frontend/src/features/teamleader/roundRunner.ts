@@ -255,7 +255,7 @@ class IndexedDbRoundRunnerStore implements RoundRunnerStore {
 
 function openDatabase(): Promise<IDBDatabase> {
   if (typeof indexedDB === 'undefined') {
-    return Promise.reject(new Error('IndexedDB is not available in this browser'))
+    return Promise.reject(new Error('IndexedDB n’est pas disponible dans ce navigateur'))
   }
 
   return new Promise((resolve, reject) => {

@@ -54,7 +54,7 @@ export const rejectRegistration = (id: string) =>
   api<Registration>(`/registrations/${id}/reject`, { method: 'POST' })
 
 export const STATUS_LABEL: Record<RegistrationStatus, string> = {
-  PENDING: 'Pending',
-  APPROVED: 'Approved',
-  REJECTED: 'Rejected',
+  PENDING: 'En attente',
+  APPROVED: 'Approuvée',
+  REJECTED: 'Refusée',
 }

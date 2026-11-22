@@ -37,9 +37,9 @@ function ChangePasswordPage() {
       if (user) setSession(getAccessToken(), { ...user, mustChangePassword: false })
       await navigate({ to: currentHome() })
     } catch (err) {
-      const error = err instanceof ApiError ? err : new ApiError(0, 'NETWORK', 'Cannot reach the server.')
+      const error = err instanceof ApiError ? err : new ApiError(0, 'NETWORK', 'Impossible de joindre le serveur.')
       if (error.code === 'VALIDATION_FAILED' && error.errors.length > 0) setServerErrors(error.errors, setError)
-      else if (error.code === 'WRONG_PASSWORD') setError('currentPassword', { message: 'Wrong current password' })
+      else if (error.code === 'WRONG_PASSWORD') setError('currentPassword', { message: 'Mot de passe actuel incorrect' })
       else setBanner(error.detail)
     }
   })
@@ -47,44 +47,44 @@ function ChangePasswordPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-heading text-xl">Change your password</CardTitle>
+        <CardTitle className="font-heading text-xl">Changez votre mot de passe</CardTitle>
         <CardDescription>
           {getUser()?.mustChangePassword
-            ? 'You are using a temporary password. Choose a new one to continue.'
-            : 'Choose a new password.'}
+            ? 'Vous utilisez un mot de passe temporaire. Choisissez-en un nouveau pour continuer.'
+            : 'Choisissez un nouveau mot de passe.'}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
           <Field
             id="currentPassword"
-            label="Current password"
+            label="Mot de passe actuel"
             type="password"
             autoComplete="current-password"
             error={errors.currentPassword?.message}
-            {...register('currentPassword', { required: 'Required' })}
+            {...register('currentPassword', { required: 'Obligatoire' })}
           />
           <Field
             id="newPassword"
-            label="New password"
+            label="Nouveau mot de passe"
             type="password"
             autoComplete="new-password"
-            hint="8 to 72 characters"
+            hint="De 8 à 72 caractères"
             error={errors.newPassword?.message}
             {...register('newPassword', {
-              required: 'Required',
-              minLength: { value: 8, message: 'At least 8 characters' },
-              maxLength: { value: 72, message: 'At most 72 characters' },
+              required: 'Obligatoire',
+              minLength: { value: 8, message: 'Au moins 8 caractères' },
+              maxLength: { value: 72, message: 'Au plus 72 caractères' },
             })}
           />
           <Field
             id="confirm"
-            label="Confirm new password"
+            label="Confirmer le nouveau mot de passe"
             type="password"
             autoComplete="new-password"
             error={errors.confirm?.message}
             {...register('confirm', {
-              validate: (v) => v === getValues('newPassword') || 'Passwords do not match',
+              validate: (v) => v === getValues('newPassword') || 'Les mots de passe ne correspondent pas',
             })}
           />
           {banner && (
@@ -93,7 +93,7 @@ function ChangePasswordPage() {
             </p>
           )}
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : 'Change password'}
+            {isSubmitting ? 'Enregistrement…' : 'Changer le mot de passe'}
           </Button>
         </form>
       </CardContent>

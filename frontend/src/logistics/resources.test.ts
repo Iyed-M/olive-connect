@@ -17,11 +17,11 @@ describe('parseNumber', () => {
 
 describe('unavailabilityError', () => {
   it('requires both dates', () => {
-    expect(unavailabilityError('', '2026-11-21T08:00')).toMatch(/Choose/)
+    expect(unavailabilityError('', '2026-11-21T08:00')).toMatch(/Choisissez/)
   })
   it('requires the end after the start', () => {
-    expect(unavailabilityError('2026-11-21T08:00', '2026-11-21T08:00')).toMatch(/after/)
-    expect(unavailabilityError('2026-11-22T08:00', '2026-11-21T08:00')).toMatch(/after/)
+    expect(unavailabilityError('2026-11-21T08:00', '2026-11-21T08:00')).toMatch(/postérieure/)
+    expect(unavailabilityError('2026-11-22T08:00', '2026-11-21T08:00')).toMatch(/postérieure/)
   })
   it('accepts a valid range', () => {
     expect(unavailabilityError('2026-11-21T08:00', '2026-11-22T08:00')).toBeNull()
@@ -52,8 +52,8 @@ describe('equipmentSummary', () => {
     version: 0,
   }
   it('depends on the type', () => {
-    expect(equipmentSummary(base)).toBe('123 TUN 4567 · 90 hp')
+    expect(equipmentSummary(base)).toBe('123 TUN 4567 · 90 ch')
     expect(equipmentSummary({ ...base, type: 'BIN', serialNumber: 'S1', capacityKg: 500 })).toBe('S1 · 500 kg')
-    expect(equipmentSummary({ ...base, type: 'NET', stockQuantity: 4 })).toBe('Stock: 4')
+    expect(equipmentSummary({ ...base, type: 'NET', stockQuantity: 4 })).toBe('Stock : 4')
   })
 })

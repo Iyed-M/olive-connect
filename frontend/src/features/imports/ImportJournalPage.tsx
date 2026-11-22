@@ -21,7 +21,7 @@ import { ImportStatusBadge } from './ImportStatusBadge'
 const STATUSES: ImportStatus[] = ['RUNNING', 'SUCCESS', 'PARTIAL', 'FAILED']
 
 const formatDate = (iso: string) => new Date(iso).toLocaleString()
-const errorText = (err: unknown) => (err instanceof ApiError ? err.detail : 'Cannot reach the server.')
+const errorText = (err: unknown) => (err instanceof ApiError ? err.detail : 'Impossible de joindre le serveur.')
 
 export function ImportJournalPage() {
   const queryClient = useQueryClient()
@@ -48,17 +48,17 @@ export function ImportJournalPage() {
 
   return (
     <>
-      <h1 className="font-heading text-2xl font-bold text-primary">Import journal</h1>
+      <h1 className="font-heading text-2xl font-bold text-primary">Journal des imports</h1>
 
       <Card>
         <CardContent className="flex flex-col gap-3">
-          <p className="text-sm text-muted-foreground">Run an import now or upload a file into the inbox.</p>
+          <p className="text-sm text-muted-foreground">Lancez un import maintenant ou déposez un fichier dans la boîte de réception.</p>
           <div className="flex flex-wrap gap-2">
             <Button className="h-11" disabled={run.isPending} onClick={() => run.mutate('REFERENCE')}>
-              Run reference data
+              Lancer les données de référence
             </Button>
             <Button className="h-11" variant="outline" disabled={run.isPending} onClick={() => run.mutate('DYNAMIC')}>
-              Run dynamic data
+              Lancer les données dynamiques
             </Button>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -66,7 +66,7 @@ export function ImportJournalPage() {
               ref={fileInput}
               type="file"
               accept=".csv,.json"
-              aria-label="File to upload"
+              aria-label="Fichier à téléverser"
               className="h-11"
             />
             <Button
@@ -77,17 +77,17 @@ export function ImportJournalPage() {
                 if (file) upload.mutate(file)
               }}
             >
-              {upload.isPending ? 'Uploading...' : 'Upload'}
+              {upload.isPending ? 'Téléversement…' : 'Téléverser'}
             </Button>
           </div>
           {run.isSuccess && (
             <p role="status" className="text-sm text-primary">
-              Import started.
+              Import lancé.
             </p>
           )}
           {upload.isSuccess && (
             <p role="status" className="text-sm text-primary">
-              File uploaded.
+              Fichier téléversé.
             </p>
           )}
           {(run.error || upload.error) && (
@@ -100,19 +100,19 @@ export function ImportJournalPage() {
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <Input
-          aria-label="Filter by dataset"
-          placeholder="Dataset (e.g. WEATHER)"
+          aria-label="Filtrer par jeu de données"
+          placeholder="Jeu de données (ex. WEATHER)"
           className="h-11"
           value={filters.dataset}
           onChange={(e) => setFilters({ ...filters, dataset: e.target.value, page: 0 })}
         />
         <select
-          aria-label="Filter by status"
+          aria-label="Filtrer par statut"
           value={filters.status}
           onChange={(e) => setFilters({ ...filters, status: e.target.value as ImportFilters['status'], page: 0 })}
           className={selectClass}
         >
-          <option value="">All statuses</option>
+          <option value="">Tous les statuts</option>
           {STATUSES.map((s) => (
             <option key={s} value={s}>
               {s}
@@ -123,11 +123,11 @@ export function ImportJournalPage() {
 
       {query.isError && (
         <p role="alert" className="text-sm text-destructive">
-          Could not load the journal.
+          Impossible de charger le journal.
         </p>
       )}
-      {query.isPending && <p className="text-muted-foreground">Loading...</p>}
-      {data && data.content.length === 0 && <p className="text-muted-foreground">No import found.</p>}
+      {query.isPending && <p className="text-muted-foreground">Chargement…</p>}
+      {data && data.content.length === 0 && <p className="text-muted-foreground">Aucun import trouvé.</p>}
 
       {data && data.content.length > 0 && (
         <>
@@ -146,8 +146,8 @@ export function ImportJournalPage() {
                         <span>{formatDate(job.startedAt)}</span>
                       </div>
                       <span className="text-sm text-muted-foreground">
-                        {job.totalRows} rows: {job.insertedRows} inserted, {job.updatedRows} updated,{' '}
-                        {job.rejectedRows} rejected
+                        {job.totalRows} lignes : {job.insertedRows} insérées, {job.updatedRows} mises à jour,{' '}
+                        {job.rejectedRows} rejetées
                       </span>
                     </CardContent>
                   </Card>

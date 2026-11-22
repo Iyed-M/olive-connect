@@ -5,7 +5,7 @@ export function CorrectionHistory({ items }: { items?: Correction[] }) {
   if (!items || items.length === 0) return null
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="font-heading text-lg font-semibold">Correction history</h2>
+      <h2 className="font-heading text-lg font-semibold">Historique des corrections</h2>
       <ul className="flex flex-col gap-1 text-sm">
         {items.map((c, i) => (
           <li key={i} className="rounded-lg border p-2">
