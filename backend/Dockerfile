@@ -7,11 +7,23 @@ WORKDIR /app
 COPY mvnw ./
 COPY .mvn .mvn
 COPY pom.xml ./
-RUN ./mvnw -q dependency:go-offline
+# GitHub runners and fresh VPS builders have no Maven Wrapper cache. Retry
+# transient Maven Central failures without hiding the wrapper download URL.
+RUN for attempt in 1 2 3 4 5; do \
+      if MVNW_VERBOSE=true ./mvnw -q dependency:go-offline; then exit 0; fi; \
+      echo "Maven dependency prefetch failed (attempt ${attempt}/5); retrying" >&2; \
+      sleep $((attempt * 5)); \
+    done; \
+    exit 1
 
 # Now copy the sources and build the executable jar (tests run in CI, not here).
 COPY src src
-RUN ./mvnw -q package -DskipTests
+RUN for attempt in 1 2 3 4 5; do \
+      if MVNW_VERBOSE=true ./mvnw -q package -DskipTests; then exit 0; fi; \
+      echo "Maven package failed (attempt ${attempt}/5); retrying" >&2; \
+      sleep $((attempt * 5)); \
+    done; \
+    exit 1
 
 # ---- Stage 2: small runtime image (JRE only) ----
 FROM eclipse-temurin:21-jre-alpine

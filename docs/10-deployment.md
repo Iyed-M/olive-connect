@@ -92,9 +92,20 @@ WORKDIR /app
 COPY mvnw ./
 COPY .mvn .mvn
 COPY pom.xml ./
-RUN ./mvnw -q dependency:go-offline
+# Retry transient Maven Central failures on clean builders.
+RUN for attempt in 1 2 3 4 5; do \
+      if MVNW_VERBOSE=true ./mvnw -q dependency:go-offline; then exit 0; fi; \
+      echo "Maven dependency prefetch failed (attempt ${attempt}/5); retrying" >&2; \
+      sleep $((attempt * 5)); \
+    done; \
+    exit 1
 COPY src src
-RUN ./mvnw -q package -DskipTests
+RUN for attempt in 1 2 3 4 5; do \
+      if MVNW_VERBOSE=true ./mvnw -q package -DskipTests; then exit 0; fi; \
+      echo "Maven package failed (attempt ${attempt}/5); retrying" >&2; \
+      sleep $((attempt * 5)); \
+    done; \
+    exit 1
 
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S app && adduser -S app -G app
