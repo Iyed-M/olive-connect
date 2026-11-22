@@ -1,0 +1,96 @@
+groups:
+  - name: oliveconnect-availability
+    rules:
+      - alert: OliveConnectApiDown
+        expr: up{job="api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: OliveConnect API is unavailable
+          description: The API scrape target has been down for more than two minutes.
+
+      - alert: OliveConnectPublicEndpointDown
+        expr: up{job="api"} == 0 or up{job="mongodb"} == 0 or up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: A core OliveConnect service is unavailable
+          description: API, MongoDB exporter or Redis exporter is not reporting metrics.
+
+  - name: oliveconnect-application
+    rules:
+      - alert: OliveConnectHighErrorRate
+        expr: >-
+          sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+          / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 1) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: OliveConnect 5xx rate is above 1 percent
+          description: The API has returned more than one percent 5xx responses for five minutes.
+
+      - alert: OliveConnectSlowRequests
+        expr: >-
+          histogram_quantile(0.95,
+          sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: OliveConnect API p95 latency is above two seconds
+          description: The API request p95 has exceeded the production target for five minutes.
+
+      - alert: OliveConnectBackupMissing
+        expr: time() - backup_last_success_timestamp > 93600
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: OliveConnect backup is older than 26 hours
+          description: No successful backup has been recorded in the last 26 hours.
+
+  - name: oliveconnect-host
+    rules:
+      - alert: OliveConnectDiskAlmostFull
+        expr: >-
+          100 * (1 - node_filesystem_avail_bytes{mountpoint="/",fstype!="rootfs"}
+          / node_filesystem_size_bytes{mountpoint="/",fstype!="rootfs"}) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: OliveConnect host disk usage is above 80 percent
+          description: The VPS root filesystem needs cleanup or expansion.
+
+      - alert: OliveConnectHostMemoryHigh
+        expr: >-
+          100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: OliveConnect host memory usage is above 90 percent
+          description: The VPS has had less than ten percent memory available for five minutes.
+
+  - name: oliveconnect-databases
+    rules:
+      - alert: OliveConnectRedisEvictions
+        expr: rate(redis_evicted_keys_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Redis is evicting keys
+          description: Redis maxmemory is being reached and cached data is being evicted.
+
+      - alert: OliveConnectMongoReplicationLag
+        expr: mongodb_mongod_replset_member_replication_lag > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: MongoDB replication lag is high
+          description: MongoDB replica-set replication lag exceeds thirty seconds.

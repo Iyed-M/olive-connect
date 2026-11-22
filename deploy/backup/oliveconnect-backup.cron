@@ -1,0 +1,3 @@
+# Install as /etc/cron.d/oliveconnect-backup on the VPS.
+# The script writes backup_last_success_timestamp for the Prometheus textfile collector.
+30 2 * * * deploy cd /opt/oliveconnect && /opt/oliveconnect/deploy/backup/backup.sh >> /var/log/oliveconnect-backup.log 2>&1

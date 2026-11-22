@@ -1,0 +1,46 @@
+name: deploy
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oliveconnect-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    name: Deploy main to the VPS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.OLIVECONNECT_HOST }}
+          username: ${{ secrets.OLIVECONNECT_DEPLOY_USER }}
+          key: ${{ secrets.OLIVECONNECT_SSH_KEY }}
+          port: ${{ secrets.OLIVECONNECT_SSH_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -eu
+            cd /opt/oliveconnect
+            git fetch origin main
+            git checkout main
+            git pull --ff-only origin main
+
+            # A first install has nothing to back up; existing installations
+            # always get a backup before their containers are replaced.
+            if docker compose -f deploy/docker-compose.yml ps --status running --services | grep -q .; then
+              ./scripts/backup-restore-drill.sh backup
+            fi
+
+            docker compose -f deploy/docker-compose.yml up -d --build --remove-orphans
+            docker compose -f deploy/docker-compose.yml ps
+            docker compose -f deploy/docker-compose.yml exec -T api wget -qO- http://localhost:8080/actuator/health

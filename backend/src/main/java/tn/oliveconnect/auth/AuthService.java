@@ -84,4 +84,14 @@ public class AuthService {
         user.setMustChangePassword(false);
         userRepository.save(user);
     }
+
+    /** Marks the authenticated User's first-login tour as completed. */
+    public void completeOnboarding(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UnauthenticatedException("Your session is no longer valid"));
+        if (!user.isOnboardingDone()) {
+            user.setOnboardingDone(true);
+            userRepository.save(user);
+        }
+    }
 }
