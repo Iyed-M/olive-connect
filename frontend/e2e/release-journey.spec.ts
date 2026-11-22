@@ -130,8 +130,9 @@ test('admin approval leads to a farmer role journey', async ({ page }, testInfo)
 
   await dismissGuidedTour(page)
   await page.getByRole('button', { name: 'Open contextual help' }).click()
-  await expect(page.getByRole('dialog')).toContainText('Farmer home')
-  await page.getByRole('button', { name: 'Close contextual help' }).click()
+  const helpDialog = page.getByRole('dialog', { name: 'Farmer home' })
+  await expect(helpDialog).toContainText('Farmer home')
+  await helpDialog.getByRole('button', { name: 'Close contextual help' }).click()
 
   await page.getByRole('button', { name: 'Open profile menu' }).click()
   await page.getByRole('menuitem', { name: 'Replay guided tour' }).click()
