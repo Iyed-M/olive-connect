@@ -287,7 +287,7 @@ IDs are reused in the [traceability matrix](11-traceability.md) and the [tests](
 |---|---|---|
 | FR-4.1 | Public map: orchards as markers/clusters coloured by harvest status, with variety and maturity level; no personal data | Must |
 | FR-4.2 | Filters: variety, harvest status, maturity range, zone (delegation) | Must |
-| FR-4.3 | The farmer sees their own orchards with yield history; the collection manager also sees open alerts and today's rounds | Should |
+| FR-4.3 | The farmer sees their own orchards with yield history; the collection manager also sees open alerts and today's rounds (**partial in the shipped slice: the orchard pages and public map exist; maturity history and authenticated private-map layers are future work**) | Should |
 | FR-4.4 | The map loads only the visible area (bounding-box query) and responds in < 2 s (target), < 10 s (hard limit) | Must |
 
 ### F5 — Dashboard

@@ -15,9 +15,9 @@ jobs:
         with:
           node-version: 20
       - name: Render every Mermaid block
-        run: scripts/check-diagrams.sh --export diagrams-svg
+        run: scripts/check-diagrams.sh --export diagrams-rendered
       - name: Upload rendered diagrams
         uses: actions/upload-artifact@v4
         with:
-          name: diagrams-svg
-          path: diagrams-svg
+          name: diagrams-rendered
+          path: diagrams-rendered

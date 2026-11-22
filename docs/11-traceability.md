@@ -32,8 +32,8 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | QualityAssessment | R2 | `mill_receptions.quality` | `mill.QualityAssessment` (embedded) | — | `MillReceptionService` | idem | idem |
 | QualityGrade | R2 | `mill_receptions.quality.grade` | `mill.QualityGrade` | — | — | — | `mill/ReceptionForm` |
 | FieldAlert | R1, R2, R10 | `field_alerts` (+ GridFS `alerts`) | `alert.FieldAlert`, `alert.AlertType`, `alert.AlertSeverity`, `alert.AlertSource`, `alert.AlertStatus` | `FieldAlertRepository` | `FieldAlertService`, `imports.AutoAlertService`, `harvest.HarvestRequestService` | `FieldAlertController /alerts`, `FieldAlertFileController /files/alerts`, `OrchardController /orchards/nearest` | `features/alerts/AlertForm`, `features/collection/AlertsBoard`, `features/alerts/AlertsMap` |
-| WeatherReading | R7, R12 | `weather_readings` (time-series) | `imports.WeatherReading` (`@TimeSeries`) | — (bulk writes through `MongoTemplate`) | `WeatherJsonImporter` | (import only), `/dashboard` | dashboard charts |
-| MaturityReading | R7, R12 | `maturity_readings` (time-series) | `imports.MaturityReading` (`@TimeSeries`) | — (bulk writes through `MongoTemplate`) | `MaturityCsvImporter` | `/orchards/{id}/maturity` (planned) | orchard detail chart (planned) |
+| WeatherReading | R7, R12 | `weather_readings` (time-series) | `imports.WeatherReading` (`@TimeSeries`) | — (bulk writes through `MongoTemplate`) | `WeatherJsonImporter` | import only | weather charts are future work |
+| MaturityReading | R7, R12 | `maturity_readings` (time-series) | `imports.MaturityReading` (`@TimeSeries`) | — (bulk writes through `MongoTemplate`) | `MaturityCsvImporter` | `/orchards/{id}/maturity` (future work) | orchard detail chart (future work) |
 | Notification | R7 (+TTL) | `notifications` | `notification.Notification`, `notification.NotificationType` (including alert events) | `NotificationRepository` | `NotificationService`, `event.EventTicketService`, `event.RedisNotificationPublisher`, `event.RedisNotificationSubscriber` | `NotificationController /notifications`, `EventController /events` and `/events/ticket` | `features/notifications/NotificationBell`, `features/notifications/NotificationsPage`, `features/events/eventStream` |
 | ImportJob / ImportError | R1 / R2 | `import_jobs` | `imports.ImportJob`, `imports.ImportError` (embedded), `imports.ImportStatus`, `imports.ImportSource` | `ImportJobRepository` | `ImportService`, `ImportJournalService`, `ImportScheduler`, dataset importers including `MillReceptionCsvImporter` | `ImportController /imports` | `features/imports/ImportJournalPage`, `features/imports/ImportDetailPage`, routes `/intranet/imports`, `/intranet/imports/$id` |
 | SystemSettings | R1 | `system_settings` (`_id: "global"`) | `settings.SystemSettings` | `SystemSettingsRepository` | `SettingsService` | `SettingsController /settings` | `features/imports/SettingsPage`, route `/intranet/settings` |
@@ -57,7 +57,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | FR-3.5 | Supply orders / SD-11 | `/supply-orders` | T-RS-2 (`SupplyControllerTest`) |
 | FR-2.x | Report & handle alert / SD-5 | `/alerts/**` | T-AL-1..6 |
 | FR-3.x | Resources | `/workers`, `/equipment`, `/resources/*`, `/supply-orders` | T-RS-1..2, T-RD-2 |
-| FR-4.x | Map | `/map/public`, `/map/private` | T-SEC-3, T-MAP-1..3, T-PERF-1 |
+| FR-4.x | Map | `/map/public`; `/map/private` (future work) | T-SEC-3, T-MAP-1..3, T-PERF-1 |
 | FR-5.x | Dashboard / SD-9 | `/dashboard/*` | T-KPI-1..4 |
 | FR-6.1 (M9) | Registration request and approval / SD-REG | `POST /registrations`, `GET /registrations`, `POST /registrations/{id}/approve`, `/reject`, `PATCH /me/password` | T-REG-1..8 |
 | FR-6.2 | Accounts | `/users` | T-AUTH-* |
@@ -66,6 +66,7 @@ The subject states that **consistency between the class model, the NoSQL schema,
 | NFR-4 | Performance | all reads | T-PERF-1, index tests |
 | NFR-5 | Security | all | T-SEC-*, T-AUTH-* |
 | NFR-6 | Availability / backups | — | restore drill, Kuma report |
+| M14 | Report and defence pack | `report/build.sh`, `scripts/collect-evidence.sh`, `report/defence/` | report build, evidence manifest, demo script |
 
 ## 3. Deployment consistency checklist
 

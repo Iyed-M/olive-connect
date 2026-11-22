@@ -92,9 +92,20 @@ WORKDIR /app
 COPY mvnw ./
 COPY .mvn .mvn
 COPY pom.xml ./
-RUN ./mvnw -q dependency:go-offline
+# Retry transient Maven Central failures on clean builders.
+RUN for attempt in 1 2 3 4 5; do \
+      if MVNW_VERBOSE=true ./mvnw -q dependency:go-offline; then exit 0; fi; \
+      echo "Maven dependency prefetch failed (attempt ${attempt}/5); retrying" >&2; \
+      sleep $((attempt * 5)); \
+    done; \
+    exit 1
 COPY src src
-RUN ./mvnw -q package -DskipTests
+RUN for attempt in 1 2 3 4 5; do \
+      if MVNW_VERBOSE=true ./mvnw -q package -DskipTests; then exit 0; fi; \
+      echo "Maven package failed (attempt ${attempt}/5); retrying" >&2; \
+      sleep $((attempt * 5)); \
+    done; \
+    exit 1
 
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S app && adduser -S app -G app
@@ -415,3 +426,15 @@ flowchart LR
     GRAF -- alert --> MAIL[Email / Telegram]
     KUMA -- alert --> MAIL
 ```
+
+## 9. M14 report build and release evidence
+
+From a clean clone, `report/build.sh` renders the Mermaid sources, derives the
+three focused class views from `docs/04-uml-design.md`, and builds
+`report/OliveConnect-report.pdf` and `report/OliveConnect-report.docx`. It uses
+local Pandoc or the pinned `pandoc/extra:3.6.3` container; Mermaid rendering
+requires Chrome or Chromium (`CHROME_PATH` selects a non-default executable).
+The runtime evidence
+register is produced separately by `scripts/collect-evidence.sh`; build-time
+missing evidence is recorded as `not collected` rather than replaced with a
+claim.

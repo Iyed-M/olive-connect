@@ -19,6 +19,24 @@ backend/target/
 # Frontend (Node / Vite)
 node_modules/
 frontend/dist/
+frontend/playwright-report/
+frontend/test-results/
+
+# M14 report build outputs and runtime evidence
+report/.build/
+report/OliveConnect-report.pdf
+report/OliveConnect-report.docx
+report/evidence/*
+!report/evidence/.gitkeep
+report/evidence/*.json
+report/evidence/*.log
+report/evidence/*.xml
+report/evidence/*.html
+report/evidence/screenshots/
+report/diagrams/*.md
+report/diagrams/*.mmd
+report/diagrams/*.svg
+report/diagrams/*.png
 
 # Editors / OS
 .idea/
