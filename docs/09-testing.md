@@ -24,7 +24,7 @@ flowchart TB
 | Web/security | `@WebMvcTest` + `spring-security-test` (`@WithMockUser`) | Status codes, validation errors, role access (403), JSON shape | every build |
 | Integration | `@SpringBootTest` + `MockMvc` + Testcontainers (Mongo replica set + Redis) | Full layers incl. transactions, cache, SSE | every build (CI) |
 | Frontend | Vitest + React Testing Library + MSW (mocked API) | Forms, role-based rendering, error display. Built so far (M1a): Vitest unit tests of the pure auth functions (`priorityRole`, `activeRole` fallback, `safeRedirect`). M1b: Vitest tests of the user form's error mapping (`fieldMessages`, `errorBanner` in `admin/users.ts`). M13 adds onboarding persistence and role-tour resolver tests | every build |
-| E2E | Playwright (mobile viewport 390×844 + desktop) | Real browser → Nginx → API → DB | before release |
+| E2E | Playwright (mobile viewport 390×844 + desktop) | Real browser → Nginx → API → DB | every PR and before release |
 | Load | **k6** | NFR-4: 100 concurrent users, map/search < 10 s | before release, on the VPS |
 | Manual | Checklist on a real phone | Geolocation, usability in the field, guided tour | before demo |
 
@@ -250,4 +250,4 @@ each account whose evidence credentials are configured.
 
 ## 4. CI
 
-A GitHub Actions pipeline runs on each pull request and push to `main`: `./mvnw -B -U verify` (unit, slice and Testcontainers tests), then `pnpm install --frozen-lockfile && pnpm lint && pnpm test && pnpm build`, then the Docker image build (`docker compose -f deploy/docker-compose.yml build`). On a successful `main` push, a separate E2E job starts the production compose dependencies, installs Chromium and runs `pnpm e2e` for the mobile and desktop projects. The Mermaid render check is the separate `.github/workflows/docs.yml`; deployment waits for the CI workflow and is defined in `.github/workflows/deploy.yml`.
+A GitHub Actions pipeline runs on each pull request and push to `main`: `./mvnw -B -U verify` (unit, slice and Testcontainers tests), then `pnpm install --frozen-lockfile && pnpm lint && pnpm test && pnpm build`, then deployment validation and the Docker image build (`docker compose -f deploy/docker-compose.yml build`). The E2E job starts the production compose dependencies, installs Chromium and runs `pnpm e2e` for the mobile and desktop projects on both pull requests and successful `main` pushes. The Mermaid render check is the separate `.github/workflows/docs.yml`; deployment waits for the CI workflow and is defined in `.github/workflows/deploy.yml`.

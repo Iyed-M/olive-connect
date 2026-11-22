@@ -1,16 +1,15 @@
-# ---- Stage 1: build the jar (JDK + Maven wrapper) ----
-FROM eclipse-temurin:21-jdk AS build
+# ---- Stage 1: build the jar (Maven + JDK) ----
+# Keep Maven in the builder image so every Docker build does not have to
+# download the Maven distribution from Maven Central.
+FROM maven:3.10.0-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 
 # Copy only the Maven files first, so the dependency layer is cached
 # until pom.xml changes.
-COPY mvnw ./
-COPY .mvn .mvn
 COPY pom.xml ./
-# GitHub runners and fresh VPS builders have no Maven Wrapper cache. Retry
-# transient Maven Central failures without hiding the wrapper download URL.
+# Retry transient Maven Central failures while resolving project dependencies.
 RUN for attempt in 1 2 3 4 5; do \
-      if MVNW_VERBOSE=true ./mvnw -q dependency:go-offline; then exit 0; fi; \
+      if mvn -B -q dependency:go-offline; then exit 0; fi; \
       echo "Maven dependency prefetch failed (attempt ${attempt}/5); retrying" >&2; \
       sleep $((attempt * 5)); \
     done; \
@@ -19,7 +18,7 @@ RUN for attempt in 1 2 3 4 5; do \
 # Now copy the sources and build the executable jar (tests run in CI, not here).
 COPY src src
 RUN for attempt in 1 2 3 4 5; do \
-      if MVNW_VERBOSE=true ./mvnw -q package -DskipTests; then exit 0; fi; \
+      if mvn -B -q package -DskipTests; then exit 0; fi; \
       echo "Maven package failed (attempt ${attempt}/5); retrying" >&2; \
       sleep $((attempt * 5)); \
     done; \
