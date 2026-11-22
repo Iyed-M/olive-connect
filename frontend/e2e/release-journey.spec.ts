@@ -119,9 +119,9 @@ test('admin approval leads to a farmer role journey', async ({ page }, testInfo)
   await expect(page.getByRole('heading', { name: 'Change your password' })).toBeVisible()
 
   const newPassword = 'E2eFarmerPassword!2026'
-  await page.getByLabel('Current password').fill(temporaryPassword)
-  await page.getByLabel('New password').fill(newPassword)
-  await page.getByLabel('Confirm new password').fill(newPassword)
+  await page.getByLabel('Current password', { exact: true }).fill(temporaryPassword)
+  await page.getByLabel('New password', { exact: true }).fill(newPassword)
+  await page.getByLabel('Confirm new password', { exact: true }).fill(newPassword)
   const passwordChange = page.waitForResponse((candidate) => apiResponse(candidate, '/api/me/password', 'PATCH'))
   await page.getByRole('button', { name: 'Change password' }).click()
   expect((await passwordChange).status()).toBe(204)
